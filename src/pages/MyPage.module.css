@@ -1,0 +1,307 @@
+.container {
+  min-height: 100vh;
+  background: var(--color-bg);
+  padding: 0 0 40px;
+}
+
+.inner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.backBtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.2s;
+}
+.backBtn:hover { color: var(--color-text); }
+
+/* Profile Card */
+.profileCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 36px 28px;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: #fff;
+  font-size: 32px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.nickName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.editBtn {
+  background: none;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.editBtn:hover {
+  border-color: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* Nickname edit form */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.editInput {
+  width: 100%;
+  max-width: 240px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.editInput:focus { border-color: var(--color-primary-light); }
+.error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+.editBtnRow {
+  display: flex;
+  gap: 8px;
+}
+.cancelBtn {
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  background: var(--color-border-light);
+  border: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.saveBtn {
+  padding: 8px 20px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.saveBtn:hover:not(:disabled) { background: var(--color-primary-light); }
+.saveBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Menu */
+.menuSection {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.logoutBtn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.logoutBtn:hover { background: var(--color-surface-2); }
+.menuArrow { color: var(--color-text-light); font-size: 16px; }
+
+/* Danger zone */
+.dangerSection {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.dangerLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+.deleteBtn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--color-danger);
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: opacity 0.2s;
+}
+.deleteBtn:hover { opacity: 0.7; }
+
+/* Info Card */
+.infoCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.infoCardTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.infoRow:last-child { border-bottom: none; }
+
+.infoLabel {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.infoValue {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.infoValueHighlight {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.infoLoading {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.skeletonRow {
+  height: 18px;
+  border-radius: 6px;
+}
+
+.infoError {
+  font-size: 13px;
+  color: var(--color-text-light);
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.modal {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: 36px 28px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+  animation: fadeInScale 0.2s ease;
+}
+.modalIcon { font-size: 36px; margin-bottom: 12px; }
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+.modalDesc {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.modalBtns {
+  display: flex;
+  gap: 10px;
+}
+.modalCancel {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-border-light);
+  border: 1px solid var(--color-border);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.modalCancel:hover:not(:disabled) { background: var(--color-border); }
+.modalConfirm {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.modalConfirm:hover:not(:disabled) { opacity: 0.85; }
+.modalConfirm:disabled,
+.modalCancel:disabled { opacity: 0.45; cursor: not-allowed; }

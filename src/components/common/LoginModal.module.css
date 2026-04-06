@@ -1,0 +1,152 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+.modal {
+  position: relative;
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  padding: 40px 32px 28px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow-xl);
+  animation: fadeInScale 0.25s ease;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-border-light);
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.closeBtn:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.headerIcon {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 12px;
+  animation: wave 2s ease-in-out infinite;
+}
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+.subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.providerBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.providerIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* 카카오 */
+.kakao {
+  background: #FEE500;
+  color: #191919;
+}
+.kakao:hover {
+  background: #F0D800;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(254, 229, 0, 0.4);
+}
+.kakao:active { transform: translateY(0); }
+
+/* 네이버 */
+.naver {
+  background: #03C75A;
+  color: #fff;
+}
+
+/* 구글 */
+.google {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border) !important;
+}
+
+/* 비활성 */
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+}
+.naver .badge { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.google .badge { background: var(--color-border); color: var(--color-text-muted); }
+
+.terms {
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-text-light);
+  line-height: 1.6;
+}
+.terms span {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.terms span:hover { color: var(--color-primary); }
