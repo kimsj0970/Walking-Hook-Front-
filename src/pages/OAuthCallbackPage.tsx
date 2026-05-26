@@ -43,8 +43,8 @@ export default function OAuthCallbackPage() {
     }
 
     oauthLogin(provider, code)
-      .then(({ accessToken, nickName }) => {
-        login(accessToken, nickName);
+      .then(({ accessToken, nickName, role }) => {
+        login(accessToken, nickName, role);
         // 닉네임 없으면 닉네임 설정 페이지로
         if (!nickName) {
           navigate('/nickname', { replace: true });
