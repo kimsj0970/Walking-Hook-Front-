@@ -2,6 +2,17 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
+// accessToken은 메모리에만 보관 (XSS 탈취 방지)
+let inMemoryToken: string | null = null;
+
+export function setInMemoryToken(token: string | null) {
+  inMemoryToken = token;
+}
+
+export function getInMemoryToken(): string | null {
+  return inMemoryToken;
+}
+
 const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // refresh token 쿠키 자동 전송
@@ -9,9 +20,8 @@ const api = axios.create({
 
 // 요청마다 Authorization 헤더 자동 추가
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (inMemoryToken) {
+    config.headers.Authorization = `Bearer ${inMemoryToken}`;
   }
   return config;
 });
@@ -29,7 +39,6 @@ api.interceptors.response.use(
       original._retry = true;
 
       try {
-        // 이미 재발급 중이면 기존 Promise 재사용
         if (!refreshPromise) {
           refreshPromise = axios
             .post(`${BASE_URL}/user/reissue`, {}, { withCredentials: true })
@@ -37,12 +46,11 @@ api.interceptors.response.use(
               const newToken: string = data.data.accessToken;
               const newNickname: string | null = data.data.userNickName ?? null;
 
-              localStorage.setItem('accessToken', newToken);
-              if (newNickname) localStorage.setItem('nickname', newNickname);
+              setInMemoryToken(newToken);
 
               window.dispatchEvent(
                 new CustomEvent('token-refreshed', {
-                  detail: { accessToken: newToken, nickname: newNickname },
+                  detail: { accessToken: newToken, nickname: newNickname, role: parseJwtRole(newToken) },
                 })
               );
 
@@ -57,8 +65,7 @@ api.interceptors.response.use(
         original.headers.Authorization = `Bearer ${newToken}`;
         return api(original);
       } catch {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('nickname');
+        setInMemoryToken(null);
         window.dispatchEvent(new Event('auth-expired'));
         return Promise.reject(error);
       }
@@ -68,11 +75,23 @@ api.interceptors.response.use(
   }
 );
 
+// ─── JWT 파싱 ────────────────────────────────────────────────────────────────
+
+function parseJwtRole(token: string): string {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return (payload.role as string) ?? 'USER';
+  } catch {
+    return 'USER';
+  }
+}
+
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 
 export interface AuthResult {
   accessToken: string;
   nickName: string | null;
+  role: string;
 }
 
 // ─── API 함수 ─────────────────────────────────────────────────────────────────
@@ -80,15 +99,50 @@ export interface AuthResult {
 /** OAuth 로그인 */
 export async function oauthLogin(provider: string, code: string): Promise<AuthResult> {
   const { data } = await api.post(`/oauth/${provider}`, { code });
+  const accessToken: string = data.data.accessToken;
   return {
-    accessToken: data.data.accessToken,
+    accessToken,
     nickName: data.data.userNickName ?? null,
+    role: parseJwtRole(accessToken),
   };
 }
 
-/** 닉네임 설정 / 변경 */
+/** 앱 시작 시 silent refresh (httpOnly 쿠키 → 메모리 토큰 복원) */
+export async function silentRefresh(): Promise<AuthResult | null> {
+  try {
+    const { data } = await axios.post(
+      `${BASE_URL}/user/reissue`,
+      {},
+      { withCredentials: true }
+    );
+    const accessToken: string = data.data.accessToken;
+    return {
+      accessToken,
+      nickName: data.data.userNickName ?? null,
+      role: parseJwtRole(accessToken),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** 최초 닉네임 설정 (쿨다운 없음) */
+export async function setInitialNicknameApi(nickName: string): Promise<void> {
+  await api.patch('/user/nickname', { nickName });
+}
+
+/** 닉네임 변경 (30일 쿨다운 적용) */
 export async function updateNicknameApi(nickName: string): Promise<void> {
   await api.patch('/user/update', { nickName });
+}
+
+/** 약관 동의 */
+export async function agreeToTermsApi(params: {
+  termsAgreed: boolean;
+  privacyAgreed: boolean;
+  marketingAgreed: boolean;
+}): Promise<void> {
+  await api.post('/user/terms', params);
 }
 
 /** 로그아웃 */
@@ -108,6 +162,8 @@ export interface UserInfoResponse {
   provider: string;
   email: string;
   point: number;
+  role?: string;
+  nicknameChangedAt?: string | null;
 }
 
 export async function getMyInfoApi(): Promise<UserInfoResponse> {
