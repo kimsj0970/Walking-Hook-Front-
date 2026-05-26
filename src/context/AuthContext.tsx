@@ -6,39 +6,80 @@ import {
   useEffect,
   type ReactNode,
 } from 'react';
-import { logoutApi, deleteUserApi, updateNicknameApi } from '../api/authApi';
+import {
+  logoutApi,
+  deleteUserApi,
+  updateNicknameApi,
+  setInitialNicknameApi,
+  silentRefresh,
+  setInMemoryToken,
+} from '../api/authApi';
 
 interface AuthContextType {
   accessToken: string | null;
   nickname: string | null;
   isLoggedIn: boolean;
+  isAdmin: boolean;
   needsNickname: boolean;
-  login: (token: string, nickname: string | null) => void;
+  isInitializing: boolean;
+  login: (token: string, nickname: string | null, role?: string) => void;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  setInitialNickname: (nickname: string) => Promise<void>;
   setNickname: (nickname: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [accessToken, setAccessToken] = useState<string | null>(
-    () => localStorage.getItem('accessToken')
-  );
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [nickname, setNicknameState] = useState<string | null>(
-    () => localStorage.getItem('nickname')
+    () => localStorage.getItem('nickname') // 닉네임은 표시용이라 localStorage 유지
   );
+  const [role, setRoleState] = useState<string>(
+    () => localStorage.getItem('role') ?? 'USER'
+  );
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  // 앱 시작 시 httpOnly 쿠키로 조용히 토큰 복원
+  useEffect(() => {
+    silentRefresh().then((result) => {
+      if (result) {
+        setInMemoryToken(result.accessToken);
+        setAccessToken(result.accessToken);
+        if (result.nickName) {
+          localStorage.setItem('nickname', result.nickName);
+          setNicknameState(result.nickName);
+        }
+        if (result.role) {
+          localStorage.setItem('role', result.role);
+          setRoleState(result.role);
+        }
+      }
+    }).finally(() => {
+      setIsInitializing(false);
+    });
+  }, []);
 
   useEffect(() => {
     const handleRefresh = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { accessToken: string; nickname: string | null };
+      const detail = (e as CustomEvent).detail as { accessToken: string; nickname: string | null; role?: string };
       setAccessToken(detail.accessToken);
-      if (detail.nickname) setNicknameState(detail.nickname);
+      if (detail.nickname) {
+        localStorage.setItem('nickname', detail.nickname);
+        setNicknameState(detail.nickname);
+      }
+      if (detail.role) {
+        localStorage.setItem('role', detail.role);
+        setRoleState(detail.role);
+      }
     };
     const handleExpired = () => {
       setAccessToken(null);
       setNicknameState(null);
-      // 리프레시 토큰 만료 → 알림 후 홈으로 리다이렉트
+      setRoleState('USER');
+      localStorage.removeItem('nickname');
+      localStorage.removeItem('role');
       alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
       window.location.href = '/';
     };
@@ -51,8 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback((token: string, nick: string | null) => {
-    localStorage.setItem('accessToken', token);
+  const login = useCallback((token: string, nick: string | null, r?: string) => {
+    setInMemoryToken(token);
     setAccessToken(token);
     if (nick) {
       localStorage.setItem('nickname', nick);
@@ -61,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('nickname');
       setNicknameState(null);
     }
+    const newRole = r ?? 'USER';
+    localStorage.setItem('role', newRole);
+    setRoleState(newRole);
   }, []);
 
   const logout = useCallback(async () => {
@@ -69,19 +113,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // 서버 실패해도 로컬은 정리
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('nickname');
+      setInMemoryToken(null);
       setAccessToken(null);
       setNicknameState(null);
+      setRoleState('USER');
+      localStorage.removeItem('nickname');
+      localStorage.removeItem('role');
     }
   }, []);
 
   const deleteAccount = useCallback(async () => {
     await deleteUserApi();
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('nickname');
+    setInMemoryToken(null);
     setAccessToken(null);
     setNicknameState(null);
+    setRoleState('USER');
+    localStorage.removeItem('nickname');
+    localStorage.removeItem('role');
+  }, []);
+
+  const setInitialNickname = useCallback(async (nick: string) => {
+    await setInitialNicknameApi(nick);
+    localStorage.setItem('nickname', nick);
+    setNicknameState(nick);
   }, []);
 
   const setNickname = useCallback(async (nick: string) => {
@@ -91,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isLoggedIn = !!accessToken;
+  const isAdmin = isLoggedIn && role === 'ADMIN';
   const needsNickname = isLoggedIn && !nickname;
 
   return (
@@ -99,10 +154,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accessToken,
         nickname,
         isLoggedIn,
+        isAdmin,
         needsNickname,
+        isInitializing,
         login,
         logout,
         deleteAccount,
+        setInitialNickname,
         setNickname,
       }}
     >
