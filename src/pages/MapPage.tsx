@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchAllHarbors, type HarborWithCity } from '../api/harborsApi';
 import styles from './MapPage.module.css';
 
 /** 카카오맵 SDK 동적 로드 */
@@ -14,15 +13,6 @@ function loadKakaoSDK(appKey: string): Promise<void> {
     script.onerror = () => reject(new Error('카카오맵 스크립트 로드 실패'));
     document.head.appendChild(script);
   });
-}
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 export default function MapPage() {
@@ -97,8 +87,15 @@ export default function MapPage() {
             );
           }
 
-          // 항 데이터는 별도로 로드 (실패해도 지도는 유지)
-          // TODO: 백엔드 연동 후 주석 해제
+          // TODO: 항 마커 표시 기능 활성화 방법
+          // 1. 상단에 import 추가:
+          //    import { fetchAllHarbors, type HarborWithCity } from '../api/harborsApi';
+          // 2. escapeHtml 함수 복구 (XSS 방지용, harbor.name/city를 HTML에 직접 삽입하므로 필수):
+          //    function escapeHtml(str: string): string {
+          //      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+          //                .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+          //    }
+          // 3. 아래 주석 블록 해제
           /* fetchAllHarbors()
             .then((harbors) => {
               if (cancelled) return;
