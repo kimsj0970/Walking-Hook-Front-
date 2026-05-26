@@ -1,21 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import FishProbabilityCard, { FISH_LIST, type FishData } from '../components/fish/FishProbabilityCard';
+import { fetchCities, fetchHarborsByCity, type Harbor } from '../api/harborsApi';
 import styles from './HomePage.module.css';
 
-// 현재 날씨 정보 (추후 API 연동)
 const DUMMY_CONDITIONS = {
-  location: '태안 학암포',
   waterTemp: null as number | null,
   windSpeed: null as number | null,
   tideStatus: null as string | null,
-  updatedAt: null as string | null,
 };
 
 export default function HomePage() {
-  // 추후 API 연동 시 상태로 관리
+  const [searchParams] = useSearchParams();
+
   const [fishList] = useState<FishData[]>(FISH_LIST);
   const [conditions] = useState(DUMMY_CONDITIONS);
+
+  const [cities, setCities] = useState<string[]>([]);
+  const [harbors, setHarbors] = useState<Harbor[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [selectedPortId, setSelectedPortId] = useState<string>('');
+
+  // 지도에서 돌아왔을 때 선택 복원
+  useEffect(() => {
+    const city = searchParams.get('city') ?? '';
+    const portId = searchParams.get('portId') ?? '';
+    if (city) setSelectedCity(city);
+    if (portId) setSelectedPortId(portId);
+  }, [searchParams]);
+
+  // 시 목록 로드
+  useEffect(() => {
+    fetchCities().then(setCities).catch(() => {});
+  }, []);
+
+  // 시 변경 시 항 목록 로드
+  useEffect(() => {
+    if (!selectedCity) { setHarbors([]); setSelectedPortId(''); return; }
+    fetchHarborsByCity(selectedCity)
+      .then((list) => {
+        setHarbors(list);
+        // 지도에서 복원된 portId가 없으면 첫 항 자동 선택
+        setSelectedPortId((prev) => prev || (list[0]?.id ?? ''));
+      })
+      .catch(() => {});
+  }, [selectedCity]);
 
   const now = new Date();
   const timeStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${now.getHours()}시 기준`;
@@ -38,29 +68,63 @@ export default function HomePage() {
               <span className={styles.heroAccent}>어떤 어종</span>이 잡힐까요?
             </h1>
             <p className={styles.heroDesc}>
-              수온·조류·기압·풍속·물때를 분석해
+              최적의 낚시 환경을 분석하여 정보를 제공합니다.
               <br />
-              Walking 낚시 시 어종별 조황 확률을 실시간으로 알려드립니다.
+              원하는 어종을 클릭하여 자세한 정보를 확인해보세요.
             </p>
 
-            {/* 현재 조건 요약 */}
-            <div className={styles.conditionRow}>
-              <ConditionChip icon="📍" label={conditions.location} />
-              <ConditionChip
-                icon="🌡️"
-                label={conditions.waterTemp != null ? `수온 ${conditions.waterTemp}℃` : '수온 수집 중'}
+            {/* 수온 / 풍속 / 물때 카드 */}
+            <div className={styles.conditionCards}>
+              <ConditionCard
+                icon="🌡"
+                label="수온"
+                value={conditions.waterTemp != null ? `${conditions.waterTemp}℃` : '수집 중...'}
                 loading={conditions.waterTemp == null}
               />
-              <ConditionChip
+              <ConditionCard
                 icon="💨"
-                label={conditions.windSpeed != null ? `풍속 ${conditions.windSpeed}m/s` : '풍속 수집 중'}
+                label="풍속"
+                value={conditions.windSpeed != null ? `${conditions.windSpeed}m/s` : '수집 중...'}
                 loading={conditions.windSpeed == null}
               />
-              <ConditionChip
+              <ConditionCard
                 icon="🌊"
-                label={conditions.tideStatus ?? '물때 수집 중'}
+                label="물때"
+                value={conditions.tideStatus ?? '수집 중...'}
                 loading={conditions.tideStatus == null}
               />
+            </div>
+
+            {/* 시/항 선택 + 지도 버튼 */}
+            <div className={styles.locationBar}>
+              <span className={styles.locationIcon}>📍</span>
+              <select
+                className={styles.locationSelect}
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+              >
+                <option value="">시 선택</option>
+                {cities.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                className={styles.locationSelect}
+                value={selectedPortId}
+                onChange={(e) => setSelectedPortId(e.target.value)}
+                disabled={harbors.length === 0}
+              >
+                <option value="">항 선택</option>
+                {harbors.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+              <button
+                className={styles.mapBtn}
+                onClick={() => window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes')}
+              >
+                지도로 보기
+              </button>
             </div>
           </div>
 
@@ -88,18 +152,14 @@ export default function HomePage() {
                 <FishProbabilityCard
                   key={fish.id}
                   fish={fish}
-                  onClick={() => {/* 추후 상세 페이지 연결 */}}
+                  onClick={() => {}}
                 />
               ))}
             </div>
 
-            {/* 데이터 준비 중 안내 */}
             <div className={styles.noticeBanner}>
               <span className={styles.noticeIcon}>🔧</span>
-              <span>
-                현재 해양·기상 API 연동 준비 중입니다.
-                곧 실시간 데이터가 제공됩니다.
-              </span>
+              <span>현재 해양·기상 API 연동 준비 중입니다. 곧 실시간 데이터가 제공됩니다.</span>
             </div>
           </div>
         </section>
@@ -112,7 +172,6 @@ export default function HomePage() {
               <span className={styles.sectionSub}>낚시 조황을 공유해보세요</span>
             </div>
 
-            {/* 빈 상태 */}
             <div className={styles.emptyState}>
               <div className={styles.emptyIcon}>🎣</div>
               <p className={styles.emptyTitle}>아직 게시물이 없습니다</p>
@@ -121,15 +180,12 @@ export default function HomePage() {
                 <br />
                 여러분의 데이터가 조황 확률에 반영됩니다.
               </p>
-              <button className={styles.emptyBtn}>
-                게시물 작성하기
-              </button>
+              <button className={styles.emptyBtn}>게시물 작성하기</button>
             </div>
           </div>
         </section>
       </main>
 
-      {/* 푸터 */}
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <span className={styles.footerLogo}>🎣 Walking Hook</span>
@@ -140,11 +196,16 @@ export default function HomePage() {
   );
 }
 
-function ConditionChip({ icon, label, loading }: { icon: string; label: string; loading?: boolean }) {
+function ConditionCard({
+  icon, label, value, loading,
+}: {
+  icon: string; label: string; value: string; loading?: boolean;
+}) {
   return (
-    <div className={`${styles.chip} ${loading ? styles.chipLoading : ''}`}>
-      <span>{icon}</span>
-      <span>{label}</span>
+    <div className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''}`}>
+      <span className={styles.conditionCardIcon}>{icon}</span>
+      <span className={styles.conditionCardLabel}>{label}</span>
+      <span className={styles.conditionCardValue}>{value}</span>
     </div>
   );
 }
