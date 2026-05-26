@@ -1,0 +1,121 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0f4f8;
+  position: relative;
+}
+
+/* ─── 상단 헤더 ─── */
+.topBar {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(90deg, #0B3D91 0%, #1565C0 100%);
+  padding: 14px 20px;
+  gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.backBtn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.backBtn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
+/* backBtn과 균형 맞추기 */
+.spacer {
+  width: 90px;
+}
+
+/* ─── 안내 문구 ─── */
+.hint {
+  text-align: center;
+  font-size: 12px;
+  color: #64748B;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid #E2E8F0;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* ─── 지도 본체 ─── */
+.map {
+  flex: 1;
+  width: 100%;
+}
+
+/* ─── 로딩/에러 오버레이 ─── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(240, 244, 248, 0.92);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  font-size: 14px;
+  color: #334155;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #0096C7;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorText {
+  font-size: 14px;
+  color: #DC2626;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+.retryBtn {
+  padding: 10px 24px;
+  background: linear-gradient(90deg, #0B3D91, #0096C7);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.retryBtn:hover {
+  opacity: 0.88;
+}
