@@ -10,6 +10,7 @@
   padding: 24px;
 }
 
+/* ── 모달 기본 (소셜 선택 화면) ─────────────────────── */
 .modal {
   position: relative;
   background: var(--color-surface);
@@ -19,6 +20,14 @@
   max-width: 380px;
   box-shadow: var(--shadow-xl);
   animation: fadeInScale 0.25s ease;
+}
+
+/* 약관 동의 화면은 세로로 더 넓게 */
+.modalConsent {
+  padding: 28px 28px 24px;
+  max-width: 420px;
+  max-height: 88vh;
+  overflow-y: auto;
 }
 
 .closeBtn {
@@ -43,6 +52,7 @@
   color: var(--color-text);
 }
 
+/* ── 소셜 선택 화면 ──────────────────────────────────── */
 .header {
   text-align: center;
   margin-bottom: 28px;
@@ -93,38 +103,14 @@
   flex-shrink: 0;
 }
 
-/* 카카오 */
-.kakao {
-  background: #FEE500;
-  color: #191919;
-}
-.kakao:hover {
-  background: #F0D800;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(254, 229, 0, 0.4);
-}
+.kakao { background: #FEE500; color: #191919; }
+.kakao:hover { background: #F0D800; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(254, 229, 0, 0.4); }
 .kakao:active { transform: translateY(0); }
 
-/* 네이버 */
-.naver {
-  background: #03C75A;
-  color: #fff;
-}
+.naver { background: #03C75A; color: #fff; }
+.google { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border) !important; }
 
-/* 구글 */
-.google {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-border) !important;
-}
-
-/* 비활성 */
-.disabled {
-  opacity: 0.5;
-  cursor: not-allowed !important;
-  transform: none !important;
-  box-shadow: none !important;
-}
+.disabled { opacity: 0.5; cursor: not-allowed !important; transform: none !important; box-shadow: none !important; }
 
 .badge {
   margin-left: auto;
@@ -144,9 +130,194 @@
   color: var(--color-text-light);
   line-height: 1.6;
 }
-.terms span {
-  text-decoration: underline;
-  text-underline-offset: 2px;
+.terms span { text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.terms span:hover { color: var(--color-primary); }
+
+/* ── 약관 동의 화면 ──────────────────────────────────── */
+.consentHeader {
+  margin-bottom: 20px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  margin-bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+}
+.backBtn:hover { color: var(--color-text); }
+
+.consentTitle {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 6px;
+}
+
+.consentSubtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* 전체 동의 */
+.agreeAllRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(11, 61, 145, 0.04);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.agreeAllRow:hover { background: rgba(11, 61, 145, 0.08); }
+
+.agreeAllLabel {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.agreeAllSub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: 12px 0;
+}
+
+/* 개별 항목 목록 */
+.consentList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 20px;
+}
+
+.consentItem {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid transparent;
+  transition: border-color 0.12s;
+}
+.consentItem:has(.consentContent) {
+  border-color: var(--color-border);
+}
+
+.consentRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 10px;
   cursor: pointer;
 }
-.terms span:hover { color: var(--color-primary); }
+.consentRow:hover { background: var(--color-bg); }
+
+.consentLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.requiredBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.required { background: rgba(11, 61, 145, 0.1); color: var(--color-primary); }
+.optional { background: rgba(100, 116, 139, 0.1); color: var(--color-text-muted); }
+
+.consentLabelText {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.viewBtn {
+  background: none;
+  border: none;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+.viewBtn:hover { background: var(--color-border-light); color: var(--color-text); }
+
+/* 전문 내용 */
+.consentContent {
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border-light);
+  padding: 14px 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.consentText {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  font-family: inherit;
+}
+
+/* 진행 버튼 */
+.proceedBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+.proceedBtn:hover:not(:disabled) {
+  background: var(--color-primary-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(11, 61, 145, 0.3);
+}
+.proceedBtn:active:not(:disabled) { transform: translateY(0); }
+
+.proceedDisabled {
+  background: var(--color-border) !important;
+  color: var(--color-text-muted) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.proceedHint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-light);
+}
