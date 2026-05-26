@@ -68,9 +68,19 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.editBtn:hover {
+.editBtn:hover:not(:disabled) {
   border-color: var(--color-primary-light);
   color: var(--color-primary);
+}
+.editBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.nickNote {
+  font-size: 12px;
+  color: var(--color-text-light);
+  margin-top: -4px;
 }
 
 /* Nickname edit form */
