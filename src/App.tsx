@@ -7,6 +7,8 @@ import HomePage from './pages/HomePage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NicknamePage from './pages/NicknamePage';
 import MyPage from './pages/MyPage';
+import MapPage from './pages/MapPage';
+import AdminPage from './pages/admin/AdminPage';
 
 export default function App() {
   return (
@@ -17,6 +19,8 @@ export default function App() {
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
           <Route path="/nickname" element={<PrivateRoute><NicknamePage /></PrivateRoute>} />
           <Route path="/my" element={<PrivateRoute><MyPage /></PrivateRoute>} />
+          <Route path="/map" element={<MapPage />} />
+          <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
