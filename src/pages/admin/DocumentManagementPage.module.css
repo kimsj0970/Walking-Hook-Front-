@@ -1,0 +1,226 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  animation: fadeIn 0.2s ease;
+}
+
+.pageHeader { display: flex; flex-direction: column; gap: 6px; }
+.pageTitle { font-size: 22px; font-weight: 800; color: var(--color-text); }
+.pageSubtitle { font-size: 13px; color: var(--color-text-muted); }
+
+/* ── 섹션 ── */
+.section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* ── 현재 문서 ── */
+.loadingBox {
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.currentDoc {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+}
+
+.docIcon { font-size: 28px; flex-shrink: 0; }
+.docInfo { flex: 1; min-width: 0; }
+.docName {
+  font-size: 15px; font-weight: 600; color: var(--color-text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.docMeta { font-size: 12px; color: var(--color-text-muted); margin-top: 3px; }
+
+.deleteDocBtn {
+  padding: 7px 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-danger);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.deleteDocBtn:hover { background: rgba(239, 68, 68, 0.15); }
+
+.emptyDoc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+.emptyIcon { font-size: 32px; }
+
+/* ── 경고 ── */
+.replaceWarning {
+  padding: 10px 14px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* ── 드롭존 ── */
+.dropzone {
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--color-bg);
+}
+.dropzone:hover { border-color: var(--color-primary-light); background: rgba(11, 61, 145, 0.02); }
+.dragging { border-color: var(--color-primary); background: rgba(11, 61, 145, 0.05); }
+.fileSelected { border-style: solid; border-color: var(--color-primary-light); padding: 20px 24px; }
+
+.hiddenInput { display: none; }
+
+.dropzoneInner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.dropIcon { font-size: 36px; }
+.dropText { font-size: 14px; font-weight: 500; color: var(--color-text); }
+.dropHint { font-size: 12px; color: var(--color-text-muted); }
+
+.selectedFile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+}
+.fileIcon { font-size: 28px; flex-shrink: 0; }
+.fileName { font-size: 14px; font-weight: 600; color: var(--color-text); word-break: break-all; }
+.fileSize { font-size: 12px; color: var(--color-text-muted); margin-top: 2px; }
+
+.clearFile {
+  margin-left: auto;
+  width: 28px; height: 28px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.clearFile:hover { background: var(--color-border-light); color: var(--color-text); }
+
+.errorMsg { font-size: 13px; color: var(--color-danger); }
+
+/* ── 업로드 버튼 ── */
+.uploadBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  align-self: flex-start;
+}
+.uploadBtn:hover:not(:disabled) { background: var(--color-primary-light); }
+.uploading { opacity: 0.75; cursor: not-allowed; }
+
+.btnSpinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.uploadingHint { font-size: 12px; color: var(--color-text-muted); }
+
+/* ── 삭제 다이얼로그 ── */
+.dialogOverlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.dialog {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+  padding: 28px;
+  width: 100%; max-width: 400px;
+  animation: fadeInScale 0.18s ease;
+}
+.dialogTitle { font-size: 17px; font-weight: 700; color: var(--color-text); margin-bottom: 12px; }
+.dialogBody { font-size: 14px; color: var(--color-text-muted); line-height: 1.6; margin-bottom: 24px; }
+.dialogBody strong { color: var(--color-text); }
+.dialogActions { display: flex; justify-content: flex-end; gap: 10px; }
+
+.cancelBtn {
+  padding: 9px 20px;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); font-size: 14px; font-weight: 500;
+  color: var(--color-text-muted); cursor: pointer; transition: all 0.15s;
+}
+.cancelBtn:hover:not(:disabled) { background: var(--color-border-light); }
+.cancelBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.confirmDeleteBtn {
+  padding: 9px 20px;
+  background: var(--color-danger); border: none;
+  border-radius: var(--radius-sm); font-size: 14px; font-weight: 600;
+  color: #fff; cursor: pointer; transition: background 0.15s;
+}
+.confirmDeleteBtn:hover:not(:disabled) { background: #dc2626; }
+.confirmDeleteBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── 토스트 ── */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: var(--color-text); color: #fff;
+  padding: 12px 24px; border-radius: var(--radius-full);
+  font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow-lg); z-index: 400;
+  animation: fadeIn 0.2s ease; pointer-events: none;
+}
