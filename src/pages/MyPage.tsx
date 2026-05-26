@@ -35,6 +35,19 @@ export default function MyPage() {
 
   const displayNick = userInfo?.nickName ?? nickname ?? '';
 
+  const cooldown = (() => {
+    const changedAt = userInfo?.nicknameChangedAt;
+    if (!changedAt) return { inCooldown: false, nextDate: null };
+    const nextAvailable = new Date(new Date(changedAt).getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (new Date() < nextAvailable) {
+      const y = nextAvailable.getFullYear();
+      const m = String(nextAvailable.getMonth() + 1).padStart(2, '0');
+      const d = String(nextAvailable.getDate()).padStart(2, '0');
+      return { inCooldown: true, nextDate: `${y}.${m}.${d}` };
+    }
+    return { inCooldown: false, nextDate: null };
+  })();
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -88,9 +101,17 @@ export default function MyPage() {
           {!editMode ? (
             <>
               <h2 className={styles.nickName}>{displayNick}</h2>
-              <button className={styles.editBtn} onClick={() => { setNewNick(displayNick); setEditMode(true); }}>
+              <button
+                className={styles.editBtn}
+                onClick={() => { setNewNick(displayNick); setEditMode(true); }}
+                disabled={cooldown.inCooldown}
+              >
                 닉네임 변경
               </button>
+              {cooldown.inCooldown
+                ? <p className={styles.nickNote}>{cooldown.nextDate}부터 변경 가능합니다</p>
+                : <p className={styles.nickNote}>닉네임은 30일에 한 번 변경할 수 있습니다</p>
+              }
             </>
           ) : (
             <form onSubmit={handleNicknameSave} className={styles.editForm}>
