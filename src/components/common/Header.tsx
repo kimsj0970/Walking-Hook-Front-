@@ -5,9 +5,14 @@ import LoginModal from './LoginModal';
 import styles from './Header.module.css';
 
 export default function Header() {
-  const { isLoggedIn, nickname } = useAuth();
+  const { isLoggedIn, isAdmin, nickname, logout } = useAuth();
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.replace('/');
+  };
 
   return (
     <>
@@ -22,16 +27,26 @@ export default function Header() {
           {/* 우측 메뉴 */}
           <div className={styles.right}>
             {isLoggedIn ? (
-              <button
-                className={styles.profileBtn}
-                onClick={() => navigate('/my')}
-                title="마이페이지"
-              >
-                <div className={styles.avatar}>
-                  {nickname ? nickname.charAt(0).toUpperCase() : '?'}
-                </div>
-                <span className={styles.profileName}>{nickname}</span>
-              </button>
+              <>
+                {isAdmin && (
+                  <button className={styles.adminBtn} onClick={() => navigate('/admin')}>
+                    관리자 페이지
+                  </button>
+                )}
+                <button className={styles.logoutBtn} onClick={handleLogout}>
+                  로그아웃
+                </button>
+                <button
+                  className={styles.profileBtn}
+                  onClick={() => navigate('/my')}
+                  title="마이페이지"
+                >
+                  <div className={styles.avatar}>
+                    {nickname ? nickname.charAt(0).toUpperCase() : '?'}
+                  </div>
+                  <span className={styles.profileName}>{nickname}</span>
+                </button>
+              </>
             ) : (
               <button
                 className={styles.loginBtn}
