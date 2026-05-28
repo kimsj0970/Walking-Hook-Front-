@@ -10,5 +10,5 @@ export interface MarineStationMarker {
 
 export async function fetchAdminMarineStations(): Promise<MarineStationMarker[]> {
   const { data } = await api.get('/admin/marine-stations');
-  return data.data as MarineStationMarker[];
+  return (data.data ?? []) as MarineStationMarker[];
 }
