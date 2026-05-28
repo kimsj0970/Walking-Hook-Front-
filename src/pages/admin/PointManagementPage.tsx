@@ -47,7 +47,7 @@ export default function PointManagementPage() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = (e: { preventDefault(): void }) => {
     e.preventDefault();
     setSearchQuery(searchInput);
   };
@@ -66,10 +66,14 @@ export default function PointManagementPage() {
     setLoadingEdit(true);
     try {
       const detail = await getFishingPoint(id);
+      if (!detail) {
+        showToast('포인트 정보를 찾을 수 없습니다.');
+        return;
+      }
       setEditTarget(detail);
       setModalOpen(true);
     } catch {
-      showToast('포인트 정보를 불러오지 못했습니다.');
+      showToast('포인트 정보를 불러오지 못했습니다. 로그인 상태와 네트워크를 확인해주세요.');
     } finally {
       setLoadingEdit(false);
     }
