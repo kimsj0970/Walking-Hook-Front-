@@ -129,7 +129,7 @@ export type FishingPointUpdateRequest = Partial<FishingPointCreateRequest>;
 export async function searchFishingPoints(name?: string): Promise<FishingPointSummary[]> {
   const params = name ? { name } : {};
   const { data } = await api.get('/admin/fish-points', { params });
-  return data.data as FishingPointSummary[];
+  return (data.data ?? []) as FishingPointSummary[];
 }
 
 export async function getFishingPoint(id: string): Promise<FishingPointDetail> {
@@ -152,7 +152,7 @@ export async function deleteFishingPoint(id: string): Promise<void> {
 
 export async function fetchPublicFishingPointsForMap(): Promise<FishingPointMapMarker[]> {
   const { data } = await api.get('/fishing-points/map');
-  return data.data as FishingPointMapMarker[];
+  return (data.data ?? []) as FishingPointMapMarker[];
 }
 
 export interface ProvinceItem {
@@ -162,12 +162,12 @@ export interface ProvinceItem {
 
 export async function fetchProvinces(): Promise<ProvinceItem[]> {
   const { data } = await api.get('/fishing-points/provinces');
-  return data.data as ProvinceItem[];
+  return (data.data ?? []) as ProvinceItem[];
 }
 
 export async function fetchFishingPointsByProvince(province: string): Promise<FishingPointMapMarker[]> {
   const { data } = await api.get('/fishing-points/by-province', { params: { province } });
-  return data.data as FishingPointMapMarker[];
+  return (data.data ?? []) as FishingPointMapMarker[];
 }
 
 export interface SpeciesAnalysis {
