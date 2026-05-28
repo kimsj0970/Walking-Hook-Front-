@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 if (!BASE_URL) {
-  throw new Error('[authApi] VITE_API_BASE_URL 환경변수가 설정되지 않았습니다. Vercel 대시보드 → Settings → Environment Variables에 추가하세요.');
+  console.error('[authApi] VITE_API_BASE_URL 환경변수가 설정되지 않았습니다. Vercel 대시보드 → Settings → Environment Variables에 추가하세요.');
 }
 
 // accessToken은 메모리에만 보관 (XSS 탈취 방지)
