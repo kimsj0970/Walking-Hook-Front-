@@ -31,6 +31,9 @@ export default function HomePage() {
   const [selectedProvince, setSelectedProvince] = useState('');
   const [selectedPointId, setSelectedPointId] = useState('');
 
+  const [provincesError, setProvincesError] = useState('');
+  const [pointsLoading, setPointsLoading] = useState(false);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<FishingAnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState('');
@@ -38,17 +41,21 @@ export default function HomePage() {
   const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProvinces().then(setProvinces).catch(() => {});
+    fetchProvinces()
+      .then(setProvinces)
+      .catch(() => setProvincesError('시/도 목록을 불러오지 못했습니다. 네트워크 또는 서버 상태를 확인해주세요.'));
   }, []);
 
   useEffect(() => {
     if (!selectedProvince) { setFishingPoints([]); setSelectedPointId(''); return; }
+    setPointsLoading(true);
     fetchFishingPointsByProvince(selectedProvince)
       .then((pts) => {
         setFishingPoints(pts);
         setSelectedPointId(pts[0]?.id ?? '');
       })
-      .catch(() => {});
+      .catch(() => { setFishingPoints([]); setSelectedPointId(''); })
+      .finally(() => setPointsLoading(false));
   }, [selectedProvince]);
 
   useEffect(() => {
@@ -128,6 +135,9 @@ export default function HomePage() {
             </div>
 
             {/* 시/포인트 선택 */}
+            {provincesError && (
+              <div className={styles.errorBanner}>⚠️ {provincesError}</div>
+            )}
             <div className={styles.locationBar}>
               <span className={styles.locationIcon}>📍</span>
               <select
@@ -135,7 +145,7 @@ export default function HomePage() {
                 value={selectedProvince}
                 onChange={(e) => setSelectedProvince(e.target.value)}
               >
-                <option value="">시/도 선택</option>
+                <option value="">{provincesError ? '서버 연결 실패' : '시/도 선택'}</option>
                 {provinces.map((p) => (
                   <option key={p.code} value={p.code}>{p.displayName}</option>
                 ))}
@@ -144,9 +154,11 @@ export default function HomePage() {
                 className={styles.locationSelect}
                 value={selectedPointId}
                 onChange={(e) => setSelectedPointId(e.target.value)}
-                disabled={fishingPoints.length === 0}
+                disabled={fishingPoints.length === 0 || pointsLoading}
               >
-                <option value="">{fishingPoints.length === 0 ? '포인트 없음' : '포인트 선택'}</option>
+                <option value="">
+                  {pointsLoading ? '불러오는 중...' : fishingPoints.length === 0 ? '포인트 없음' : '포인트 선택'}
+                </option>
                 {fishingPoints.map((fp) => (
                   <option key={fp.id} value={fp.id}>{fp.name}</option>
                 ))}
