@@ -38,8 +38,8 @@ export default function AdminMapPage() {
 
     Promise.all([
       loadKakaoSDK(appKey),
-      fetchAdminMarineStations(),
-      searchFishingPoints(),
+      fetchAdminMarineStations().catch(() => [] as MarineStationMarker[]),
+      searchFishingPoints().catch(() => [] as FishingPointSummary[]),
     ])
       .then(([, stations, fishingPoints]) => {
         if (cancelled || !mapRef.current) return;
