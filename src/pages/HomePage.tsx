@@ -1,54 +1,80 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import FishProbabilityCard, { FISH_LIST, type FishData } from '../components/fish/FishProbabilityCard';
-import { fetchCities, fetchHarborsByCity, type Harbor } from '../api/harborsApi';
+import {
+  fetchProvinces, fetchFishingPointsByProvince, analyzeFishingPoint,
+  type ProvinceItem, type FishingPointMapMarker, type FishingAnalysisResult, type SpeciesAnalysis,
+} from '../api/fishingPointApi';
 import styles from './HomePage.module.css';
 
-const DUMMY_CONDITIONS = {
-  waterTemp: null as number | null,
-  windSpeed: null as number | null,
-  tideStatus: null as string | null,
+const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
+  '광어':   { id: 'flatfish',   colorFrom: '#0077B6', colorTo: '#0096C7' },
+  '감성돔': { id: 'blackporgy', colorFrom: '#5A189A', colorTo: '#7B2FBE' },
+  '우럭':   { id: 'rockfish',   colorFrom: '#005F73', colorTo: '#0A9396' },
+  '농어':   { id: 'seabass',    colorFrom: '#AE2012', colorTo: '#CA6702' },
 };
 
+function buildFishCards(results: SpeciesAnalysis[]): FishData[] {
+  return results.map((r) => ({
+    id: FISH_META[r.species]?.id ?? r.species,
+    name: r.species,
+    probability: r.score,
+    trend: null,
+    colorFrom: FISH_META[r.species]?.colorFrom ?? '#334155',
+    colorTo:   FISH_META[r.species]?.colorTo   ?? '#64748B',
+  }));
+}
+
 export default function HomePage() {
-  const [searchParams] = useSearchParams();
+  const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
+  const [fishingPoints, setFishingPoints] = useState<FishingPointMapMarker[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedPointId, setSelectedPointId] = useState('');
 
-  const [fishList] = useState<FishData[]>(FISH_LIST);
-  const [conditions] = useState(DUMMY_CONDITIONS);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<FishingAnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState('');
 
-  const [cities, setCities] = useState<string[]>([]);
-  const [harbors, setHarbors] = useState<Harbor[]>([]);
-  const [selectedCity, setSelectedCity] = useState<string>('');
-  const [selectedPortId, setSelectedPortId] = useState<string>('');
+  const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
 
-  // 지도에서 돌아왔을 때 선택 복원
   useEffect(() => {
-    const city = searchParams.get('city') ?? '';
-    const portId = searchParams.get('portId') ?? '';
-    if (city) setSelectedCity(city);
-    if (portId) setSelectedPortId(portId);
-  }, [searchParams]);
-
-  // 시 목록 로드
-  useEffect(() => {
-    fetchCities().then(setCities).catch(() => {});
+    fetchProvinces().then(setProvinces).catch(() => {});
   }, []);
 
-  // 시 변경 시 항 목록 로드
   useEffect(() => {
-    if (!selectedCity) { setHarbors([]); setSelectedPortId(''); return; }
-    fetchHarborsByCity(selectedCity)
-      .then((list) => {
-        setHarbors(list);
-        // 지도에서 복원된 portId가 없으면 첫 항 자동 선택
-        setSelectedPortId((prev) => prev || (list[0]?.id ?? ''));
+    if (!selectedProvince) { setFishingPoints([]); setSelectedPointId(''); return; }
+    fetchFishingPointsByProvince(selectedProvince)
+      .then((pts) => {
+        setFishingPoints(pts);
+        setSelectedPointId(pts[0]?.id ?? '');
       })
       .catch(() => {});
-  }, [selectedCity]);
+  }, [selectedProvince]);
+
+  useEffect(() => {
+    if (!selectedPointId) { setAnalysisResult(null); return; }
+    setIsAnalyzing(true);
+    setAnalysisError('');
+    setExpandedSpecies(null);
+    analyzeFishingPoint(selectedPointId)
+      .then(setAnalysisResult)
+      .catch((err) => setAnalysisError(err?.response?.data?.message ?? '분석 중 오류가 발생했습니다.'))
+      .finally(() => setIsAnalyzing(false));
+  }, [selectedPointId]);
 
   const now = new Date();
   const timeStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${now.getHours()}시 기준`;
+
+  const fishCards: FishData[] = analysisResult?.results
+    ? buildFishCards(analysisResult.results)
+    : FISH_LIST.map((f) => ({ ...f, probability: null }));
+
+  const conditions = {
+    waterTemp: analysisResult?.waterTemp ?? null,
+    waveHeight: analysisResult?.waveHeight ?? null,
+    windSpeed: analysisResult?.windSpeed ?? null,
+    tideDescription: analysisResult?.tideDescription ?? null,
+  };
 
   return (
     <div className={styles.page}>
@@ -70,65 +96,70 @@ export default function HomePage() {
             <p className={styles.heroDesc}>
               최적의 낚시 환경을 분석하여 정보를 제공합니다.
               <br />
-              원하는 어종을 클릭하여 자세한 정보를 확인해보세요.
+              포인트를 선택하면 AI가 실시간으로 조황을 분석합니다.
             </p>
 
-            {/* 수온 / 풍속 / 물때 카드 */}
+            {/* 수온 / 파고 / 풍속 / 물때 카드 */}
             <div className={styles.conditionCards}>
               <ConditionCard
                 icon="🌡"
                 label="수온"
-                value={conditions.waterTemp != null ? `${conditions.waterTemp}℃` : '수집 중...'}
-                loading={conditions.waterTemp == null}
+                value={conditions.waterTemp != null ? `${conditions.waterTemp}℃` : '—'}
+                loading={isAnalyzing}
+              />
+              <ConditionCard
+                icon="🌊"
+                label="파고"
+                value={conditions.waveHeight != null ? `${conditions.waveHeight}m` : '—'}
+                loading={isAnalyzing}
               />
               <ConditionCard
                 icon="💨"
                 label="풍속"
-                value={conditions.windSpeed != null ? `${conditions.windSpeed}m/s` : '수집 중...'}
-                loading={conditions.windSpeed == null}
+                value={conditions.windSpeed != null ? `${conditions.windSpeed}m/s` : '—'}
+                loading={isAnalyzing}
               />
               <ConditionCard
-                icon="🌊"
+                icon="🔄"
                 label="물때"
-                value={conditions.tideStatus ?? '수집 중...'}
-                loading={conditions.tideStatus == null}
+                value={conditions.tideDescription ?? '—'}
+                loading={isAnalyzing}
               />
             </div>
 
-            {/* 시/항 선택 + 지도 버튼 */}
+            {/* 시/포인트 선택 */}
             <div className={styles.locationBar}>
               <span className={styles.locationIcon}>📍</span>
               <select
                 className={styles.locationSelect}
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
+                value={selectedProvince}
+                onChange={(e) => setSelectedProvince(e.target.value)}
               >
-                <option value="">시 선택</option>
-                {cities.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                <option value="">시/도 선택</option>
+                {provinces.map((p) => (
+                  <option key={p.code} value={p.code}>{p.displayName}</option>
                 ))}
               </select>
               <select
                 className={styles.locationSelect}
-                value={selectedPortId}
-                onChange={(e) => setSelectedPortId(e.target.value)}
-                disabled={harbors.length === 0}
+                value={selectedPointId}
+                onChange={(e) => setSelectedPointId(e.target.value)}
+                disabled={fishingPoints.length === 0}
               >
-                <option value="">항 선택</option>
-                {harbors.map((h) => (
-                  <option key={h.id} value={h.id}>{h.name}</option>
+                <option value="">{fishingPoints.length === 0 ? '포인트 없음' : '포인트 선택'}</option>
+                {fishingPoints.map((fp) => (
+                  <option key={fp.id} value={fp.id}>{fp.name}</option>
                 ))}
               </select>
               <button
                 className={styles.mapBtn}
                 onClick={() => window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes')}
               >
-                지도로 보기
+                지도 보기
               </button>
             </div>
           </div>
 
-          {/* 물결 SVG */}
           <div className={styles.waveWrap}>
             <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className={styles.wave}>
               <path
@@ -139,33 +170,124 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ─── 어종별 확률 ─── */}
+        {/* ─── 출조 경고 배너 ─── */}
+        {analysisResult?.outingStatus !== 'SAFE' && analysisResult?.outingWarning && (
+          <div className={`${styles.outingBanner} ${analysisResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
+            <span className={styles.outingIcon}>
+              {analysisResult.outingStatus === 'IMPOSSIBLE' ? '⛔' : '⚠️'}
+            </span>
+            <span>{analysisResult.outingWarning}</span>
+          </div>
+        )}
+
+        {/* ─── 어종별 조황 확률 ─── */}
         <section className={styles.section}>
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>어종별 조황 확률</h2>
-              <span className={styles.sectionSub}>{timeStr}</span>
+              <h2 className={styles.sectionTitle}>어종별 조황 기대도</h2>
+              <span className={styles.sectionSub}>
+                {analysisResult ? `${analysisResult.pointName} · ${timeStr}` : timeStr}
+              </span>
             </div>
 
-            <div className={styles.fishGrid}>
-              {fishList.map((fish) => (
-                <FishProbabilityCard
-                  key={fish.id}
-                  fish={fish}
-                  onClick={() => {}}
-                />
-              ))}
-            </div>
+            {/* 분석 에러 */}
+            {analysisError && (
+              <div className={styles.errorBanner}>⚠️ {analysisError}</div>
+            )}
 
-            <div className={styles.noticeBanner}>
-              <span className={styles.noticeIcon}>🔧</span>
-              <span>현재 해양·기상 API 연동 준비 중입니다. 곧 실시간 데이터가 제공됩니다.</span>
-            </div>
+            {/* 포인트 미선택 안내 */}
+            {!selectedPointId && !isAnalyzing && (
+              <div className={styles.hintBox}>
+                📍 위에서 시/도와 낚시 포인트를 선택하면 AI 조황 분석이 시작됩니다.
+              </div>
+            )}
+
+            {/* IMPOSSIBLE 상태 — 점수 없음 */}
+            {analysisResult?.outingStatus === 'IMPOSSIBLE' ? (
+              <div className={styles.impossibleBox}>
+                <span className={styles.impossibleIcon}>⛔</span>
+                <p className={styles.impossibleTitle}>출조 불가 조건</p>
+                <p className={styles.impossibleDesc}>
+                  현재 기상 조건이 위험 수준입니다. 어종 점수 분석이 제공되지 않습니다.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className={styles.fishGrid}>
+                  {fishCards.map((fish) => (
+                    <FishProbabilityCard
+                      key={fish.id}
+                      fish={fish}
+                      onClick={
+                        analysisResult?.results
+                          ? () => setExpandedSpecies(expandedSpecies === fish.name ? null : fish.name)
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+
+                {/* 분석 중 표시 */}
+                {isAnalyzing && (
+                  <div className={styles.analyzingBanner}>
+                    <div className={styles.analyzingSpinner} />
+                    AI가 조황을 분석하고 있습니다...
+                  </div>
+                )}
+
+                {/* 포인트 선택 전 안내 배너 */}
+                {!selectedPointId && !isAnalyzing && !analysisResult && (
+                  <div className={styles.noticeBanner}>
+                    <span className={styles.noticeIcon}>🔧</span>
+                    <span>포인트를 선택하면 실시간 데이터 기반으로 분석됩니다.</span>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </section>
 
+        {/* ─── AI 분석 이유 ─── */}
+        {analysisResult?.results && analysisResult.results.length > 0 && (
+          <section className={`${styles.section} ${styles.sectionAlt}`}>
+            <div className={styles.sectionInner}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>AI 분석 이유</h2>
+                <span className={styles.sectionSub}>어종별 조황 근거</span>
+              </div>
+
+              <div className={styles.reasonGrid}>
+                {analysisResult.results.map((r) => (
+                  <div
+                    key={r.species}
+                    className={`${styles.reasonCard} ${expandedSpecies === r.species ? styles.reasonCardActive : ''}`}
+                    style={{
+                      borderLeftColor: FISH_META[r.species]?.colorFrom ?? '#334155',
+                    }}
+                    onClick={() => setExpandedSpecies(expandedSpecies === r.species ? null : r.species)}
+                  >
+                    <div className={styles.reasonHeader}>
+                      <span
+                        className={styles.reasonSpecies}
+                        style={{ color: FISH_META[r.species]?.colorFrom ?? '#334155' }}
+                      >
+                        {r.species}
+                      </span>
+                      <span className={styles.reasonScore}>{r.score}점</span>
+                      <span className={styles.reasonToggle}>{expandedSpecies === r.species ? '▲' : '▼'}</span>
+                    </div>
+                    {expandedSpecies === r.species && (
+                      <p className={styles.reasonText}>{r.reason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ─── 커뮤니티 게시판 ─── */}
-        <section className={`${styles.section} ${styles.sectionAlt}`}>
+        <section className={`${styles.section} ${analysisResult?.results ? '' : styles.sectionAlt}`}>
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>커뮤니티 조황 게시판</h2>
@@ -190,6 +312,18 @@ export default function HomePage() {
         <div className={styles.footerInner}>
           <span className={styles.footerLogo}>🎣 Walking Hook</span>
           <span className={styles.footerCopy}>실시간 조황 예측 서비스</span>
+        </div>
+        <div className={styles.footerAttrib}>
+          기상 데이터 출처: 기상청 기상자료개방포털&nbsp;
+          <a
+            href="https://data.kma.go.kr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.footerAttribLink}
+          >
+            data.kma.go.kr
+          </a>
+          &nbsp;· 공공누리 제1유형
         </div>
       </footer>
     </div>

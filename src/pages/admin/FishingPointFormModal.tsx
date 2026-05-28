@@ -31,8 +31,8 @@ const STATUS_FIELDS: BoolFieldMeta[] = [
   },
   {
     key: 'fishingAllowed',
-    label: '낚시 허용',
-    description: '해당 포인트에서 낚시가 허용됩니다.',
+    label: '낚시 가능 여부',
+    description: '낚시가 가능한 포인트입니다.',
   },
   {
     key: 'publicVisible',

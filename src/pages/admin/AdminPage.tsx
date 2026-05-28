@@ -5,14 +5,16 @@ import Header from '../../components/common/Header';
 import PointManagementPage from './PointManagementPage';
 import UserManagementPage from './UserManagementPage';
 import DocumentManagementPage from './DocumentManagementPage';
+import AdminMapPage from './AdminMapPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'users' | 'documents';
+type AdminTab = 'points' | 'users' | 'documents' | 'map';
 
 const NAV_ITEMS: { tab: AdminTab; icon: string; label: string }[] = [
   { tab: 'points',    icon: '📍', label: '포인트 관리' },
   { tab: 'documents', icon: '📄', label: 'RAG 문서 관리' },
   { tab: 'users',     icon: '👥', label: '사용자 관리' },
+  { tab: 'map',       icon: '🗺️', label: '지도 보기' },
 ];
 
 export default function AdminPage() {
@@ -57,10 +59,11 @@ export default function AdminPage() {
             ))}
           </nav>
         </aside>
-        <main className={styles.content}>
+        <main className={`${styles.content} ${activeTab === 'map' ? styles.contentMap : ''}`}>
           {activeTab === 'points'    && <PointManagementPage />}
           {activeTab === 'documents' && <DocumentManagementPage />}
           {activeTab === 'users'     && <UserManagementPage />}
+          {activeTab === 'map'       && <AdminMapPage />}
         </main>
       </div>
     </div>

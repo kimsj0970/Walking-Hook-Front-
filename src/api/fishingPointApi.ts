@@ -62,6 +62,15 @@ export interface FishingPointSummary {
   terrainType: TerrainType;
   enabled: boolean;
   publicVisible: boolean;
+  latitude: number;
+  longitude: number;
+}
+
+export interface FishingPointMapMarker {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
 }
 
 export interface FishingPointDetail {
@@ -139,4 +148,51 @@ export async function updateFishingPoint(id: string, req: FishingPointUpdateRequ
 
 export async function deleteFishingPoint(id: string): Promise<void> {
   await api.delete(`/admin/fish-points/${id}`);
+}
+
+export async function fetchPublicFishingPointsForMap(): Promise<FishingPointMapMarker[]> {
+  const { data } = await api.get('/fishing-points/map');
+  return data.data as FishingPointMapMarker[];
+}
+
+export interface ProvinceItem {
+  code: string;
+  displayName: string;
+}
+
+export async function fetchProvinces(): Promise<ProvinceItem[]> {
+  const { data } = await api.get('/fishing-points/provinces');
+  return data.data as ProvinceItem[];
+}
+
+export async function fetchFishingPointsByProvince(province: string): Promise<FishingPointMapMarker[]> {
+  const { data } = await api.get('/fishing-points/by-province', { params: { province } });
+  return data.data as FishingPointMapMarker[];
+}
+
+export interface SpeciesAnalysis {
+  species: string;
+  score: number;
+  reason: string;
+}
+
+export type OutingStatus = 'SAFE' | 'CAUTION' | 'IMPOSSIBLE';
+
+export interface FishingAnalysisResult {
+  pointName: string;
+  stationName: string | null;
+  observedAt: string | null;
+  waterTemp: number | null;
+  waveHeight: number | null;
+  windSpeed: number | null;
+  tideDescription: string | null;
+  fishingIndex: string | null;
+  outingStatus: OutingStatus;
+  outingWarning: string | null;
+  results: SpeciesAnalysis[] | null;
+}
+
+export async function analyzeFishingPoint(id: string): Promise<FishingAnalysisResult> {
+  const { data } = await api.get(`/fishing-points/${id}/analysis`);
+  return data.data as FishingAnalysisResult;
 }

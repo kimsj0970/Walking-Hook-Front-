@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { fetchPublicFishingPointsForMap, type FishingPointMapMarker } from '../api/fishingPointApi';
-import styles from './MapPage.module.css';
+import { fetchAdminMarineStations, type MarineStationMarker } from '../../api/marineStationApi';
+import { searchFishingPoints, type FishingPointSummary } from '../../api/fishingPointApi';
+import styles from './AdminMapPage.module.css';
 
 function loadKakaoSDK(appKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -21,9 +21,8 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-export default function MapPage() {
+export default function AdminMapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -37,8 +36,12 @@ export default function MapPage() {
 
     let cancelled = false;
 
-    Promise.all([loadKakaoSDK(appKey), fetchPublicFishingPointsForMap()])
-      .then(([, fishingPoints]) => {
+    Promise.all([
+      loadKakaoSDK(appKey),
+      fetchAdminMarineStations(),
+      searchFishingPoints(),
+    ])
+      .then(([, stations, fishingPoints]) => {
         if (cancelled || !mapRef.current) return;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,13 +54,40 @@ export default function MapPage() {
             level: 13,
           });
 
+          // ── 클러스터러 ────────────────────────────────────────
           const clusterer = new kakao.maps.MarkerClusterer({
             map,
             averageCenter: true,
             minLevel: 10,
           });
 
-          const markers = fishingPoints.map((fp: FishingPointMapMarker) => {
+          // ── 관측소 마커 (핑크) ────────────────────────────────
+          stations.forEach((s: MarineStationMarker) => {
+            const position = new kakao.maps.LatLng(s.latitude, s.longitude);
+            const marker = new kakao.maps.Marker({
+              position,
+              image: new kakao.maps.MarkerImage(
+                'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
+                new kakao.maps.Size(31, 35),
+              ),
+            });
+            marker.setMap(map);
+
+            const infoWindow = new kakao.maps.InfoWindow({
+              content: `
+                <div style="padding:10px 14px;min-width:160px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">
+                  <strong style="font-size:13px;color:#C2185B">${escapeHtml(s.stationName)}</strong>
+                  <p style="margin:4px 0 0;font-size:11px;color:#64748B">
+                    ${s.latitude.toFixed(5)}, ${s.longitude.toFixed(5)}
+                  </p>
+                </div>`,
+              removable: true,
+            });
+            kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
+          });
+
+          // ── 낚시 포인트 마커 (파란색) + 클러스터 ─────────────
+          const fpMarkers = fishingPoints.map((fp: FishingPointSummary) => {
             const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
             const marker = new kakao.maps.Marker({ position });
 
@@ -74,8 +104,8 @@ export default function MapPage() {
             kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
             return marker;
           });
+          clusterer.addMarkers(fpMarkers);
 
-          clusterer.addMarkers(markers);
           setStatus('ready');
         });
       })
@@ -86,22 +116,10 @@ export default function MapPage() {
       });
 
     return () => { cancelled = true; };
-  }, [navigate]);
+  }, []);
 
   return (
-    <div className={styles.page}>
-      <header className={styles.topBar}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-          ← 돌아가기
-        </button>
-        <h1 className={styles.title}>낚시 포인트 지도</h1>
-        <span className={styles.spacer} />
-      </header>
-
-      <p className={styles.hint}>
-        📍 마커를 클릭하면 포인트 이름과 위치를 확인할 수 있습니다
-      </p>
-
+    <div className={styles.mapWrap}>
       {status !== 'ready' && (
         <div className={styles.overlay}>
           {status === 'loading' ? (
@@ -110,16 +128,14 @@ export default function MapPage() {
               <p>지도를 불러오는 중...</p>
             </>
           ) : (
-            <>
-              <p className={styles.errorText}>⚠️ {errorMsg}</p>
-              <button className={styles.retryBtn} onClick={() => window.close()}>
-                창 닫기
-              </button>
-            </>
+            <p className={styles.errorText}>⚠️ {errorMsg}</p>
           )}
         </div>
       )}
-
+      <div className={styles.legend}>
+        <span className={styles.legendPink}>● 해양관측소</span>
+        <span className={styles.legendBlue}>● 낚시 포인트</span>
+      </div>
       <div ref={mapRef} className={styles.map} />
     </div>
   );

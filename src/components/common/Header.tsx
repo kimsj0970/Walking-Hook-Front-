@@ -11,7 +11,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await logout();
-    window.location.replace('/');
+    navigate('/');
   };
 
   return (

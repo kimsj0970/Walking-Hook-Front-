@@ -96,3 +96,9 @@
   padding: 36px 40px;
   min-height: calc(100vh - var(--header-height));
 }
+
+.contentMap {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}

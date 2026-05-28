@@ -1,0 +1,72 @@
+.mapWrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(240, 244, 248, 0.92);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  font-size: 14px;
+  color: #334155;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #E2E8F0;
+  border-top-color: #0096C7;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.errorText {
+  font-size: 14px;
+  color: #DC2626;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+.legend {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.legendPink {
+  color: #C2185B;
+}
+
+.legendBlue {
+  color: #0B3D91;
+}
