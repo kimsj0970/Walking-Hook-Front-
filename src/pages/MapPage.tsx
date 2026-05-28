@@ -37,7 +37,10 @@ export default function MapPage() {
 
     let cancelled = false;
 
-    Promise.all([loadKakaoSDK(appKey), fetchPublicFishingPointsForMap()])
+    Promise.all([
+      loadKakaoSDK(appKey),
+      fetchPublicFishingPointsForMap().catch(() => [] as FishingPointMapMarker[]),
+    ])
       .then(([, fishingPoints]) => {
         if (cancelled || !mapRef.current) return;
 
