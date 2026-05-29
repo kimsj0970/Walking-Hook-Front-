@@ -78,10 +78,9 @@
 
 /* ─── 수온/풍속/물때 카드 ─── */
 .conditionCards {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
   margin-bottom: 28px;
 }
 
@@ -89,12 +88,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: rgba(255, 255, 255, 0.13);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
-  padding: 18px 28px;
-  min-width: 110px;
+  border-radius: 14px;
+  padding: 14px 12px;
   backdrop-filter: blur(8px);
   transition: background 0.2s;
 }
@@ -106,6 +104,11 @@
 .conditionCardLoading {
   opacity: 0.65;
   animation: pulse 1.8s ease-in-out infinite;
+}
+
+/* 강수 카드 — 7번째로 혼자 나타날 때 3열 전체 */
+.conditionCardFull {
+  grid-column: 1 / -1;
 }
 
 .conditionCardIcon {
@@ -121,6 +124,127 @@
 .conditionCardValue {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* 로딩 중 텍스트 */
+.conditionCardSkeleton {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* ─── 풍향 나침반 ─── */
+.compass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.compassRing {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.compassN, .compassS, .compassW, .compassE {
+  position: absolute;
+  font-size: 8px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1;
+}
+.compassN { top: 2px;  left: 50%; transform: translateX(-50%); }
+.compassS { bottom: 2px; left: 50%; transform: translateX(-50%); }
+.compassW { left: 2px;  top: 50%; transform: translateY(-50%); }
+.compassE { right: 2px; top: 50%; transform: translateY(-50%); }
+
+.compassArrow {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+  transition: transform 0.4s ease;
+}
+
+/* ─── 낙뢰 경고 배너 ─── */
+.lightningBanner {
+  background: #FEF08A;
+  border: 1.5px solid #FACC15;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #713F12;
+  margin-bottom: 16px;
+  text-align: center;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ─── 어종 스켈레톤 ─── */
+.fishSkeleton {
+  height: 160px;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.06) 25%,
+    rgba(0,0,0,0.10) 50%,
+    rgba(0,0,0,0.06) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: 16px;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── AI 분석 이유 본문 ─── */
+.reasonSummary {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reasonBody {
+  margin-top: 14px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reasonSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reasonSectionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reasonSectionText {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.75;
+  margin: 0;
 }
 
 /* ─── 위치 선택 바 ─── */
@@ -184,6 +308,29 @@
   background: #00E8FF;
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 217, 255, 0.4);
+}
+
+/* ─── 현재 선택 포인트 칩 ─── */
+.currentPointChip {
+  margin-top: 12px;
+  display: inline-block;
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+
+/* ─── 미선택 안내 문구 ─── */
+.selectPrompt {
+  margin-top: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #7DD3FC;
+  letter-spacing: 0.01em;
 }
 
 /* Option 2: 주황색 (아래 주석 제거하고 위 주석 처리)
@@ -280,8 +427,21 @@
   color: var(--color-text);
 }
 
+.sectionSubWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.sectionPointName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
 .sectionSub {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-muted);
 }
 
