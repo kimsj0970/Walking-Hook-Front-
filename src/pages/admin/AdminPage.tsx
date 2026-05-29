@@ -6,15 +6,17 @@ import PointManagementPage from './PointManagementPage';
 import UserManagementPage from './UserManagementPage';
 import DocumentManagementPage from './DocumentManagementPage';
 import AdminMapPage from './AdminMapPage';
+import AiChatPage from './AiChatPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'users' | 'documents' | 'map';
+type AdminTab = 'points' | 'users' | 'documents' | 'map' | 'ai';
 
-const NAV_ITEMS: { tab: AdminTab; icon: string; label: string }[] = [
-  { tab: 'points',    icon: '📍', label: '포인트 관리' },
-  { tab: 'documents', icon: '📄', label: 'RAG 문서 관리' },
-  { tab: 'users',     icon: '👥', label: '사용자 관리' },
-  { tab: 'map',       icon: '🗺️', label: '지도 보기' },
+const NAV_ITEMS: { tab: AdminTab; label: string }[] = [
+  { tab: 'points',    label: '포인트 관리' },
+  { tab: 'documents', label: 'RAG 문서 관리' },
+  { tab: 'users',     label: '사용자 관리' },
+  { tab: 'map',       label: '지도 보기' },
+  { tab: 'ai',        label: 'AI에게 질문' },
 ];
 
 export default function AdminPage() {
@@ -47,13 +49,12 @@ export default function AdminPage() {
         <aside className={styles.sidebar}>
           <p className={styles.sidebarTitle}>관리</p>
           <nav className={styles.nav}>
-            {NAV_ITEMS.map(({ tab, icon, label }) => (
+            {NAV_ITEMS.map(({ tab, label }) => (
               <button
                 key={tab}
                 className={`${styles.navItem} ${activeTab === tab ? styles.active : ''}`}
                 onClick={() => setActiveTab(tab)}
               >
-                <span className={styles.navIcon}>{icon}</span>
                 {label}
               </button>
             ))}
@@ -64,6 +65,7 @@ export default function AdminPage() {
           {activeTab === 'documents' && <DocumentManagementPage />}
           {activeTab === 'users'     && <UserManagementPage />}
           {activeTab === 'map'       && <AdminMapPage />}
+          {activeTab === 'ai'        && <AiChatPage />}
         </main>
       </div>
     </div>
