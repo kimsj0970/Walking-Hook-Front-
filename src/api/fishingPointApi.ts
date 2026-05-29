@@ -173,7 +173,12 @@ export async function fetchFishingPointsByProvince(province: string): Promise<Fi
 export interface SpeciesAnalysis {
   species: string;
   score: number;
-  reason: string;
+  summary: string;
+  conditionReason: string;
+  pointReason: string;
+  strategy: string;
+  tackle: string;
+  caution: string;
 }
 
 export type OutingStatus = 'SAFE' | 'CAUTION' | 'IMPOSSIBLE';
@@ -185,6 +190,11 @@ export interface FishingAnalysisResult {
   waterTemp: number | null;
   waveHeight: number | null;
   windSpeed: number | null;
+  windDirection: string | null;
+  sky: string | null;
+  precipitationType: string | null;
+  precipitationAmount: number | null;
+  hasLightning: boolean;
   tideDescription: string | null;
   fishingIndex: string | null;
   outingStatus: OutingStatus;
