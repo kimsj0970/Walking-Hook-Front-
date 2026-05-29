@@ -33,6 +33,9 @@ export default function Header() {
                     관리자 페이지
                   </button>
                 )}
+                <button className={styles.inquiryBtn} onClick={() => navigate('/inquiry')}>
+                  고객센터
+                </button>
                 <button className={styles.logoutBtn} onClick={handleLogout}>
                   로그아웃
                 </button>
