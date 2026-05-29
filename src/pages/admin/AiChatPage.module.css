@@ -1,8 +1,8 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  height: calc(100vh - var(--header-height) - 72px); /* 패딩 제외 */
+  gap: 20px;
+  height: calc(100vh - var(--header-height) - 72px);
   animation: fadeIn 0.2s ease;
 }
 
@@ -25,7 +25,19 @@
   margin-top: 4px;
 }
 
-/* ─── 채팅 전체 래퍼 ─── */
+.keyHint {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+/* ─── 채팅 래퍼 ─── */
 .chatWrap {
   flex: 1;
   display: flex;
@@ -41,10 +53,10 @@
 .messageList {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 28px;
+  padding: 28px 28px 12px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 32px;
 }
 
 /* ─── 빈 상태 ─── */
@@ -56,7 +68,7 @@
   justify-content: center;
   text-align: center;
   padding: 60px 24px;
-  gap: 8px;
+  gap: 10px;
 }
 
 .emptyTitle {
@@ -68,24 +80,24 @@
 .emptyDesc {
   font-size: 13px;
   color: var(--color-text-muted);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* ─── 메시지 그룹 ─── */
 .messageGroup {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
-/* ─── 질문 (우측 정렬) ─── */
+/* ─── 질문 ─── */
 .questionRow {
   display: flex;
   justify-content: flex-end;
 }
 
 .questionBubble {
-  max-width: 72%;
+  max-width: 68%;
   background: var(--color-primary);
   color: #fff;
   padding: 12px 16px;
@@ -96,7 +108,7 @@
   word-break: break-word;
 }
 
-/* ─── 답변 (좌측 정렬) ─── */
+/* ─── 답변 ─── */
 .answerRow {
   display: flex;
   align-items: flex-start;
@@ -121,10 +133,12 @@
 .answerContent {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  max-width: 80%;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
 }
 
+/* 폴백 텍스트 버블 */
 .answerBubble {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -135,20 +149,22 @@
   line-height: 1.75;
   white-space: pre-wrap;
   word-break: break-word;
+  max-width: 80%;
 }
 
 .chunkBadge {
   font-size: 11px;
   color: var(--color-text-light);
-  padding-left: 4px;
+  padding-left: 2px;
 }
 
-/* ─── 로딩 점 애니메이션 ─── */
+/* ─── 로딩 ─── */
 .answerBubbleLoading {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 14px 18px;
+  max-width: fit-content;
 }
 
 .dot {
@@ -162,7 +178,7 @@
 .dot:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  0%, 80%, 100% { transform: translateY(0);   opacity: 0.4; }
   40%            { transform: translateY(-5px); opacity: 1; }
 }
 
@@ -177,11 +193,119 @@
   margin: 0;
 }
 
+/* ─────────────────────────────────────────
+   어종별 카드
+───────────────────────────────────────── */
+.speciesCards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+}
+
+.speciesCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.speciesHeader {
+  padding: 13px 20px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+}
+
+.speciesName {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+
+/* ─── 카테고리 목록 ─── */
+.categoryList {
+  display: flex;
+  flex-direction: column;
+}
+
+.categoryItem {
+  padding: 12px 18px;
+  border-left: 3px solid;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.categoryItem:last-child {
+  border-bottom: none;
+}
+
+.categoryLabel {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  margin-bottom: 6px;
+}
+
+.categoryText {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--color-text);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ─── 카테고리별 색상 ─── */
+
+/* 요약 — 슬레이트 */
+.catSummary {
+  background: #F8FAFC;
+  border-left-color: #64748B;
+}
+.catSummary .categoryLabel { color: #64748B; }
+
+/* 조건 분석 — 파랑 */
+.catCondition {
+  background: #EFF6FF;
+  border-left-color: #1D4ED8;
+}
+.catCondition .categoryLabel { color: #1D4ED8; }
+
+/* 포인트 분석 — 청록 */
+.catPoint {
+  background: #F0FDFA;
+  border-left-color: #0D9488;
+}
+.catPoint .categoryLabel { color: #0D9488; }
+
+/* 공략 전략 — 보라 */
+.catStrategy {
+  background: #F5F3FF;
+  border-left-color: #7C3AED;
+}
+.catStrategy .categoryLabel { color: #7C3AED; }
+
+/* 채비 정보 — 주황 */
+.catTackle {
+  background: #FFF7ED;
+  border-left-color: #EA580C;
+}
+.catTackle .categoryLabel { color: #EA580C; }
+
+/* 주의사항 — 빨강 */
+.catCaution {
+  background: #FEF2F2;
+  border-left-color: #DC2626;
+}
+.catCaution .categoryLabel { color: #DC2626; }
+
 /* ─── 입력 영역 ─── */
 .inputWrap {
   flex-shrink: 0;
   border-top: 1px solid var(--color-border);
-  padding: 16px 20px;
+  padding: 14px 20px;
   background: var(--color-surface);
 }
 
@@ -228,7 +352,7 @@
 .counterWarn { color: var(--color-danger); }
 
 .sendBtn {
-  padding: 7px 20px;
+  padding: 7px 22px;
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius-sm);
