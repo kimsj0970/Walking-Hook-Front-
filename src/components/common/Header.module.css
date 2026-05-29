@@ -69,6 +69,23 @@
   color: #fde68a;
 }
 
+.inquiryBtn {
+  padding: 7px 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-full);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.inquiryBtn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
 .logoutBtn {
   padding: 7px 14px;
   background: rgba(255, 255, 255, 0.1);
