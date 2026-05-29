@@ -106,8 +106,10 @@ export default function FishProbabilityCard({ fish, onClick }: Props) {
                 colorTo={fish.colorTo}
               />
               <div className={styles.ringCenter}>
-                <span className={styles.probability}>{fish.probability!}</span>
-                <span className={styles.percentSign}>%</span>
+                <div className={styles.ringValue}>
+                  <span className={styles.probability}>{fish.probability!}</span>
+                  <span className={styles.percentSign}>%</span>
+                </div>
               </div>
             </div>
 
@@ -131,12 +133,6 @@ export default function FishProbabilityCard({ fish, onClick }: Props) {
         )}
       </div>
 
-      {/* 하단 버튼 */}
-      <div className={styles.cardFooter}>
-        <span className={styles.detailLink}>
-          {isLoading ? '데이터 수집 중...' : 'AI 분석 보기 →'}
-        </span>
-      </div>
     </div>
   );
 }
