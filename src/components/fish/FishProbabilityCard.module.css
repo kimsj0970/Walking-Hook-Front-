@@ -96,11 +96,11 @@
 
 /* 상태 뱃지 */
 .statusBadge {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 12px;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 5px 14px;
   border-radius: var(--radius-full);
-  border: 1px solid;
+  border: 1.5px solid;
 }
 
 /* 트렌드 */
