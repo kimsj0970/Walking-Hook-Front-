@@ -46,6 +46,19 @@ export default function HomePage() {
       .catch(() => setProvincesError('시/도 목록을 불러오지 못했습니다. 네트워크 또는 서버 상태를 확인해주세요.'));
   }, []);
 
+  // 지도 팝업에서 핀 클릭 시 포인트 ID 수신
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'fishing-point-selected' && event.data.pointId) {
+        setSelectedPointId(event.data.pointId as string);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   useEffect(() => {
     if (!selectedProvince) { setFishingPoints([]); setSelectedPointId(''); return; }
     setPointsLoading(true);
@@ -210,7 +223,7 @@ export default function HomePage() {
             {/* 포인트 미선택 안내 */}
             {!selectedPointId && !isAnalyzing && (
               <div className={styles.hintBox}>
-                📍 위에서 시/도와 낚시 포인트를 선택하면 AI 조황 분석이 시작됩니다.
+                위에서 시/도와 낚시 포인트를 선택하면 AI 조황 분석이 시작됩니다.
               </div>
             )}
 
@@ -250,7 +263,6 @@ export default function HomePage() {
                 {/* 포인트 선택 전 안내 배너 */}
                 {!selectedPointId && !isAnalyzing && !analysisResult && (
                   <div className={styles.noticeBanner}>
-                    <span className={styles.noticeIcon}>🔧</span>
                     <span>포인트를 선택하면 실시간 데이터 기반으로 분석됩니다.</span>
                   </div>
                 )}
