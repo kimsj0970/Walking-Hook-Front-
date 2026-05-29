@@ -116,7 +116,7 @@ export default function FishProbabilityCard({ fish, onClick }: Props) {
             {(() => {
               const { label, color } = getProbabilityLabel(fish.probability!);
               return (
-                <div className={styles.statusBadge} style={{ color, borderColor: color + '33', background: color + '12' }}>
+                <div className={styles.statusBadge} style={{ color, borderColor: color + '66', background: color + '22' }}>
                   {label}
                 </div>
               );
