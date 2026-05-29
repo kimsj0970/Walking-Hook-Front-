@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import {
@@ -17,7 +16,6 @@ type View = 'list' | 'detail' | 'create';
 
 export default function InquiryPage() {
   const { isAdmin } = useAuth();
-  const navigate = useNavigate();
 
   const [view, setView] = useState<View>('list');
   const [items, setItems] = useState<InquiryListItem[] | AdminInquiryListItem[]>([]);
