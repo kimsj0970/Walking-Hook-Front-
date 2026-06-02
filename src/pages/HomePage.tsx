@@ -3,8 +3,10 @@ import Header from '../components/common/Header';
 import LoginModal from '../components/common/LoginModal';
 import FishProbabilityCard, { FISH_LIST, type FishData } from '../components/fish/FishProbabilityCard';
 import {
-  fetchProvinces, fetchFishingPointsByProvince, analyzeFishingPoint,
-  type ProvinceItem, type FishingPointMapMarker, type FishingAnalysisResult, type SpeciesAnalysis,
+  fetchProvinces, fetchFishingPointsByProvince, fetchConditions, analyzeFishingPoint,
+  type ProvinceItem, type FishingPointMapMarker,
+  type FishingConditionsResult, type FishingAnalysisResult,
+  type SpeciesAnalysis, type TideEvent, type TidePoint, TIDE_FLOW_LABELS,
 } from '../api/fishingPointApi';
 import { useAuth } from '../context/AuthContext';
 import styles from './HomePage.module.css';
@@ -52,7 +54,9 @@ export default function HomePage() {
   const [provincesError, setProvincesError] = useState('');
   const [pointsLoading, setPointsLoading] = useState(false);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isConditionsLoading, setIsConditionsLoading] = useState(false);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
+  const [conditionsResult, setConditionsResult] = useState<FishingConditionsResult | null>(null);
   const [analysisResult, setAnalysisResult] = useState<FishingAnalysisResult | null>(null);
   const [analysisError, setAnalysisError] = useState('');
 
@@ -120,32 +124,64 @@ export default function HomePage() {
   }, [selectedProvince]);
 
   useEffect(() => {
-    if (!selectedPointId) { setAnalysisResult(null); return; }
-    // 비로그인 상태면 로그인 모달 띄우고 분석 중단
+    if (!selectedPointId) {
+      setConditionsResult(null);
+      setAnalysisResult(null);
+      return;
+    }
     if (!isLoggedIn) {
       setLoginOpen(true);
       setSelectedPointId('');
       return;
     }
-    // 포인트 바뀌면 즉시 이전 데이터 지우고 로딩 상태로
+
+    setConditionsResult(null);
     setAnalysisResult(null);
-    setIsAnalyzing(true);
+    setIsConditionsLoading(true);
+    setIsAnalysisLoading(false);
     setAnalysisError('');
     setExpandedSpecies(null);
-    analyzeFishingPoint(selectedPointId)
-      .then(setAnalysisResult)
-      .catch((err) => setAnalysisError(err?.response?.data?.message ?? '분석 중 오류가 발생했습니다.'))
-      .finally(() => setIsAnalyzing(false));
+
+    let cancelled = false;
+
+    async function run() {
+      try {
+        // 1단계: 조건 데이터 먼저 (빠름)
+        const conditions = await fetchConditions(selectedPointId);
+        if (cancelled) return;
+        setConditionsResult(conditions);
+        setIsConditionsLoading(false);
+
+        // 2단계: 조건 완료 후 AI 분석 시작 (느림)
+        setIsAnalysisLoading(true);
+        const analysis = await analyzeFishingPoint(selectedPointId);
+        if (cancelled) return;
+        setAnalysisResult(analysis);
+      } catch (err: any) {
+        if (cancelled) return;
+        setAnalysisError(err?.response?.data?.message ?? '분석 중 오류가 발생했습니다.');
+      } finally {
+        if (!cancelled) {
+          setIsConditionsLoading(false);
+          setIsAnalysisLoading(false);
+        }
+      }
+    }
+
+    run();
+    return () => { cancelled = true; };
   }, [selectedPointId, isLoggedIn]);
 
   const now = new Date();
   const timeStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${now.getHours()}시 기준`;
 
+  const isAnalyzing = isConditionsLoading || isAnalysisLoading;
+
   const fishCards: FishData[] = analysisResult?.results
     ? buildFishCards(analysisResult.results)
     : FISH_LIST.map((f) => ({ ...f, probability: null }));
 
-  const hasPrecip = analysisResult?.precipitationType && analysisResult.precipitationType !== '없음';
+  const hasPrecip = conditionsResult?.precipitationType && conditionsResult.precipitationType !== '없음';
 
   return (
     <div className={styles.page}>
@@ -173,41 +209,64 @@ export default function HomePage() {
 
             {/* 조건 카드 그리드 */}
             <div className={styles.conditionCards}>
-              <ConditionCard icon="🌡" label="수온" loading={isAnalyzing}
-                value={analysisResult?.waterTemp != null ? `${analysisResult.waterTemp}℃` : null} />
-              <ConditionCard icon="🌊" label="파고" loading={isAnalyzing}
-                value={analysisResult?.waveHeight != null ? `${analysisResult.waveHeight}m` : null} />
-              <ConditionCard icon="💨" label="풍속" loading={isAnalyzing}
-                value={analysisResult?.windSpeed != null ? `${analysisResult.windSpeed}m/s` : null} />
-              <WindDirectionCard direction={analysisResult?.windDirection ?? null} loading={isAnalyzing} />
-              <ConditionCard icon="🔄" label="물때" loading={isAnalyzing}
-                value={analysisResult?.tideDescription ?? null} />
-              {/* 하늘상태 */}
+              <ConditionCard icon="🌡" label="수온" loading={isConditionsLoading}
+                value={conditionsResult?.waterTemp != null ? `${conditionsResult.waterTemp}℃` : null}
+                source={conditionsResult?.marineSourceLabel} />
+              <ConditionCard icon="🌊" label="파고" loading={isConditionsLoading}
+                value={conditionsResult?.waveHeight != null ? `${conditionsResult.waveHeight}m` : null}
+                source={conditionsResult?.marineSourceLabel} />
+              <ConditionCard icon="💨" label="풍속" loading={isConditionsLoading}
+                value={conditionsResult?.windSpeed != null ? `${conditionsResult.windSpeed}m/s` : null}
+                source={conditionsResult?.windSourceLabel} />
+              <WindDirectionCard direction={conditionsResult?.windDirection ?? null} loading={isConditionsLoading}
+                source={conditionsResult?.windSourceLabel} />
+              <ConditionCard icon="🔄" label="물때" loading={isConditionsLoading}
+                value={conditionsResult?.tideDescription ?? null}
+                source={conditionsResult?.tideSourceLabel} />
+              <ConditionCard icon="🌊" label="조류" loading={isConditionsLoading}
+                value={conditionsResult?.tideFlowPhase
+                  ? TIDE_FLOW_LABELS[conditionsResult.tideFlowPhase]
+                  : null}
+                source={conditionsResult?.tideSourceLabel} />
               <ConditionCard
-                icon={analysisResult?.sky ? (SKY_ICON[analysisResult.sky] ?? '🌤') : '🌤'}
+                icon={conditionsResult?.sky ? (SKY_ICON[conditionsResult.sky] ?? '🌤') : '🌤'}
                 label="하늘"
-                loading={isAnalyzing}
-                value={analysisResult?.sky ?? null}
+                loading={isConditionsLoading}
+                value={conditionsResult?.sky ?? null}
+                source={conditionsResult?.skySourceLabel}
               />
-              {/* 강수 — 없음이면 숨김, 있으면 표시 */}
-              {(isAnalyzing || hasPrecip) && (
-                <ConditionCard
-                  icon={analysisResult?.precipitationType ? (PTY_ICON[analysisResult.precipitationType] ?? '🌧') : '🌧'}
-                  label="강수"
-                  loading={isAnalyzing}
-                  value={hasPrecip
-                    ? `${analysisResult!.precipitationType}${analysisResult!.precipitationAmount != null ? ` ${analysisResult!.precipitationAmount}mm` : ''}`
-                    : null}
-                  className={styles.conditionCardFull}
-                />
-              )}
+              <ConditionCard icon="🌡" label="기온" loading={isConditionsLoading}
+                value={conditionsResult?.temperature != null ? `${conditionsResult.temperature}℃` : null}
+                source={conditionsResult?.temperatureSourceLabel} />
+              <ConditionCard
+                icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌧'}
+                label="강수"
+                loading={isConditionsLoading}
+                value={
+                  conditionsResult == null ? null
+                  : hasPrecip
+                    ? `${conditionsResult.precipitationType}${conditionsResult.precipitationAmount != null ? ` ${conditionsResult.precipitationAmount}mm` : ''}`
+                    : `${conditionsResult.precipitationAmount ?? 0}mm`
+                }
+                source={conditionsResult?.precipitationSourceLabel}
+              />
             </div>
 
             {/* 낙뢰 경고 */}
-            {analysisResult?.hasLightning && (
+            {conditionsResult?.hasLightning && (
               <div className={styles.lightningBanner}>
                 ⚡ 낙뢰 감지 — 즉시 안전한 곳으로 대피하세요
               </div>
+            )}
+
+            {/* 조석 그래프 — 조건 로딩 중이거나 결과 있으면 표시 */}
+            {(isConditionsLoading || conditionsResult) && (
+              <TideChart
+                events={conditionsResult?.tideEvents ?? null}
+                series={conditionsResult?.tideSeries ?? null}
+                stationName={conditionsResult?.tideStationName ?? null}
+                loading={isConditionsLoading}
+              />
             )}
 
             {/* 포인트 선택 */}
@@ -234,9 +293,9 @@ export default function HomePage() {
             </div>
 
             {/* 현재 선택된 포인트 표시 / 미선택 안내 */}
-            {(isAnalyzing || analysisResult) ? (
+            {(isAnalyzing || conditionsResult) ? (
               <div className={styles.currentPointChip}>
-                {analysisResult?.pointName ?? (isAnalyzing ? '분석 중...' : '')}
+                {conditionsResult?.pointName ?? (isAnalyzing ? '분석 중...' : '')}
               </div>
             ) : (
               <p className={styles.selectPrompt}>
@@ -253,10 +312,10 @@ export default function HomePage() {
         </section>
 
         {/* ─── 출조 경고 배너 ─── */}
-        {analysisResult?.outingStatus !== 'SAFE' && analysisResult?.outingWarning && (
-          <div className={`${styles.outingBanner} ${analysisResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
-            <span className={styles.outingIcon}>{analysisResult.outingStatus === 'IMPOSSIBLE' ? '⛔' : '⚠️'}</span>
-            <span>{analysisResult.outingWarning}</span>
+        {conditionsResult?.outingStatus !== 'SAFE' && conditionsResult?.outingWarning && (
+          <div className={`${styles.outingBanner} ${conditionsResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
+            <span className={styles.outingIcon}>{conditionsResult.outingStatus === 'IMPOSSIBLE' ? '⛔' : '⚠️'}</span>
+            <span>{conditionsResult.outingWarning}</span>
           </div>
         )}
 
@@ -266,8 +325,8 @@ export default function HomePage() {
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>어종별 조황 기대도</h2>
               <div className={styles.sectionSubWrap}>
-                {analysisResult && (
-                  <span className={styles.sectionPointName}>{analysisResult.pointName}</span>
+                {conditionsResult && (
+                  <span className={styles.sectionPointName}>{conditionsResult.pointName}</span>
                 )}
                 <span className={styles.sectionSub}>{timeStr}</span>
               </div>
@@ -275,13 +334,13 @@ export default function HomePage() {
 
             {analysisError && <div className={styles.errorBanner}>⚠️ {analysisError}</div>}
 
-            {!selectedPointId && !isAnalyzing && (
+            {!selectedPointId && !isAnalysisLoading && (
               <div className={styles.hintBox}>
                 위에서 시/도와 낚시 포인트를 선택하면 AI 조황 분석이 시작됩니다.
               </div>
             )}
 
-            {analysisResult?.outingStatus === 'IMPOSSIBLE' ? (
+            {conditionsResult?.outingStatus === 'IMPOSSIBLE' ? (
               <div className={styles.impossibleBox}>
                 <span className={styles.impossibleIcon}>⛔</span>
                 <p className={styles.impossibleTitle}>출조 불가 조건</p>
@@ -289,7 +348,7 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                {isAnalyzing ? (
+                {isAnalysisLoading ? (
                   /* 스켈레톤 로딩 */
                   <div className={styles.fishGrid}>
                     {[1,2,3,4].map((i) => <div key={i} className={styles.fishSkeleton} />)}
@@ -304,7 +363,7 @@ export default function HomePage() {
                     ))}
                   </div>
                 )}
-                {isAnalyzing && (
+                {isAnalysisLoading && (
                   <div className={styles.analyzingBanner}>
                     <div className={styles.analyzingSpinner} />
                     AI가 조황을 분석하고 있습니다...
@@ -403,8 +462,8 @@ export default function HomePage() {
 }
 
 /* ─── 조건 카드 ─── */
-function ConditionCard({ icon, label, value, loading, className }: {
-  icon: string; label: string; value: string | null; loading?: boolean; className?: string;
+function ConditionCard({ icon, label, value, loading, className, source }: {
+  icon: string; label: string; value: string | null; loading?: boolean; className?: string; source?: string | null;
 }) {
   return (
     <div className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''} ${className ?? ''}`}>
@@ -413,13 +472,18 @@ function ConditionCard({ icon, label, value, loading, className }: {
       {loading
         ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
         : <span className={styles.conditionCardValue}>{value ?? '—'}</span>}
+      {!loading && source && (
+        <span className={styles.conditionCardSource}>{source}</span>
+      )}
     </div>
   );
 }
 
 /* ─── 풍향 나침반 카드 ─── */
-function WindDirectionCard({ direction, loading }: { direction: string | null; loading?: boolean }) {
-  const deg = direction ? (DIRECTION_DEG[direction] ?? 0) : 0;
+function WindDirectionCard({ direction, loading, source }: { direction: string | null; loading?: boolean; source?: string | null }) {
+  // "동→서" 형식에서 도착 방향(→ 뒤)으로 나침반 회전
+  const toPart = direction?.includes('→') ? direction.split('→')[1] : direction;
+  const deg = toPart ? (DIRECTION_DEG[toPart] ?? 0) : 0;
 
   return (
     <div className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''}`}>
@@ -446,6 +510,9 @@ function WindDirectionCard({ direction, loading }: { direction: string | null; l
       {loading
         ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
         : <span className={styles.conditionCardValue}>{direction ?? '—'}</span>}
+      {!loading && source && (
+        <span className={styles.conditionCardSource}>{source}</span>
+      )}
     </div>
   );
 }
@@ -456,6 +523,177 @@ function ReasonSection({ title, text }: { title: string; text: string }) {
     <div className={styles.reasonSection}>
       <span className={styles.reasonSectionTitle}>{title}</span>
       <p className={styles.reasonSectionText}>{text}</p>
+    </div>
+  );
+}
+
+/* ─── 조석 그래프 (코사인 보간 파형) ─── */
+function TideChart({ events, series: _series, stationName, loading }: {
+  events: TideEvent[] | null;
+  series: TidePoint[] | null;
+  stationName: string | null;
+  loading?: boolean;
+}) {
+  const W = 600;
+  const PAD = { top: 34, bottom: 52, left: 10, right: 10 };
+  const CHART_H = 88;
+  const TOTAL_H = PAD.top + CHART_H + PAD.bottom;
+  const chartW = W - PAD.left - PAD.right;
+  const bottomY = PAD.top + CHART_H;
+
+  const timeToMin = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  if (loading) {
+    return (
+      <div className={styles.tideTimeline}>
+        <div className={styles.tideTimelineHeader}>
+          <span className={styles.tideTimelineTitle}>🌊 오늘의 조석</span>
+        </div>
+        <div className={styles.tideTimelineSkeleton} style={{ height: `${TOTAL_H}px` }} />
+      </div>
+    );
+  }
+
+  if (!events || events.length === 0) {
+    return (
+      <div className={styles.tideTimeline}>
+        <div className={styles.tideTimelineHeader}>
+          <span className={styles.tideTimelineTitle}>🌊 오늘의 조석</span>
+          {stationName && <span className={styles.tideTimelineStation}>{stationName} 기준</span>}
+        </div>
+        <span className={styles.tideTimelineEmpty}>조석 데이터 없음</span>
+      </div>
+    );
+  }
+
+  // dayOffset 적용 → 오늘=0~1440, 내일=1440~2880 기준 분으로 변환 (null/undefined → 0)
+  const sorted = [...events].sort((a, b) =>
+    ((a.dayOffset ?? 0) * 1440 + timeToMin(a.time)) - ((b.dayOffset ?? 0) * 1440 + timeToMin(b.time))
+  );
+  const mins    = sorted.map(e => (e.dayOffset ?? 0) * 1440 + timeToMin(e.time));
+  const heights = sorted.map(e => e.heightCm);
+
+  // X축 범위: 오늘 00:00(0) ~ 내일 정오(2160) 또는 데이터 끝까지
+  const RANGE_END = Math.max(2160, mins[mins.length - 1] + 120);
+
+  const rawMin = Math.min(...heights);
+  const rawMax = Math.max(...heights);
+  const hRange = rawMax - rawMin || 100;
+  const yMin = rawMin - hRange * 0.18;
+  const yMax = rawMax + hRange * 0.12;
+
+  const xOf = (m: number) => PAD.left + (m / RANGE_END) * chartW;
+  const yOf = (h: number) => PAD.top + CHART_H - ((h - yMin) / (yMax - yMin)) * CHART_H;
+
+  // 경계 가상 이벤트로 전체 범위 곡선 채우기
+  const extMins = [...mins];
+  const extH    = [...heights];
+  if (sorted.length >= 2) {
+    const dt0 = mins[1] - mins[0];
+    if (mins[0] > 30) { extMins.unshift(Math.max(0, mins[0] - dt0)); extH.unshift(heights[1]); }
+    const n = mins.length;
+    const dtN = mins[n - 1] - mins[n - 2];
+    if (mins[n - 1] < RANGE_END - 30) {
+      extMins.push(Math.min(RANGE_END, mins[n - 1] + dtN));
+      extH.push(heights[n - 2]);
+    }
+  }
+
+  // 코사인 보간으로 360개 점 생성 (오늘 00:00 ~ 내일 정오)
+  const STEPS = 360;
+  const pts: string[] = [];
+  for (let s = 0; s <= STEPS; s++) {
+    const t = (s / STEPS) * RANGE_END;
+    let h: number;
+    if (t <= extMins[0]) {
+      h = extH[0];
+    } else if (t >= extMins[extMins.length - 1]) {
+      h = extH[extMins.length - 1];
+    } else {
+      let i = 0;
+      while (i < extMins.length - 1 && extMins[i + 1] <= t) i++;
+      const ratio = (t - extMins[i]) / (extMins[i + 1] - extMins[i]);
+      h = extH[i] + (extH[i + 1] - extH[i]) * (1 - Math.cos(ratio * Math.PI)) / 2;
+    }
+    pts.push(`${s === 0 ? 'M' : 'L'}${xOf(t).toFixed(1)},${yOf(h).toFixed(1)}`);
+  }
+
+  const linePath = pts.join(' ');
+  const fillPath = `${linePath} L${xOf(RANGE_END).toFixed(1)},${bottomY} L${xOf(0).toFixed(1)},${bottomY} Z`;
+
+  // 자정 경계선 위치
+  const midnightX = xOf(1440);
+  const nowX = xOf(nowMin);
+
+  return (
+    <div className={styles.tideTimeline}>
+      <div className={styles.tideTimelineHeader}>
+        <span className={styles.tideTimelineTitle}>🌊 오늘의 조석</span>
+        {stationName && <span className={styles.tideTimelineStation}>{stationName} 기준</span>}
+      </div>
+      <svg viewBox={`0 0 ${W} ${TOTAL_H}`} className={styles.tideChartSvg}>
+        <defs>
+          <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.55" />
+            <stop offset="60%" stopColor="#0EA5E9" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0.04" />
+          </linearGradient>
+          <clipPath id="tideClip">
+            <rect x={PAD.left} y={PAD.top} width={chartW} height={CHART_H} />
+          </clipPath>
+        </defs>
+
+        {/* 그라디언트 채우기 */}
+        <path d={fillPath} fill="url(#tideGrad)" clipPath="url(#tideClip)" />
+        {/* 코사인 파형 선 */}
+        <path d={linePath} fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinejoin="round" clipPath="url(#tideClip)" />
+
+        {/* 자정 경계선 */}
+        <line x1={midnightX} y1={PAD.top} x2={midnightX} y2={bottomY}
+          stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeDasharray="4,4" />
+        <text x={midnightX + 5} y={PAD.top + 13} textAnchor="start"
+          fontSize="11" fill="rgba(255,255,255,0.75)" fontWeight="600">
+          {`내일 ${now.getMonth() + 1}/${new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getDate()}`}
+        </text>
+
+        {/* 현재 시각 — 배경 pill + 텍스트 */}
+        <rect x={nowX - 18} y={PAD.top - 29} width="36" height="16"
+          rx="8" fill="#FDE047" opacity="0.95" />
+        <text x={nowX} y={PAD.top - 17} textAnchor="middle" fontSize="11" fill="#1E3A5F" fontWeight="900">지금</text>
+        <text x={nowX} y={PAD.top - 3} textAnchor="middle" fontSize="11" fill="#FDE047" fontWeight="700">
+          {`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`}
+        </text>
+        <line x1={nowX} y1={PAD.top} x2={nowX} y2={bottomY} stroke="#FDE047" strokeWidth="2.5" strokeDasharray="5,3" />
+
+        {/* 만조/간조 마커 */}
+        {sorted.map((e, i) => {
+          const ex = xOf(mins[i]);
+          const ey = yOf(e.heightCm);
+          const isPast    = mins[i] < nowMin && (e.dayOffset ?? 0) === 0;
+          const isHigh    = e.highTide;
+          const dotColor  = isHigh ? '#4ADE80' : '#F87171';
+          const glowColor = isHigh ? '#16A34A' : '#DC2626';
+          const typeLabel = isHigh ? '만조' : '간조';
+          return (
+            <g key={i} opacity={isPast ? 0.7 : 1}>
+              <line x1={ex} y1={ey + 8} x2={ex} y2={bottomY + 2}
+                stroke={dotColor} strokeWidth="2" strokeDasharray="4,3" />
+              <circle cx={ex} cy={ey} r="13" fill={glowColor} opacity="0.5" />
+              <circle cx={ex} cy={ey} r="9"  fill={dotColor} />
+              <circle cx={ex} cy={ey} r="6"  fill={dotColor} stroke="white" strokeWidth="3" />
+              <text x={ex} y={bottomY + 17} textAnchor="middle" fontSize="14"   fill="white"    fontWeight="900">{e.time}</text>
+              <text x={ex} y={bottomY + 32} textAnchor="middle" fontSize="12.5" fill={dotColor} fontWeight="800">{typeLabel}</text>
+              <text x={ex} y={bottomY + 46} textAnchor="middle" fontSize="11.5" fill="rgba(255,255,255,0.95)" fontWeight="700">{e.heightCm}cm</text>
+            </g>
+          );
+        })}
+      </svg>
     </div>
   );
 }
