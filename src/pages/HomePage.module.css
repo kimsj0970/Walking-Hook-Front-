@@ -122,8 +122,17 @@
 }
 
 .conditionCardValue {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.conditionCardSource {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 4px;
+  line-height: 1.3;
+  text-align: center;
 }
 
 /* 로딩 중 텍스트 */
@@ -729,4 +738,99 @@
 
 .footerAttribLink:hover {
   color: rgba(255,255,255,0.8);
+}
+
+/* ─── 조석 타임라인 ─── */
+.tideTimeline {
+  margin-top: 16px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+
+.tideTimelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tideTimelineTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+}
+
+.tideTimelineStation {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+}
+
+.tideTimelineSkeleton {
+  height: 36px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.tideTimelineEmpty {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  padding: 24px 0;
+  display: block;
+  text-align: center;
+}
+
+.tideChartSvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.tideEvents {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tideEvent {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.9);
+  transition: opacity 0.2s;
+}
+
+.tideEventPast {
+  opacity: 0.45;
+}
+
+.tideEventIcon {
+  font-size: 10px;
+  color: #00D9FF;
+}
+
+.tideEvent:not(.tideEventPast) .tideEventIcon {
+  color: #00D9FF;
+  filter: drop-shadow(0 0 4px #00D9FF88);
+}
+
+.tideEventLabel {
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.tideEventTime {
+  color: rgba(255,255,255,0.7);
+}
+
+.tideEventHeight {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
 }
