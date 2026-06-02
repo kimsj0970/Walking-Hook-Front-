@@ -183,7 +183,38 @@ export interface SpeciesAnalysis {
 
 export type OutingStatus = 'SAFE' | 'CAUTION' | 'IMPOSSIBLE';
 
-export interface FishingAnalysisResult {
+export interface TideEvent {
+  time: string;       // "HH:mm"
+  heightCm: number;
+  highTide: boolean;  // true = 만조, false = 간조
+  dayOffset?: number; // 0 = 오늘, 1 = 내일 (없으면 0으로 간주)
+}
+
+export interface TidePoint {
+  minuteOffset: number; // 어제 00:00 기준 경과 분 (오늘 00:00 = 1440)
+  heightCm: number;
+}
+
+export type TideFlowPhase =
+  | 'RISING_FAST'
+  | 'RISING_SLOW'
+  | 'HIGH_SLACK'
+  | 'FALLING_FAST'
+  | 'FALLING_SLOW'
+  | 'LOW_SLACK'
+  | 'UNKNOWN';
+
+export const TIDE_FLOW_LABELS: Record<TideFlowPhase, string> = {
+  RISING_FAST:  '들물 본 때',
+  RISING_SLOW:  '막들물',
+  HIGH_SLACK:   '만조 전환기',
+  FALLING_FAST: '날물 본 때',
+  FALLING_SLOW: '막끝물',
+  LOW_SLACK:    '간조 전환기',
+  UNKNOWN:      '—',
+};
+
+export interface FishingConditionsResult {
   pointName: string;
   stationName: string | null;
   observedAt: string | null;
@@ -195,11 +226,30 @@ export interface FishingAnalysisResult {
   precipitationType: string | null;
   precipitationAmount: number | null;
   hasLightning: boolean;
+  temperature: number | null;
   tideDescription: string | null;
   fishingIndex: string | null;
+  tideFlowPhase: TideFlowPhase | null;
+  tideEvents: TideEvent[] | null;
+  tideSeries: TidePoint[] | null;
+  tideStationName: string | null;
   outingStatus: OutingStatus;
   outingWarning: string | null;
+  windSourceLabel: string | null;
+  temperatureSourceLabel: string | null;
+  marineSourceLabel: string | null;
+  precipitationSourceLabel: string | null;
+  skySourceLabel: string | null;
+  tideSourceLabel: string | null;
+}
+
+export interface FishingAnalysisResult {
   results: SpeciesAnalysis[] | null;
+}
+
+export async function fetchConditions(id: string): Promise<FishingConditionsResult> {
+  const { data } = await api.get(`/fishing-points/${id}/conditions`);
+  return data.data as FishingConditionsResult;
 }
 
 export async function analyzeFishingPoint(id: string): Promise<FishingAnalysisResult> {
