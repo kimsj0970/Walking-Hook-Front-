@@ -22,7 +22,7 @@ function roleLabel(role: string): string {
   return '일반 사용자';
 }
 
-function roleBadgeClass(role: string, s: typeof styles): string {
+function roleBadgeClass(role: string): string {
   if (role === 'ADMIN')        return styles.adminBadge;
   if (role === 'MIDDLE_ADMIN') return styles.modBadge;
   return '';
@@ -134,7 +134,7 @@ export default function UserManagementPage() {
               <ul className={styles.list}>
                 {filtered.map(u => {
                   const status = userStatus(u);
-                  const badge = roleBadgeClass(u.role, styles);
+                  const badge = roleBadgeClass(u.role);
                   return (
                     <li
                       key={u.id}
