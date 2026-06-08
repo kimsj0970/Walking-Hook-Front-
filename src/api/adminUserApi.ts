@@ -1,4 +1,5 @@
 import api from './authApi';
+import type { PageResult } from './noticeApi';
 
 export interface UserSummary {
   id: string;
@@ -13,9 +14,9 @@ export interface UserSummary {
   deletedAt: string | null;
 }
 
-export async function fetchAdminUsers(): Promise<UserSummary[]> {
-  const { data } = await api.get('/admin/users');
-  return (data.data ?? []) as UserSummary[];
+export async function fetchAdminUsersPage(page: number, size = 20): Promise<PageResult<UserSummary>> {
+  const { data } = await api.get('/admin/users', { params: { page, size } });
+  return data.data as PageResult<UserSummary>;
 }
 
 export async function setSuspended(id: string, suspend: boolean): Promise<void> {
