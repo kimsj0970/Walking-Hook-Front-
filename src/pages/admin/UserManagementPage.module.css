@@ -121,6 +121,15 @@
   border-radius: 4px;
 }
 
+.modBadge {
+  font-size: 10px;
+  font-weight: 700;
+  background: #0891B2;
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .listMeta {
   display: flex;
   align-items: center;
@@ -232,6 +241,39 @@
   margin-top: 8px;
   font-size: 12px;
   color: var(--color-text-muted);
+}
+
+/* ── pagination ── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-top: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+.pageBtn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pageBtn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.pageBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.pageBtnActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
 }
 
 /* ── toast ── */
