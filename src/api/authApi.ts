@@ -53,7 +53,7 @@ api.interceptors.response.use(
 
               window.dispatchEvent(
                 new CustomEvent('token-refreshed', {
-                  detail: { accessToken: newToken, nickname: newNickname, role: parseJwtRole(newToken) },
+                  detail: { accessToken: newToken, nickname: newNickname, role: parseJwtRole(newToken), userId: parseJwtUserId(newToken) },
                 })
               );
 
@@ -80,13 +80,20 @@ api.interceptors.response.use(
 
 // ─── JWT 파싱 ────────────────────────────────────────────────────────────────
 
-function parseJwtRole(token: string): string {
+function parseJwtPayload(token: string): Record<string, unknown> {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return (payload.role as string) ?? 'USER';
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
   } catch {
-    return 'USER';
+    return {};
   }
+}
+
+function parseJwtRole(token: string): string {
+  return (parseJwtPayload(token).role as string) ?? 'USER';
+}
+
+export function parseJwtUserId(token: string): string | null {
+  return (parseJwtPayload(token).sub as string) ?? null;
 }
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
@@ -95,6 +102,7 @@ export interface AuthResult {
   accessToken: string;
   nickName: string | null;
   role: string;
+  userId: string | null;
 }
 
 // ─── API 함수 ─────────────────────────────────────────────────────────────────
@@ -107,6 +115,7 @@ export async function oauthLogin(provider: string, code: string): Promise<AuthRe
     accessToken,
     nickName: data.data.userNickName ?? null,
     role: parseJwtRole(accessToken),
+    userId: parseJwtUserId(accessToken),
   };
 }
 
@@ -123,6 +132,7 @@ export async function silentRefresh(): Promise<AuthResult | null> {
       accessToken,
       nickName: data.data.userNickName ?? null,
       role: parseJwtRole(accessToken),
+      userId: parseJwtUserId(accessToken),
     };
   } catch {
     return null;
