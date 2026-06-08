@@ -63,10 +63,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.legendPink {
-  color: #C2185B;
-}
-
-.legendBlue {
-  color: #0B3D91;
-}
+.legendPink  { color: #C2185B; }
+.legendGreen { color: #16A34A; }
+.legendBlue  { color: #0B3D91; }
