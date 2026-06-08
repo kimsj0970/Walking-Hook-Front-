@@ -49,3 +49,37 @@ export async function getInquiryDetail(id: string): Promise<InquiryDetail> {
   const { data } = await api.get(`/inquiries/${id}`);
   return data.data as InquiryDetail;
 }
+
+/** 문의 삭제 (관리자 전용) */
+export async function deleteInquiry(id: string): Promise<void> {
+  await api.delete(`/admin/inquiries/${id}`);
+}
+
+// ── 댓글 ─────────────────────────────────────────────────────────────────────
+
+export interface InquiryComment {
+  id: string;
+  authorId: string;
+  authorNickname: string;
+  parentId: string | null;
+  content: string;
+  createdAt: string;
+}
+
+export async function getInquiryComments(inquiryId: string): Promise<InquiryComment[]> {
+  const { data } = await api.get(`/inquiries/${inquiryId}/comments`);
+  return data.data as InquiryComment[];
+}
+
+export async function addInquiryComment(
+  inquiryId: string,
+  content: string,
+  parentId?: string
+): Promise<string> {
+  const { data } = await api.post(`/inquiries/${inquiryId}/comments`, { content, parentId: parentId ?? null });
+  return data.data as string;
+}
+
+export async function deleteInquiryComment(inquiryId: string, commentId: string): Promise<void> {
+  await api.delete(`/inquiries/${inquiryId}/comments/${commentId}`);
+}
