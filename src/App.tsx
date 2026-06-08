@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/common/PrivateRoute';
+import Footer from './components/common/Footer';
 import HomePage from './pages/HomePage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NicknamePage from './pages/NicknamePage';
@@ -9,6 +10,10 @@ import MyPage from './pages/MyPage';
 import MapPage from './pages/MapPage';
 import AdminPage from './pages/admin/AdminPage';
 import InquiryPage from './pages/InquiryPage';
+import CommunityPage from './pages/CommunityPage';
+import NoticePage from './pages/NoticePage';
+import FishingPostPage from './pages/FishingPostPage';
+import PrivacyPage from './pages/PrivacyPage';
 import './App.css';
 
 function NicknameGuard({ children }: { children: ReactNode }) {
@@ -34,7 +39,12 @@ export default function App() {
             <Route path="/map" element={<MapPage />} />
             <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
             <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/notices" element={<NoticePage />} />
+            <Route path="/fishing-posts" element={<FishingPostPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
           </Routes>
+          <Footer />
         </NicknameGuard>
       </BrowserRouter>
     </AuthProvider>
