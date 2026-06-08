@@ -225,6 +225,7 @@ export interface FishingConditionsResult {
   sky: string | null;
   precipitationType: string | null;
   precipitationAmount: number | null;
+  precipitationProbability: number | null;
   hasLightning: boolean;
   temperature: number | null;
   tideDescription: string | null;
@@ -236,11 +237,15 @@ export interface FishingConditionsResult {
   outingStatus: OutingStatus;
   outingWarning: string | null;
   windSourceLabel: string | null;
+  windDirectionSourceLabel: string | null;
   temperatureSourceLabel: string | null;
-  marineSourceLabel: string | null;
+  waterTempSourceLabel: string | null;
+  waveHeightSourceLabel: string | null;
   precipitationSourceLabel: string | null;
   skySourceLabel: string | null;
   tideSourceLabel: string | null;
+  sunriseTime: string | null;
+  sunsetTime: string | null;
 }
 
 export interface FishingAnalysisResult {
