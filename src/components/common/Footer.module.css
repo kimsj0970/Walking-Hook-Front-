@@ -1,0 +1,76 @@
+.footer {
+  background: rgba(11, 61, 145, 0.97);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px 0;
+  margin-top: auto;
+}
+
+.inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.sources {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.label {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.divider {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+  transition: color 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.link:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.cpo {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 480px) {
+  .inner { padding: 0 16px; }
+  .sources { flex-wrap: wrap; justify-content: center; }
+}
