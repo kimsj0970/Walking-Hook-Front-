@@ -13,13 +13,17 @@ import {
   setInitialNicknameApi,
   silentRefresh,
   setInMemoryToken,
+  parseJwtUserId,
 } from '../api/authApi';
 
 interface AuthContextType {
   accessToken: string | null;
   nickname: string | null;
+  userId: string | null;
   isLoggedIn: boolean;
   isAdmin: boolean;
+  isModerator: boolean;
+  role: string;
   needsNickname: boolean;
   isInitializing: boolean;
   login: (token: string, nickname: string | null, role?: string) => void;
@@ -34,7 +38,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [nickname, setNicknameState] = useState<string | null>(
-    () => localStorage.getItem('nickname') // 닉네임은 표시용이라 localStorage 유지
+    () => localStorage.getItem('nickname')
+  );
+  const [userId, setUserIdState] = useState<string | null>(
+    () => localStorage.getItem('userId')
   );
   const [role, setRoleState] = useState<string>(
     () => localStorage.getItem('role') ?? 'USER'
@@ -55,6 +62,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('role', result.role);
           setRoleState(result.role);
         }
+        if (result.userId) {
+          localStorage.setItem('userId', result.userId);
+          setUserIdState(result.userId);
+        }
       }
     }).finally(() => {
       setIsInitializing(false);
@@ -63,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleRefresh = (e: Event) => {
-      const detail = (e as CustomEvent).detail as { accessToken: string; nickname: string | null; role?: string };
+      const detail = (e as CustomEvent).detail as { accessToken: string; nickname: string | null; role?: string; userId?: string };
       setAccessToken(detail.accessToken);
       if (detail.nickname) {
         localStorage.setItem('nickname', detail.nickname);
@@ -73,13 +84,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('role', detail.role);
         setRoleState(detail.role);
       }
+      if (detail.userId) {
+        localStorage.setItem('userId', detail.userId);
+        setUserIdState(detail.userId);
+      }
     };
     const handleExpired = () => {
       setAccessToken(null);
       setNicknameState(null);
+      setUserIdState(null);
       setRoleState('USER');
       localStorage.removeItem('nickname');
       localStorage.removeItem('role');
+      localStorage.removeItem('userId');
       alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
       window.location.href = '/';
     };
@@ -105,6 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const newRole = r ?? 'USER';
     localStorage.setItem('role', newRole);
     setRoleState(newRole);
+    const uid = parseJwtUserId(token);
+    if (uid) { localStorage.setItem('userId', uid); setUserIdState(uid); }
   }, []);
 
   const logout = useCallback(async () => {
@@ -116,9 +135,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setInMemoryToken(null);
       setAccessToken(null);
       setNicknameState(null);
+      setUserIdState(null);
       setRoleState('USER');
       localStorage.removeItem('nickname');
       localStorage.removeItem('role');
+      localStorage.removeItem('userId');
     }
   }, []);
 
@@ -127,9 +148,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setInMemoryToken(null);
     setAccessToken(null);
     setNicknameState(null);
+    setUserIdState(null);
     setRoleState('USER');
     localStorage.removeItem('nickname');
     localStorage.removeItem('role');
+    localStorage.removeItem('userId');
   }, []);
 
   const setInitialNickname = useCallback(async (nick: string) => {
@@ -146,6 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isLoggedIn = !!accessToken;
   const isAdmin = isLoggedIn && role === 'ADMIN';
+  const isModerator = isLoggedIn && role === 'MIDDLE_ADMIN';
   const needsNickname = isLoggedIn && !nickname;
 
   return (
@@ -153,8 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         accessToken,
         nickname,
+        userId,
         isLoggedIn,
         isAdmin,
+        isModerator,
+        role,
         needsNickname,
         isInitializing,
         login,
