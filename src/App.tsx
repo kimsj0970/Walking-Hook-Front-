@@ -14,12 +14,13 @@ import CommunityPage from './pages/CommunityPage';
 import NoticePage from './pages/NoticePage';
 import FishingPostPage from './pages/FishingPostPage';
 import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 import './App.css';
 
 function NicknameGuard({ children }: { children: ReactNode }) {
   const { needsNickname, isInitializing } = useAuth();
   const { pathname } = useLocation();
-  const exempt = pathname === '/nickname' || pathname.startsWith('/oauth');
+  const exempt = pathname === '/nickname' || pathname.startsWith('/oauth') || pathname === '/terms' || pathname === '/privacy';
   if (!isInitializing && needsNickname && !exempt) {
     return <Navigate to="/nickname" replace />;
   }
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/notices" element={<NoticePage />} />
             <Route path="/fishing-posts" element={<FishingPostPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
           </Routes>
           <Footer />
         </NicknameGuard>
