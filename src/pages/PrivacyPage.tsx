@@ -1,6 +1,5 @@
 import styles from './PrivacyPage.module.css';
 import Header from '../components/common/Header';
-import Footer from '../components/common/Footer';
 
 export default function PrivacyPage() {
   return (
@@ -126,7 +125,6 @@ export default function PrivacyPage() {
           </section>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
