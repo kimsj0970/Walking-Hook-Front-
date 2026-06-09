@@ -265,8 +265,8 @@ export default function HomePage() {
                 value={conditionsResult?.windSpeed != null ? `${conditionsResult.windSpeed}m/s` : null}
                 desc={getWindDesc(conditionsResult?.windSpeed)}
                 source={conditionsResult?.windSourceLabel} />
-              <WindDirectionCard direction={conditionsResult?.windDirection ?? null} loading={isConditionsLoading}
-                source={conditionsResult?.windSourceLabel} />
+              {/* <WindDirectionCard direction={conditionsResult?.windDirection ?? null} loading={isConditionsLoading}
+                source={conditionsResult?.windDirectionSourceLabel} /> */}
               <ConditionCard icon="🔄" label="물때" loading={isConditionsLoading}
                 value={conditionsResult?.tideDescription ?? null}
                 source={conditionsResult?.tideSourceLabel} />
@@ -286,16 +286,19 @@ export default function HomePage() {
                 value={conditionsResult?.temperature != null ? `${conditionsResult.temperature}℃` : null}
                 source={conditionsResult?.temperatureSourceLabel} />
               <ConditionCard
-                icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌧'}
-                label="강수"
+                icon="🌂"
+                label="강수 확률"
                 loading={isConditionsLoading}
-                value={conditionsResult == null ? null : (() => {
-                  const prob = `확률 ${conditionsResult.precipitationProbability ?? 0}%`;
-                  const amt = hasPrecip
-                    ? `${conditionsResult.precipitationType}${conditionsResult.precipitationAmount != null ? ` ${conditionsResult.precipitationAmount}mm` : ' 0mm'}`
-                    : `${conditionsResult.precipitationAmount ?? 0}mm`;
-                  return `${prob} · ${amt}`;
-                })()}
+                value={conditionsResult != null ? `${conditionsResult.precipitationProbability ?? 0}%` : null}
+                source={conditionsResult?.precipitationSourceLabel}
+              />
+              <ConditionCard
+                icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌧'}
+                label="강수량"
+                loading={isConditionsLoading}
+                value={conditionsResult == null ? null : hasPrecip
+                  ? `${conditionsResult.precipitationType}${conditionsResult.precipitationAmount != null ? ` ${conditionsResult.precipitationAmount}mm` : ' 0mm'}`
+                  : `${conditionsResult.precipitationAmount ?? 0}mm`}
                 source={conditionsResult?.precipitationSourceLabel}
               />
             </div>
@@ -506,13 +509,6 @@ export default function HomePage() {
           <span className={styles.footerLogo}>🎣 Walking Hook</span>
           <span className={styles.footerCopy}>실시간 조황 예측 서비스</span>
         </div>
-        <div className={styles.footerAttrib}>
-          기상 데이터 출처: 기상청 기상자료개방포털&nbsp;
-          <a href="https://data.kma.go.kr" target="_blank" rel="noopener noreferrer" className={styles.footerAttribLink}>
-            data.kma.go.kr
-          </a>
-          &nbsp;· 공공누리 제1유형
-        </div>
       </footer>
     </div>
   );
@@ -594,11 +590,19 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
   loading?: boolean;
 }) {
   const W = 600;
-  const PAD = { top: 64, bottom: 52, left: 10, right: 10 };
-  const CHART_H = 88;
+  const PAD = { top: 84, bottom: 72, left: 10, right: 10 };
+  const CHART_H = 108;
   const TOTAL_H = PAD.top + CHART_H + PAD.bottom;
   const chartW = W - PAD.left - PAD.right;
   const bottomY = PAD.top + CHART_H;
+
+  // 고정 레인 y 좌표 — 만조(상단), 간조(하단)
+  const HI_TIME_Y = PAD.top - 44;
+  const HI_TYPE_Y = PAD.top - 30;
+  const HI_HT_Y   = PAD.top - 16;
+  const LO_TIME_Y = bottomY + 18;
+  const LO_TYPE_Y = bottomY + 32;
+  const LO_HT_Y   = bottomY + 46;
 
   const timeToMin = (t: string) => {
     const [h, m] = t.split(':').map(Number);
@@ -696,9 +700,11 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
     return extH[i] + (extH[i + 1] - extH[i]) * (1 - Math.cos(ratio * Math.PI)) / 2;
   };
 
-  // 자정 경계선 위치
   const midnightX = xOf(1440);
   const nowX = xOf(nowMin);
+  const nowPillW = 56;
+  const nowPillCx = Math.min(W - nowPillW / 2 - 8, Math.max(nowPillW / 2 + 8, nowX));
+  const nowTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
   return (
     <div className={styles.tideTimeline}>
@@ -723,24 +729,33 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
         {/* 코사인 파형 선 */}
         <path d={linePath} fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinejoin="round" clipPath="url(#tideClip)" />
 
-        {/* 자정 경계선 */}
-        <line x1={midnightX} y1={PAD.top} x2={midnightX} y2={bottomY}
-          stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeDasharray="4,4" />
-        <text x={midnightX + 5} y={PAD.top + 13} textAnchor="start"
-          fontSize="11" fill="rgba(255,255,255,0.75)" fontWeight="600">
-          {`내일 ${now.getMonth() + 1}/${new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getDate()}`}
-        </text>
+        {/* 자정 경계선 + 내일 pill (지금 pill과 같은 상단 레인) */}
+        {(() => {
+          const label = `내일 ${now.getMonth() + 1}/${new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getDate()}`;
+          const pillW = 52;
+          const pillCx = Math.min(W - pillW / 2 - 8, Math.max(pillW / 2 + 8, midnightX));
+          return (
+            <>
+              <line x1={midnightX} y1={20} x2={midnightX} y2={bottomY}
+                stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeDasharray="4,4" />
+              <rect x={pillCx - pillW / 2} y={1} width={pillW} height="18" rx="9"
+                fill="rgba(255,255,255,0.18)" />
+              <text x={pillCx} y={13} textAnchor="middle" fontSize="10"
+                fill="rgba(255,255,255,0.9)" fontWeight="700">{label}</text>
+            </>
+          );
+        })()}
 
-        {/* 현재 시각 — 배경 pill + 텍스트 */}
-        <rect x={nowX - 18} y={PAD.top - 29} width="36" height="16"
-          rx="8" fill="#FDE047" opacity="0.95" />
-        <text x={nowX} y={PAD.top - 17} textAnchor="middle" fontSize="11" fill="#1E3A5F" fontWeight="900">지금</text>
-        <text x={nowX} y={PAD.top - 3} textAnchor="middle" fontSize="11" fill="#FDE047" fontWeight="700">
-          {`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`}
+        {/* 현재 시각 — "지금 HH:MM" pill (SVG 상단 고정) + 세로 점선 */}
+        <rect x={nowPillCx - nowPillW / 2} y={1} width={nowPillW} height="18" rx="9"
+          fill="#FDE047" opacity="0.95" />
+        <text x={nowPillCx} y={13} textAnchor="middle" fontSize="10" fill="#1E3A5F" fontWeight="900">
+          {`지금 ${nowTimeStr}`}
         </text>
-        <line x1={nowX} y1={PAD.top} x2={nowX} y2={bottomY} stroke="#FDE047" strokeWidth="2.5" strokeDasharray="5,3" />
+        <line x1={nowX} y1={20} x2={nowX} y2={bottomY}
+          stroke="#FDE047" strokeWidth="2.5" strokeDasharray="5,3" />
 
-        {/* 일출/일몰 — 위치선 + 아이콘만 (텍스트는 차트 위 sunRow에 표시) */}
+        {/* 일출/일몰 — 아이콘 + 시간 텍스트 */}
         {[
           { time: sunriseTime, icon: '🌅' },
           { time: sunsetTime,  icon: '🌇' },
@@ -750,13 +765,17 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
           const sunMin = hh * 60 + mm;
           if (sunMin >= RANGE_END) return null;
           const sx = xOf(sunMin);
-          const sy = yOf(heightAt(sunMin)) - 12; // 파형 위에 살짝 띄움
+          const sy = yOf(heightAt(sunMin)) - 14;
           return (
-            <text key={icon} x={sx} y={sy} textAnchor="middle" fontSize="14">{icon}</text>
+            <g key={icon}>
+              <text x={sx} y={sy} textAnchor="middle" fontSize="14">{icon}</text>
+              <text x={sx} y={sy + 13} textAnchor="middle" fontSize="9"
+                fill="rgba(255,255,255,0.7)" fontWeight="500">{time}</text>
+            </g>
           );
         })}
 
-        {/* 만조/간조 마커 — 만조는 위, 간조는 아래 */}
+        {/* 만조/간조 — 핀은 파형 위 실제 위치, 레이블은 상단/하단 고정 레인 */}
         {sorted.map((e, i) => {
           const ex = xOf(mins[i]);
           const ey = yOf(e.heightCm);
@@ -765,46 +784,29 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
           const dotColor  = isHigh ? '#4ADE80' : '#F87171';
           const glowColor = isHigh ? '#16A34A' : '#DC2626';
           const typeLabel = isHigh ? '만조' : '간조';
-
-          // "지금" 선과 가까울 때 레이블을 옆으로 밀어 겹침 방지
-          const NUDGE_THRESHOLD = 55;
-          const distFromNow = (e.dayOffset ?? 0) === 0 ? Math.abs(ex - nowX) : Infinity;
-          const isNearNow = distFromNow < NUDGE_THRESHOLD;
-          const NUDGE = 58;
-          const rawTextX = isNearNow ? ex + (ex >= nowX ? NUDGE : -NUDGE) : ex;
-          const textX = Math.min(W - 35, Math.max(35, rawTextX));
-          const anchor: 'middle' | 'start' | 'end' = isNearNow
-            ? (ex >= nowX ? 'start' : 'end')
-            : 'middle';
-
           return (
             <g key={i} opacity={isPast ? 0.7 : 1}>
               {isHigh ? (
-                /* 만조 — 레이블을 파형 위로 */
+                /* 만조 — 상단 고정 레인 */
                 <>
-                  {/* 겹침 시 점 → 레이블 연결선 */}
-                  {isNearNow
-                    ? <line x1={ex} y1={ey - 12} x2={textX} y2={ey - 22}
-                        stroke={dotColor} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.85" />
-                    : <line x1={ex} y1={ey - 10} x2={ex} y2={ey - 20}
-                        stroke={dotColor} strokeWidth="2" strokeDasharray="4,3" />
-                  }
-                  <text x={textX} y={ey - 46} textAnchor={anchor} fontSize="14"   fill="white"    fontWeight="900">{e.time}</text>
-                  <text x={textX} y={ey - 31} textAnchor={anchor} fontSize="12.5" fill={dotColor} fontWeight="800">{typeLabel}</text>
-                  <text x={textX} y={ey - 18} textAnchor={anchor} fontSize="11.5" fill="rgba(255,255,255,0.95)" fontWeight="700">{e.heightCm}cm</text>
+                  {ey - 13 > HI_HT_Y + 5 && (
+                    <line x1={ex} y1={HI_HT_Y + 4} x2={ex} y2={ey - 13}
+                      stroke={dotColor} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.45" />
+                  )}
+                  <text x={ex} y={HI_TIME_Y} textAnchor="middle" fontSize="13" fill="white"    fontWeight="900">{e.time}</text>
+                  <text x={ex} y={HI_TYPE_Y} textAnchor="middle" fontSize="12" fill={dotColor} fontWeight="800">{typeLabel}</text>
+                  <text x={ex} y={HI_HT_Y}   textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.9)" fontWeight="700">{e.heightCm}cm</text>
                 </>
               ) : (
-                /* 간조 — 레이블을 차트 아래로 */
+                /* 간조 — 하단 고정 레인 */
                 <>
-                  {isNearNow
-                    ? <line x1={ex} y1={ey + 8} x2={textX} y2={bottomY + 2}
-                        stroke={dotColor} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.85" />
-                    : <line x1={ex} y1={ey + 8} x2={ex} y2={bottomY + 2}
-                        stroke={dotColor} strokeWidth="2" strokeDasharray="4,3" />
-                  }
-                  <text x={textX} y={bottomY + 17} textAnchor={anchor} fontSize="14"   fill="white"    fontWeight="900">{e.time}</text>
-                  <text x={textX} y={bottomY + 32} textAnchor={anchor} fontSize="12.5" fill={dotColor} fontWeight="800">{typeLabel}</text>
-                  <text x={textX} y={bottomY + 46} textAnchor={anchor} fontSize="11.5" fill="rgba(255,255,255,0.95)" fontWeight="700">{e.heightCm}cm</text>
+                  {ey + 13 < bottomY - 5 && (
+                    <line x1={ex} y1={ey + 13} x2={ex} y2={bottomY + 4}
+                      stroke={dotColor} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.45" />
+                  )}
+                  <text x={ex} y={LO_TIME_Y} textAnchor="middle" fontSize="13" fill="white"    fontWeight="900">{e.time}</text>
+                  <text x={ex} y={LO_TYPE_Y} textAnchor="middle" fontSize="12" fill={dotColor} fontWeight="800">{typeLabel}</text>
+                  <text x={ex} y={LO_HT_Y}   textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.9)" fontWeight="700">{e.heightCm}cm</text>
                 </>
               )}
               <circle cx={ex} cy={ey} r="13" fill={glowColor} opacity="0.5" />
