@@ -8,12 +8,24 @@ if (!BASE_URL) {
 // accessToken은 메모리에만 보관 (XSS 탈취 방지)
 let inMemoryToken: string | null = null;
 
+// csrfToken은 sessionStorage에 보관 (페이지 새로고침 시 유지, 탭 닫으면 초기화)
+let inMemoryCsrfToken: string | null = sessionStorage.getItem('csrfToken');
+
 export function setInMemoryToken(token: string | null) {
   inMemoryToken = token;
 }
 
 export function getInMemoryToken(): string | null {
   return inMemoryToken;
+}
+
+function setCsrfToken(token: string | null) {
+  inMemoryCsrfToken = token;
+  if (token) {
+    sessionStorage.setItem('csrfToken', token);
+  } else {
+    sessionStorage.removeItem('csrfToken');
+  }
 }
 
 const api = axios.create({
@@ -44,12 +56,20 @@ api.interceptors.response.use(
       try {
         if (!refreshPromise) {
           refreshPromise = axios
-            .post(`${BASE_URL}/user/reissue`, {}, { withCredentials: true })
+            .post(
+              `${BASE_URL}/user/reissue`,
+              {},
+              {
+                withCredentials: true,
+                headers: { 'X-CSRF-Token': inMemoryCsrfToken ?? '' },
+              }
+            )
             .then(({ data }) => {
               const newToken: string = data.data.accessToken;
               const newNickname: string | null = data.data.userNickName ?? null;
 
               setInMemoryToken(newToken);
+              setCsrfToken(data.data.csrfToken);
 
               window.dispatchEvent(
                 new CustomEvent('token-refreshed', {
@@ -69,6 +89,7 @@ api.interceptors.response.use(
         return api(original);
       } catch {
         setInMemoryToken(null);
+        setCsrfToken(null);
         window.dispatchEvent(new Event('auth-expired'));
         return Promise.reject(error);
       }
@@ -111,6 +132,7 @@ export interface AuthResult {
 export async function oauthLogin(provider: string, code: string): Promise<AuthResult> {
   const { data } = await api.post(`/oauth/${provider}`, { code });
   const accessToken: string = data.data.accessToken;
+  setCsrfToken(data.data.csrfToken);
   return {
     accessToken,
     nickName: data.data.userNickName ?? null,
@@ -125,9 +147,13 @@ export async function silentRefresh(): Promise<AuthResult | null> {
     const { data } = await axios.post(
       `${BASE_URL}/user/reissue`,
       {},
-      { withCredentials: true }
+      {
+        withCredentials: true,
+        headers: inMemoryCsrfToken ? { 'X-CSRF-Token': inMemoryCsrfToken } : {},
+      }
     );
     const accessToken: string = data.data.accessToken;
+    setCsrfToken(data.data.csrfToken);
     return {
       accessToken,
       nickName: data.data.userNickName ?? null,
@@ -160,12 +186,20 @@ export async function agreeToTermsApi(params: {
 
 /** 로그아웃 */
 export async function logoutApi(): Promise<void> {
-  await api.post('/user/logout');
+  try {
+    await api.post('/user/logout');
+  } finally {
+    setCsrfToken(null);
+  }
 }
 
 /** 회원 탈퇴 */
 export async function deleteUserApi(): Promise<void> {
-  await api.delete('/user/delete');
+  try {
+    await api.delete('/user/delete');
+  } finally {
+    setCsrfToken(null);
+  }
 }
 
 /** 마이페이지 정보 조회 */
