@@ -123,6 +123,11 @@ export default function FishingPostPage() {
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
 
+  const getDescendants = (parentId: string): FishingPostComment[] => {
+    const children = comments.filter(c => c.parentId === parentId);
+    return children.flatMap(child => [child, ...getDescendants(child.id)]);
+  };
+
   return (
     <div className={styles.container}>
       <Header />
@@ -226,15 +231,20 @@ export default function FishingPostPage() {
                       </div>
                       <p className={styles.commentContent}>{c.content}</p>
 
-                      {comments.filter(r => r.parentId === c.id).map(r => (
+                      {getDescendants(c.id).map(r => (
                         <div key={r.id} className={styles.reply}>
                           <div className={styles.commentHeader}>
                             <span className={styles.replyArrow}>↳</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
                             <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
-                            {(isAdmin || r.authorId === userId) && (
-                              <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
-                            )}
+                            <div className={styles.commentActions}>
+                              {isLoggedIn && (
+                                <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
+                              )}
+                              {(isAdmin || r.authorId === userId) && (
+                                <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                              )}
+                            </div>
                           </div>
                           <p className={styles.commentContent}>{r.content}</p>
                         </div>
