@@ -12,6 +12,7 @@ export default function NicknamePage() {
 
   const [step, setStep] = useState<Step>('terms');
 
+  const [ageAgreed, setAgeAgreed] = useState(false);
   const [termsAgreed, setTermsAgreed] = useState(false);
   const [privacyAgreed, setPrivacyAgreed] = useState(false);
   const [marketingAgreed, setMarketingAgreed] = useState(false);
@@ -27,9 +28,10 @@ export default function NicknamePage() {
     return null;
   }
 
-  const allAgreed = termsAgreed && privacyAgreed && marketingAgreed;
+  const allAgreed = ageAgreed && termsAgreed && privacyAgreed && marketingAgreed;
   const handleAllToggle = () => {
     const next = !allAgreed;
+    setAgeAgreed(next);
     setTermsAgreed(next);
     setPrivacyAgreed(next);
     setMarketingAgreed(next);
@@ -37,8 +39,8 @@ export default function NicknamePage() {
 
   const handleTermsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!termsAgreed || !privacyAgreed) {
-      setTermsError('필수 약관에 동의해 주세요.');
+    if (!ageAgreed || !termsAgreed || !privacyAgreed) {
+      setTermsError('필수 항목에 모두 동의해 주세요.');
       return;
     }
     setTermsError('');
@@ -96,11 +98,22 @@ export default function NicknamePage() {
               <label className={styles.checkItem}>
                 <input
                   type="checkbox"
+                  checked={ageAgreed}
+                  onChange={(e) => setAgeAgreed(e.target.checked)}
+                />
+                <span className={styles.checkLabelText}>본인은 만 14세 이상입니다</span>
+                <span className={`${styles.badge} ${styles.badgeRequired}`}>필수</span>
+              </label>
+
+              <label className={styles.checkItem}>
+                <input
+                  type="checkbox"
                   checked={termsAgreed}
                   onChange={(e) => setTermsAgreed(e.target.checked)}
                 />
                 <span className={styles.checkLabelText}>이용약관 동의</span>
                 <span className={`${styles.badge} ${styles.badgeRequired}`}>필수</span>
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className={styles.viewLink}>보기</a>
               </label>
 
               <label className={styles.checkItem}>
@@ -111,6 +124,7 @@ export default function NicknamePage() {
                 />
                 <span className={styles.checkLabelText}>개인정보처리방침 동의</span>
                 <span className={`${styles.badge} ${styles.badgeRequired}`}>필수</span>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className={styles.viewLink}>보기</a>
               </label>
 
               <label className={styles.checkItem}>
@@ -129,7 +143,7 @@ export default function NicknamePage() {
             <button
               type="submit"
               className={styles.btn}
-              disabled={termsLoading || !termsAgreed || !privacyAgreed}
+              disabled={termsLoading || !ageAgreed || !termsAgreed || !privacyAgreed}
             >
               {termsLoading ? '처리 중...' : '다음'}
             </button>
