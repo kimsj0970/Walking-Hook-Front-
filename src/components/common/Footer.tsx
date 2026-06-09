@@ -13,9 +13,14 @@ export default function Footer() {
           <span>기상청 API 허브</span>
           <span className={styles.divider}>|</span>
           <span>국립해양조사원</span>
+          <span className={styles.divider}>·</span>
+          <span>공공누리 제1유형</span>
         </div>
 
         <div className={styles.links}>
+          <button className={styles.link} onClick={() => navigate('/terms')}>
+            이용약관
+          </button>
           <button className={styles.link} onClick={() => navigate('/privacy')}>
             개인정보처리방침
           </button>
