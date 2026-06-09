@@ -181,3 +181,12 @@
   background: var(--color-border-light);
   color: var(--color-text-light);
 }
+
+.viewLink {
+  font-size: 12px;
+  color: var(--color-primary-light);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
