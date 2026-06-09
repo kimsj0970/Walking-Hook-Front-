@@ -19,10 +19,6 @@ const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> 
   '농어':   { id: 'seabass',    colorFrom: '#AE2012', colorTo: '#CA6702' },
 };
 
-const DIRECTION_DEG: Record<string, number> = {
-  '북': 0, '북동': 45, '동': 90, '남동': 135,
-  '남': 180, '남서': 225, '서': 270, '북서': 315,
-};
 
 const SKY_ICON: Record<string, string> = {
   '맑음': '☀️', '구름많음': '⛅', '흐림': '☁️',
@@ -528,41 +524,6 @@ function ConditionCard({ icon, label, value, loading, className, source, desc }:
       {!loading && desc && (
         <span className={styles.conditionCardDesc}>{desc}</span>
       )}
-      {!loading && source && (
-        <span className={styles.conditionCardSource}>{source}</span>
-      )}
-    </div>
-  );
-}
-
-
-/* ─── 풍향 나침반 카드 ─── */
-function WindDirectionCard({ direction, loading, source }: { direction: string | null; loading?: boolean; source?: string | null }) {
-  const toPart = direction?.includes('→') ? direction.split('→')[1] : direction;
-  const toDeg  = toPart ? (DIRECTION_DEG[toPart] ?? 0) : 0;
-
-  return (
-    <div className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''}`}>
-      <div className={styles.windCompass}>
-        <span className={styles.windDirN}>N</span>
-        <span className={styles.windDirS}>S</span>
-        <span className={styles.windDirW}>W</span>
-        <span className={styles.windDirE}>E</span>
-        <svg
-          className={styles.windNeedle}
-          style={{ transform: `rotate(${toDeg}deg)` }}
-          viewBox="0 0 40 40"
-        >
-          {/* 화살표 shaft */}
-          <line x1="20" y1="32" x2="20" y2="12" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round" />
-          {/* 화살촉 (빨간색, TO 방향) */}
-          <path d="M20,4 L27,16 L20,13 L13,16 Z" fill="#FF3B3B" />
-        </svg>
-      </div>
-      <span className={styles.conditionCardLabel}>풍향</span>
-      {loading
-        ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
-        : <span className={styles.conditionCardValue}>{direction ?? '—'}</span>}
       {!loading && source && (
         <span className={styles.conditionCardSource}>{source}</span>
       )}
