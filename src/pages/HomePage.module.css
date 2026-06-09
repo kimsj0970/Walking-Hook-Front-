@@ -848,27 +848,6 @@
   color: rgba(255,255,255,0.45);
 }
 
-.footerAttrib {
-  max-width: 1080px;
-  margin: 10px auto 0;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  font-size: 11px;
-  color: rgba(255,255,255,0.35);
-  text-align: center;
-}
-
-.footerAttribLink {
-  color: rgba(255,255,255,0.5);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  transition: color 0.2s;
-}
-
-.footerAttribLink:hover {
-  color: rgba(255,255,255,0.8);
-}
-
 /* ─── 조석 타임라인 ─── */
 .tideTimeline {
   margin-top: 16px;
