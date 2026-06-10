@@ -31,10 +31,10 @@ const PTY_ICON: Record<string, string> = {
 function getWindDesc(windSpeed: number | null | undefined): string | null {
   if (windSpeed == null) return null;
   if (windSpeed <= 1.5) return '실바람 · 낚시하기 편안해요';
-  if (windSpeed <= 3.3) return '남실바람 · 낚시하기 딱 좋아요';
-  if (windSpeed <= 5.4) return '산들바람 · 낚시 무리 없어요';
-  if (windSpeed <= 7.9) return '건들바람 · 채비를 단단히 하세요';
-  if (windSpeed <= 12)  return '흔들바람 · 바람 피할 곳을 찾으세요';
+  if (windSpeed <= 3.3) return '산들바람 · 낚시하기 딱 좋아요';
+  if (windSpeed <= 5.4) return '건들바람 · 채비 컨트롤에 신경 쓰세요';
+  if (windSpeed <= 7.9) return '흔들바람 · 캐스팅 거리가 줄어들어요';
+  if (windSpeed <= 12)  return '된바람 · 안전에 주의하세요';
   return '강풍 · 안전을 위해 출조 자제 권장';
 }
 
