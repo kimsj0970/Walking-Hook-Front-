@@ -43,8 +43,8 @@ export default function LoginModal({ open, onClose }: Props) {
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
         <button className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
 
         <div className={styles.header}>
