@@ -1,10 +1,37 @@
 import api from './authApi';
 
+export type Province =
+  | 'SEOUL' | 'BUSAN' | 'DAEGU' | 'INCHEON' | 'GWANGJU' | 'DAEJEON' | 'ULSAN' | 'SEJONG'
+  | 'GYEONGGI' | 'GANGWON' | 'CHUNGBUK' | 'CHUNGNAM' | 'JEONBUK' | 'JEONNAM'
+  | 'GYEONGBUK' | 'GYEONGNAM' | 'JEJU';
+
 export type SafetyLevel = 'SAFE' | 'NORMAL' | 'CAUTION' | 'DANGEROUS';
 export type TerrainType = 'UNKNOWN' | 'BEACH' | 'BREAKWATER' | 'ROCKY_SHORE' | 'PORT';
 export type BottomType = 'UNKNOWN' | 'SAND' | 'MUD' | 'GRAVEL' | 'ROCK' | 'MIXED' | 'TETRAPOD';
 export type DepthFeature = 'UNKNOWN' | 'SHALLOW' | 'GENTLE_SLOPE' | 'DEPTH_BREAK' | 'WATER_CHANNEL' | 'DEEP_DROP';
 export type StructureDensity = 'UNKNOWN' | 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH';
+
+export const PROVINCE_LABELS: Record<Province, string> = {
+  SEOUL: '서울특별시',
+  BUSAN: '부산광역시',
+  DAEGU: '대구광역시',
+  INCHEON: '인천광역시',
+  GWANGJU: '광주광역시',
+  DAEJEON: '대전광역시',
+  ULSAN: '울산광역시',
+  SEJONG: '세종특별자치시',
+  GYEONGGI: '경기도',
+  GANGWON: '강원특별자치도',
+  CHUNGBUK: '충청북도',
+  CHUNGNAM: '충청남도',
+  JEONBUK: '전북특별자치도',
+  JEONNAM: '전라남도',
+  GYEONGBUK: '경상북도',
+  GYEONGNAM: '경상남도',
+  JEJU: '제주특별자치도',
+};
+
+export const PROVINCE_OPTIONS = Object.entries(PROVINCE_LABELS) as [Province, string][];
 
 export const SAFETY_LEVEL_LABELS: Record<SafetyLevel, string> = {
   SAFE: '안전',
@@ -76,6 +103,7 @@ export interface FishingPointMapMarker {
 export interface FishingPointDetail {
   id: string;
   name: string;
+  province: Province;
   region: string;
   latitude: number;
   longitude: number;
@@ -101,6 +129,7 @@ export interface FishingPointDetail {
 
 export interface FishingPointCreateRequest {
   name: string;
+  province: Province;
   region: string;
   latitude: number;
   longitude: number;
