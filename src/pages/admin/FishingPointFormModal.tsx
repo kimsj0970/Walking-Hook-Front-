@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import {
   type FishingPointDetail,
   type FishingPointCreateRequest,
+  type Province,
   type SafetyLevel,
   type TerrainType,
   type BottomType,
   type DepthFeature,
   type StructureDensity,
+  PROVINCE_OPTIONS,
   SAFETY_LEVEL_OPTIONS,
   TERRAIN_TYPE_OPTIONS,
   BOTTOM_TYPE_OPTIONS,
@@ -91,6 +93,7 @@ const TERRAIN_FEATURE_FIELDS: BoolFieldMeta[] = [
 
 interface FormState {
   name: string;
+  province: Province | '';
   region: string;
   latitude: string;
   longitude: string;
@@ -116,6 +119,7 @@ interface FormState {
 
 const DEFAULT_FORM: FormState = {
   name: '',
+  province: '',
   region: '',
   latitude: '',
   longitude: '',
@@ -142,6 +146,7 @@ const DEFAULT_FORM: FormState = {
 function detailToForm(d: FishingPointDetail): FormState {
   return {
     name: d.name,
+    province: d.province,
     region: d.region,
     latitude: String(d.latitude),
     longitude: String(d.longitude),
@@ -197,7 +202,7 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FormState, string>> = {};
     if (!form.name.trim()) newErrors.name = '이름을 입력하세요.';
-    if (!form.region.trim()) newErrors.region = '지역을 입력하세요.';
+    if (!form.province) newErrors.province = '시/도를 선택하세요.';
     const lat = parseFloat(form.latitude);
     if (!form.latitude.trim() || isNaN(lat) || lat < -90 || lat > 90)
       newErrors.latitude = '위도는 -90~90 사이 숫자여야 합니다.';
@@ -214,6 +219,7 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
     setServerError('');
     const payload: FishingPointCreateRequest = {
       name: form.name.trim(),
+      province: form.province as Province,
       region: form.region.trim(),
       latitude: parseFloat(form.latitude),
       longitude: parseFloat(form.longitude),
@@ -251,8 +257,8 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
         <div className={styles.header}>
           <h2 className={styles.title}>
             {editTarget ? '포인트 수정' : '새 포인트 추가'}
@@ -279,12 +285,28 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
                 {errors.name && <p className={styles.errorMsg}>{errors.name}</p>}
               </div>
               <div className={styles.field}>
-                <label className={styles.label}>지역 <span className={styles.required}>*</span></label>
+                <label className={styles.label}>시/도 <span className={styles.required}>*</span></label>
+                <select
+                  className={`${styles.select} ${errors.province ? styles.inputError : ''}`}
+                  value={form.province}
+                  onChange={(e) => set('province', e.target.value as Province)}
+                >
+                  <option value="">시/도 선택</option>
+                  {PROVINCE_OPTIONS.map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+                {errors.province && <p className={styles.errorMsg}>{errors.province}</p>}
+              </div>
+            </div>
+            <div className={styles.row2}>
+              <div className={styles.field}>
+                <label className={styles.label}>지역</label>
                 <input
                   className={`${styles.input} ${errors.region ? styles.inputError : ''}`}
                   value={form.region}
                   onChange={(e) => set('region', e.target.value)}
-                  placeholder="예: 부산 영도"
+                  placeholder="예: 영도, 기장"
                   maxLength={100}
                 />
                 {errors.region && <p className={styles.errorMsg}>{errors.region}</p>}
