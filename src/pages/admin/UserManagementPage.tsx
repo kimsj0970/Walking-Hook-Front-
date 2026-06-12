@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchAdminUsersPage, setSuspended, type UserSummary } from '../../api/adminUserApi';
+import {
+  fetchAdminUsersPage, setSuspended, setRole, deleteUser, updateNickname,
+  type UserSummary,
+} from '../../api/adminUserApi';
 import styles from './UserManagementPage.module.css';
 
 const PAGE_SIZE = 20;
@@ -29,18 +32,25 @@ function roleBadgeClass(role: string): string {
 }
 
 export default function UserManagementPage() {
-  const { isAdmin, isModerator } = useAuth();
+  const { isAdmin, isModerator, userId: myId } = useAuth();
 
-  const [users, setUsers] = useState<UserSummary[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
-  const [selected, setSelected] = useState<UserSummary | null>(null);
-  const [toggling, setToggling] = useState(false);
-  const [toast, setToast]       = useState('');
+  const [users, setUsers]               = useState<UserSummary[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [search, setSearch]             = useState('');
+  const [selected, setSelected]         = useState<UserSummary | null>(null);
+  const [toast, setToast]               = useState('');
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages]   = useState(0);
+  const [currentPage, setCurrentPage]   = useState(0);
+  const [totalPages, setTotalPages]     = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+
+  // 편집 draft 상태
+  const [draftNickname, setDraftNickname]         = useState('');
+  const [draftRole, setDraftRole]                 = useState<'USER' | 'MIDDLE_ADMIN'>('USER');
+  const [draftSuspended, setDraftSuspended]       = useState(false);
+  const [saving, setSaving]                       = useState(false);
+  const [deleting, setDeleting]                   = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -64,6 +74,16 @@ export default function UserManagementPage() {
 
   useEffect(() => { load(0); }, [load]);
 
+  // 선택된 사용자 바뀌면 draft 초기화
+  useEffect(() => {
+    if (selected) {
+      setDraftNickname(selected.nickName ?? '');
+      setDraftRole(selected.role === 'MIDDLE_ADMIN' ? 'MIDDLE_ADMIN' : 'USER');
+      setDraftSuspended(selected.isSuspended);
+      setShowDeleteConfirm(false);
+    }
+  }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const goToPage = (page: number) => load(page);
 
   const filtered = users.filter(u => {
@@ -75,31 +95,79 @@ export default function UserManagementPage() {
     );
   });
 
+  // 자기 자신은 정지 불가, 중간관리자는 USER만 정지 가능
   const canSuspend = (target: UserSummary): boolean => {
+    if (target.id === myId) return false;
     if (isAdmin) return true;
     if (isModerator) return target.role === 'USER';
     return false;
   };
 
-  const handleToggleSuspend = async () => {
-    if (!selected || selected.deletedAt) return;
-    if (!canSuspend(selected)) {
-      showToast('중간관리자는 관리자 및 다른 중간관리자를 정지할 수 없습니다.');
-      return;
-    }
-    setToggling(true);
+  // 조치 섹션을 보여줄지 여부
+  const showActionSection = (target: UserSummary): boolean => {
+    if (target.deletedAt) return false;
+    if (target.id === myId) return false;
+    if (target.role === 'ADMIN') return false;
+    return canSuspend(target) || isAdmin;
+  };
+
+  // 닉네임·역할·정지 일괄 적용
+  const handleApply = async () => {
+    if (!selected) return;
+    setSaving(true);
     try {
-      const next = !selected.isSuspended;
-      await setSuspended(selected.id, next);
-      const updated = { ...selected, isSuspended: next };
+      const tasks: Promise<void>[] = [];
+      const trimmed = draftNickname.trim();
+
+      if (isAdmin && trimmed && trimmed !== (selected.nickName ?? '')) {
+        tasks.push(updateNickname(selected.id, trimmed));
+      }
+      if (isAdmin && selected.role !== 'ADMIN' && draftRole !== selected.role) {
+        tasks.push(setRole(selected.id, draftRole));
+      }
+      if (canSuspend(selected) && draftSuspended !== selected.isSuspended) {
+        tasks.push(setSuspended(selected.id, draftSuspended));
+      }
+
+      if (tasks.length === 0) {
+        showToast('변경된 내용이 없습니다.');
+        return;
+      }
+      await Promise.all(tasks);
+
+      const updated: UserSummary = {
+        ...selected,
+        nickName: isAdmin && trimmed && trimmed !== (selected.nickName ?? '') ? trimmed : selected.nickName,
+        role: isAdmin && selected.role !== 'ADMIN' ? draftRole : selected.role,
+        isSuspended: canSuspend(selected) ? draftSuspended : selected.isSuspended,
+      };
       setSelected(updated);
       setUsers(prev => prev.map(u => u.id === selected.id ? updated : u));
-      showToast(next ? '활동이 정지되었습니다.' : '활동 정지가 해제되었습니다.');
+      showToast('변경사항이 적용되었습니다.');
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       showToast(msg ?? '처리 중 오류가 발생했습니다.');
     } finally {
-      setToggling(false);
+      setSaving(false);
+    }
+  };
+
+  // 강제 탈퇴
+  const handleDelete = async () => {
+    if (!selected) return;
+    setDeleting(true);
+    try {
+      await deleteUser(selected.id);
+      const updated = { ...selected, deletedAt: new Date().toISOString() };
+      setSelected(updated);
+      setUsers(prev => prev.map(u => u.id === selected.id ? updated : u));
+      setShowDeleteConfirm(false);
+      showToast('탈퇴 처리가 완료되었습니다.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(msg ?? '처리 중 오류가 발생했습니다.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -124,6 +192,7 @@ export default function UserManagementPage() {
       </div>
 
       <div className={styles.layout}>
+        {/* ── 목록 패널 ── */}
         <div className={styles.listPanel}>
           {loading ? (
             <div className={styles.loading}><div className={styles.spinner} /></div>
@@ -175,6 +244,7 @@ export default function UserManagementPage() {
           )}
         </div>
 
+        {/* ── 상세 패널 ── */}
         <div className={styles.detailPanel}>
           {selected ? (
             <div className={styles.detail}>
@@ -210,28 +280,104 @@ export default function UserManagementPage() {
                 </tbody>
               </table>
 
-              {!selected.deletedAt && canSuspend(selected) && (
-                <div className={styles.suspendSection}>
-                  <label className={styles.suspendLabel}>
-                    <input
-                      type="checkbox"
-                      checked={selected.isSuspended}
-                      onChange={handleToggleSuspend}
-                      disabled={toggling}
-                      className={styles.suspendCheck}
-                    />
-                    <span>활동정지</span>
-                  </label>
-                  <p className={styles.suspendHint}>
-                    체크 시 해당 사용자는 로그인 및 서비스 이용이 차단됩니다.
-                  </p>
-                </div>
-              )}
+              {/* ── 조치 섹션 (정지·닉네임·역할·탈퇴) ── */}
+              {showActionSection(selected) && (
+                <div className={styles.adminSection}>
+                  <p className={styles.adminSectionTitle}>관리자 조치</p>
 
-              {!selected.deletedAt && !canSuspend(selected) && (
-                <p className={styles.suspendHint} style={{ color: '#94A3B8', marginTop: 16 }}>
-                  중간관리자는 관리자·중간관리자를 정지할 수 없습니다.
-                </p>
+                  {/* 활동정지 (draft) */}
+                  {canSuspend(selected) && (
+                    <div className={styles.adminField}>
+                      <label className={styles.suspendLabel}>
+                        <input
+                          type="checkbox"
+                          checked={draftSuspended}
+                          onChange={e => setDraftSuspended(e.target.checked)}
+                          className={styles.suspendCheck}
+                        />
+                        <span>활동정지</span>
+                      </label>
+                      <p className={styles.suspendHint}>
+                        체크 시 해당 사용자는 로그인 및 서비스 이용이 차단됩니다.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 닉네임 수정 (ADMIN 전용) */}
+                  {isAdmin && (
+                    <div className={styles.adminField}>
+                      <label className={styles.adminLabel}>닉네임 수정</label>
+                      <input
+                        className={styles.adminInput}
+                        value={draftNickname}
+                        onChange={e => setDraftNickname(e.target.value)}
+                        placeholder="새 닉네임 입력 (2~20자)"
+                        maxLength={20}
+                      />
+                    </div>
+                  )}
+
+                  {/* 권한 변경 (ADMIN 전용) */}
+                  {isAdmin && (
+                    <div className={styles.adminField}>
+                      <label className={styles.adminLabel}>권한</label>
+                      <select
+                        className={styles.adminSelect}
+                        value={draftRole}
+                        onChange={e => setDraftRole(e.target.value as 'USER' | 'MIDDLE_ADMIN')}
+                      >
+                        <option value="USER">일반 사용자</option>
+                        <option value="MIDDLE_ADMIN">중간관리자</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <button
+                    className={styles.applyBtn}
+                    onClick={handleApply}
+                    disabled={saving}
+                  >
+                    {saving ? '적용 중...' : '적용'}
+                  </button>
+
+                  {/* 탈퇴 처리 (ADMIN 전용) */}
+                  {isAdmin && (
+                    <>
+                      <div className={styles.adminDivider} />
+                      {!showDeleteConfirm ? (
+                        <button
+                          className={styles.deleteBtn}
+                          onClick={() => setShowDeleteConfirm(true)}
+                        >
+                          탈퇴 처리
+                        </button>
+                      ) : (
+                        <div className={styles.deleteConfirm}>
+                          <p className={styles.deleteConfirmText}>
+                            정말 탈퇴 처리하시겠습니까?<br />
+                            <span>이 작업은 되돌릴 수 없습니다.</span>
+                          </p>
+                          <div className={styles.deleteConfirmBtns}>
+                            <button
+                              className={styles.deleteConfirmYes}
+                              onClick={handleDelete}
+                              disabled={deleting}
+                            >
+                              {deleting ? '처리 중...' : '탈퇴 확인'}
+                            </button>
+                            <button
+                              className={styles.deleteConfirmNo}
+                              onClick={() => setShowDeleteConfirm(false)}
+                              disabled={deleting}
+                            >
+                              취소
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
               )}
             </div>
           ) : (
