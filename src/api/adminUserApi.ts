@@ -22,3 +22,15 @@ export async function fetchAdminUsersPage(page: number, size = 20): Promise<Page
 export async function setSuspended(id: string, suspend: boolean): Promise<void> {
   await api.patch(`/admin/users/${id}/suspend`, { suspend });
 }
+
+export async function setRole(id: string, role: 'USER' | 'MIDDLE_ADMIN'): Promise<void> {
+  await api.patch(`/admin/users/${id}/role`, { role });
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  await api.delete(`/admin/users/${id}`);
+}
+
+export async function updateNickname(id: string, nickname: string): Promise<void> {
+  await api.patch(`/admin/users/${id}/nickname`, { nickname });
+}
