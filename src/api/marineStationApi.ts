@@ -2,6 +2,7 @@ import api from './authApi';
 
 export interface MarineStationMarker {
   id: string;
+  stationType: string;
   stationCode: string;
   stationName: string;
   latitude: number;
@@ -24,6 +25,7 @@ export async function fetchAdminMarineStations(): Promise<MarineStationMarker[]>
 
 export interface BeachStationMarker {
   id: string;
+  stationType: string;
   beachCode: string;
   beachName: string;
   latitude: number;
@@ -39,4 +41,65 @@ export interface BeachStationMarker {
 export async function fetchAdminBeachStations(): Promise<BeachStationMarker[]> {
   const { data } = await api.get('/admin/beach-stations');
   return (data.data ?? []) as BeachStationMarker[];
+}
+
+export interface KhoaTwStationMarker {
+  id: string;
+  stationType: string;
+  obsCode: string;
+  stationName: string;
+  latitude: number;
+  longitude: number;
+  observedAt: string | null;
+  airTemp: number | null;
+  waterTemp: number | null;
+  waveHeight: number | null;
+  wavePeriod: number | null;
+  windSpeed: number | null;
+  gustWindSpeed: number | null;
+  windDirection: number | null;
+  currentSpeed: number | null;
+  currentDirection: number | null;
+  salinity: number | null;
+  pressure: number | null;
+}
+
+export async function fetchAdminKhoaTwStations(): Promise<KhoaTwStationMarker[]> {
+  const { data } = await api.get('/admin/khoa-tw-stations');
+  return (data.data ?? []) as KhoaTwStationMarker[];
+}
+
+export interface AwsStationMarker {
+  id: string;
+  stationType: string;
+  stnId: number;
+  stnName: string;
+  latitude: number;
+  longitude: number;
+  observedAt: string | null;
+  temperature: number | null;
+  windSpeed: number | null;
+  windDirection: number | null;
+  precipitation1h: number | null;
+}
+
+export async function fetchAdminAwsStations(): Promise<AwsStationMarker[]> {
+  const { data } = await api.get('/admin/aws-stations');
+  return (data.data ?? []) as AwsStationMarker[];
+}
+
+export interface NifsStationMarker {
+  id: string;
+  stationType: string;
+  staCde: string;
+  staNamKor: string;
+  latitude: number;
+  longitude: number;
+  observedAt: string | null;
+  waterTemp: number | null;
+}
+
+export async function fetchAdminNifsStations(): Promise<NifsStationMarker[]> {
+  const { data } = await api.get('/admin/nifs-stations');
+  return (data.data ?? []) as NifsStationMarker[];
 }
