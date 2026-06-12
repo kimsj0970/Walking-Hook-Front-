@@ -28,6 +28,19 @@ const PTY_ICON: Record<string, string> = {
   '비': '🌧', '소나기': '🌦', '비·눈': '🌨', '눈': '❄️',
 };
 
+function getWaterMoonIcon(waterNumber: string | null | undefined): string {
+  if (!waterNumber) return '';
+  if (waterNumber === '조금') return '🌑';
+  if (waterNumber.includes('사리')) return '🌕';
+  const match = waterNumber.match(/^(\d+)물/);
+  if (!match) return '';
+  const n = parseInt(match[1]);
+  if (n <= 2) return '🌒';
+  if (n <= 4) return '🌓';
+  if (n <= 6) return '🌔';
+  return '🌕';
+}
+
 function getWindDesc(windSpeed: number | null | undefined): string | null {
   if (windSpeed == null) return null;
   if (windSpeed <= 1.5) return '실바람 · 낚시하기 편안해요';
@@ -281,20 +294,22 @@ export default function HomePage() {
               <ConditionCard icon="🌡" label="기온" loading={isConditionsLoading}
                 value={conditionsResult?.temperature != null ? `${conditionsResult.temperature}℃` : null}
                 source={conditionsResult?.temperatureSourceLabel} />
-              <ConditionCard
-                icon="🌂"
-                label="강수 확률"
+              <WaterNumberCard
+                waterNumber={conditionsResult?.waterNumber ?? null}
                 loading={isConditionsLoading}
-                value={conditionsResult != null ? `${conditionsResult.precipitationProbability ?? 0}%` : null}
-                source={conditionsResult?.precipitationSourceLabel}
+                source={conditionsResult?.tideSourceLabel}
               />
               <ConditionCard
-                icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌧'}
-                label="강수량"
+                icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌂'}
+                label="강수확률·강수량"
                 loading={isConditionsLoading}
-                value={conditionsResult == null ? null : hasPrecip
-                  ? `${conditionsResult.precipitationType}${conditionsResult.precipitationAmount != null ? ` ${conditionsResult.precipitationAmount}mm` : ' 0mm'}`
-                  : `${conditionsResult.precipitationAmount ?? 0}mm`}
+                value={conditionsResult == null ? null : (() => {
+                  const prob = `${conditionsResult.precipitationProbability ?? 0}%`;
+                  const amt = hasPrecip
+                    ? `${conditionsResult.precipitationType} ${conditionsResult.precipitationAmount != null ? `${conditionsResult.precipitationAmount}mm` : '0mm'}`
+                    : `${conditionsResult.precipitationAmount ?? 0}mm`;
+                  return `${prob} · ${amt}`;
+                })()}
                 source={conditionsResult?.precipitationSourceLabel}
               />
             </div>
@@ -512,11 +527,11 @@ export default function HomePage() {
 
 /* ─── 조건 카드 ─── */
 function ConditionCard({ icon, label, value, loading, className, source, desc }: {
-  icon: string; label: string; value: string | null; loading?: boolean; className?: string; source?: string | null; desc?: string | null;
+  icon?: string; label: string; value: string | null; loading?: boolean; className?: string; source?: string | null; desc?: string | null;
 }) {
   return (
     <div className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''} ${className ?? ''}`}>
-      <span className={styles.conditionCardIcon}>{icon}</span>
+      {icon && <span className={styles.conditionCardIcon}>{icon}</span>}
       <span className={styles.conditionCardLabel}>{label}</span>
       {loading
         ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
@@ -524,6 +539,24 @@ function ConditionCard({ icon, label, value, loading, className, source, desc }:
       {!loading && desc && (
         <span className={styles.conditionCardDesc}>{desc}</span>
       )}
+      {!loading && source && (
+        <span className={styles.conditionCardSource}>{source}</span>
+      )}
+    </div>
+  );
+}
+
+/* ─── 몇 물 카드 ─── */
+function WaterNumberCard({ waterNumber, loading, source }: {
+  waterNumber: string | null; loading?: boolean; source?: string | null;
+}) {
+  const moon = getWaterMoonIcon(waterNumber);
+  return (
+    <div className={`${styles.conditionCard} ${styles.waterNumberCard} ${loading ? styles.conditionCardLoading : ''}`}>
+      <span className={styles.waterMoonEmoji}>{moon}</span>
+      {loading
+        ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
+        : <span className={styles.waterNumberValue}>{waterNumber ?? '—'}</span>}
       {!loading && source && (
         <span className={styles.conditionCardSource}>{source}</span>
       )}
