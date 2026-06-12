@@ -260,6 +260,7 @@ export interface FishingConditionsResult {
   tideDescription: string | null;
   fishingIndex: string | null;
   tideFlowPhase: TideFlowPhase | null;
+  waterNumber: string | null;
   tideEvents: TideEvent[] | null;
   tideSeries: TidePoint[] | null;
   tideStationName: string | null;
