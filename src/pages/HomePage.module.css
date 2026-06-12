@@ -133,6 +133,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 14px;
   padding: 14px 12px;
+  min-height: 100px;
   backdrop-filter: blur(8px);
   transition: background 0.2s;
 }
@@ -181,6 +182,25 @@
   margin-top: 4px;
   line-height: 1.3;
   text-align: center;
+}
+
+/* ─── 몇 물 카드 ─── */
+.waterNumberCard {
+  justify-content: center;
+  gap: 6px;
+}
+
+.waterMoonEmoji {
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+}
+
+.waterNumberValue {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.03em;
 }
 
 /* 로딩 중 텍스트 */
