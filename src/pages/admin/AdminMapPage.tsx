@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchAdminMarineStations, fetchAdminBeachStations, type MarineStationMarker, type BeachStationMarker } from '../../api/marineStationApi';
+import {
+  fetchAdminMarineStations, fetchAdminBeachStations,
+  fetchAdminKhoaTwStations, fetchAdminAwsStations, fetchAdminNifsStations,
+  type MarineStationMarker, type BeachStationMarker,
+  type KhoaTwStationMarker, type AwsStationMarker, type NifsStationMarker,
+} from '../../api/marineStationApi';
 import { searchFishingPoints, type FishingPointSummary } from '../../api/fishingPointApi';
 import styles from './AdminMapPage.module.css';
 
@@ -36,42 +41,72 @@ function fmtObservedAt(iso: string | null): string {
   return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-function buildBeachInfoHtml(s: BeachStationMarker): string {
-  const hasObs = s.cachedAt != null;
-  const noonLabel = s.cachedNoonSeCd === 'AM' ? '오전' : s.cachedNoonSeCd === 'PM' ? '오후' : '';
-  const rows = [
-    ['최고풍속', fmt(s.maxWspd, 'm/s')],
-    ['수온',     fmt(s.avgWtem, '°C')],
-    ['최고파고', fmt(s.maxWvhgt, 'm')],
-    ['기온',     fmt(s.avgArtmp, '°C')],
-  ];
-  const rowsHtml = rows.map(([label, value]) =>
-    `<tr>
-      <td style="padding:3px 8px 3px 0;font-size:11px;color:#94A3B8;white-space:nowrap;">${escapeHtml(label)}</td>
-      <td style="padding:3px 0;font-size:12px;color:#1E293B;font-weight:600;">${escapeHtml(value)}</td>
-    </tr>`
-  ).join('');
+function typeColor(stationType: string): string {
+  switch (stationType) {
+    case 'KMA_BUOY':  return '#C2185B';
+    case 'KMA_BEACH': return '#16A34A';
+    case 'KHOA_TW':   return '#0891B2';
+    case 'AWS':       return '#EA580C';
+    case 'NIFS':      return '#7C3AED';
+    default:          return '#64748B';
+  }
+}
 
+function typeLabel(stationType: string): string {
+  switch (stationType) {
+    case 'KMA_BUOY':  return 'KMA 해양부이';
+    case 'KMA_BEACH': return 'KMA 해수욕장';
+    case 'KHOA_TW':   return 'KHOA 연안수온';
+    case 'AWS':       return 'KMA AWS';
+    case 'NIFS':      return 'NIFS 수산과학원';
+    default:          return stationType;
+  }
+}
+
+function makePinUrl(color: string, stroke: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
+    <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 24 14 24S28 24.5 28 14C28 6.268 21.732 0 14 0z" fill="${color}" stroke="${stroke}" stroke-width="1.5"/>
+    <circle cx="14" cy="14" r="5" fill="white"/>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function infoHeader(name: string, code: string, stationType: string): string {
+  const color = typeColor(stationType);
+  const label = typeLabel(stationType);
   return `
-    <div style="padding:12px 16px;min-width:190px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">
-      <div style="margin-bottom:8px;">
-        <strong style="font-size:14px;color:#15803D;display:block;">${escapeHtml(s.beachName)}</strong>
-        <span style="font-size:10px;color:#94A3B8;">${escapeHtml(s.beachCode)}</span>
+    <div style="margin-bottom:8px;">
+      <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(name)}</strong>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+        <span style="font-size:10px;color:#94A3B8;">${escapeHtml(code)}</span>
+        <span style="font-size:10px;font-weight:600;color:${color};background:${color}18;padding:1px 6px;border-radius:4px;">${escapeHtml(label)}</span>
       </div>
-      ${hasObs
-        ? `<table style="border-collapse:collapse;width:100%;">${rowsHtml}</table>
-           <div style="margin-top:8px;padding-top:6px;border-top:1px solid #E2E8F0;font-size:10px;color:#CBD5E1;">
-             예보기준: ${escapeHtml(noonLabel)} (${escapeHtml(fmtObservedAt(s.cachedAt))})
-           </div>`
-        : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 예보 데이터 없음</p>`
-      }
     </div>`;
 }
 
-function buildStationInfoHtml(s: import('../../api/marineStationApi').MarineStationMarker): string {
-  const hasObs = s.observedAt != null;
+function buildRows(rows: [string, string][]): string {
+  return `<table style="border-collapse:collapse;width:100%;">` +
+    rows.map(([label, value]) =>
+      `<tr>
+        <td style="padding:3px 8px 3px 0;font-size:11px;color:#94A3B8;white-space:nowrap;">${escapeHtml(label)}</td>
+        <td style="padding:3px 0;font-size:12px;color:#1E293B;font-weight:600;">${escapeHtml(value)}</td>
+      </tr>`
+    ).join('') + `</table>`;
+}
+
+function buildObsFooter(observedAt: string | null): string {
+  return `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #E2E8F0;font-size:10px;color:#CBD5E1;">
+    관측시각: ${escapeHtml(fmtObservedAt(observedAt))}
+  </div>`;
+}
+
+function wrapInfoHtml(content: string): string {
+  return `<div style="padding:12px 16px;min-width:200px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">${content}</div>`;
+}
+
+function buildMarineInfoHtml(s: MarineStationMarker): string {
   const windDir = s.windDirection != null ? `${windDegToDir(s.windDirection)} (${s.windDirection}°)` : '—';
-  const rows = [
+  const rows: [string, string][] = [
     ['파고',     fmt(s.waveHeight, 'm')],
     ['풍속',     fmt(s.windSpeed, 'm/s')],
     ['순간최대', fmt(s.gustWindSpeed, 'm/s')],
@@ -81,28 +116,72 @@ function buildStationInfoHtml(s: import('../../api/marineStationApi').MarineStat
     ['기압',     fmt(s.pressure, 'hPa', 0)],
     ['습도',     fmt(s.humidity, '%', 0)],
   ];
+  return wrapInfoHtml(
+    infoHeader(s.stationName, s.stationCode, s.stationType) +
+    (s.observedAt ? buildRows(rows) + buildObsFooter(s.observedAt) : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 관측 데이터 없음</p>`)
+  );
+}
 
-  const rowsHtml = rows.map(([label, value]) =>
-    `<tr>
-      <td style="padding:3px 8px 3px 0;font-size:11px;color:#94A3B8;white-space:nowrap;">${escapeHtml(label)}</td>
-      <td style="padding:3px 0;font-size:12px;color:#1E293B;font-weight:600;">${escapeHtml(value)}</td>
-    </tr>`
-  ).join('');
+function buildBeachInfoHtml(s: BeachStationMarker): string {
+  const noonLabel = s.cachedNoonSeCd === 'AM' ? '오전' : s.cachedNoonSeCd === 'PM' ? '오후' : '';
+  const rows: [string, string][] = [
+    ['최고풍속', fmt(s.maxWspd, 'm/s')],
+    ['수온',     fmt(s.avgWtem, '°C')],
+    ['최고파고', fmt(s.maxWvhgt, 'm')],
+    ['기온',     fmt(s.avgArtmp, '°C')],
+  ];
+  const footer = s.cachedAt
+    ? `<div style="margin-top:8px;padding-top:6px;border-top:1px solid #E2E8F0;font-size:10px;color:#CBD5E1;">
+        예보기준: ${escapeHtml(noonLabel)} (${escapeHtml(fmtObservedAt(s.cachedAt))})
+      </div>`
+    : '';
+  return wrapInfoHtml(
+    infoHeader(s.beachName, s.beachCode, s.stationType) +
+    (s.cachedAt ? buildRows(rows) + footer : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 예보 데이터 없음</p>`)
+  );
+}
 
-  return `
-    <div style="padding:12px 16px;min-width:200px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">
-      <div style="margin-bottom:8px;">
-        <strong style="font-size:14px;color:#C2185B;display:block;">${escapeHtml(s.stationName)}</strong>
-        <span style="font-size:10px;color:#94A3B8;">${escapeHtml(s.stationCode)}</span>
-      </div>
-      ${hasObs
-        ? `<table style="border-collapse:collapse;width:100%;">${rowsHtml}</table>
-           <div style="margin-top:8px;padding-top:6px;border-top:1px solid #E2E8F0;font-size:10px;color:#CBD5E1;">
-             관측시각: ${escapeHtml(fmtObservedAt(s.observedAt))}
-           </div>`
-        : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 관측 데이터 없음</p>`
-      }
-    </div>`;
+function buildKhoaTwInfoHtml(s: KhoaTwStationMarker): string {
+  const windDir = s.windDirection != null ? `${windDegToDir(s.windDirection)} (${s.windDirection}°)` : '—';
+  const rows: [string, string][] = [
+    ['기온',     fmt(s.airTemp, '°C')],
+    ['수온',     fmt(s.waterTemp, '°C')],
+    ['파고',     fmt(s.waveHeight, 'm')],
+    ['파주기',   fmt(s.wavePeriod, 's')],
+    ['풍속',     fmt(s.windSpeed, 'm/s')],
+    ['순간최대', fmt(s.gustWindSpeed, 'm/s')],
+    ['풍향',     windDir],
+    ['유속',     fmt(s.currentSpeed, 'm/s')],
+    ['염분',     fmt(s.salinity, 'psu')],
+  ];
+  return wrapInfoHtml(
+    infoHeader(s.stationName, s.obsCode, s.stationType) +
+    (s.observedAt ? buildRows(rows) + buildObsFooter(s.observedAt) : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 관측 데이터 없음</p>`)
+  );
+}
+
+function buildAwsInfoHtml(s: AwsStationMarker): string {
+  const windDir = s.windDirection != null ? `${windDegToDir(s.windDirection)} (${s.windDirection}°)` : '—';
+  const rows: [string, string][] = [
+    ['기온',     fmt(s.temperature, '°C')],
+    ['풍속',     fmt(s.windSpeed, 'm/s')],
+    ['풍향',     windDir],
+    ['강수1h',   fmt(s.precipitation1h, 'mm')],
+  ];
+  return wrapInfoHtml(
+    infoHeader(s.stnName, `stn ${s.stnId}`, s.stationType) +
+    (s.observedAt ? buildRows(rows) + buildObsFooter(s.observedAt) : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 관측 데이터 없음</p>`)
+  );
+}
+
+function buildNifsInfoHtml(s: NifsStationMarker): string {
+  const rows: [string, string][] = [
+    ['수온', fmt(s.waterTemp, '°C')],
+  ];
+  return wrapInfoHtml(
+    infoHeader(s.staNamKor, s.staCde, s.stationType) +
+    (s.observedAt ? buildRows(rows) + buildObsFooter(s.observedAt) : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 관측 데이터 없음</p>`)
+  );
 }
 
 export default function AdminMapPage() {
@@ -125,8 +204,11 @@ export default function AdminMapPage() {
       fetchAdminMarineStations().catch(() => [] as MarineStationMarker[]),
       searchFishingPoints().catch(() => [] as FishingPointSummary[]),
       fetchAdminBeachStations().catch(() => [] as BeachStationMarker[]),
+      fetchAdminKhoaTwStations().catch(() => [] as KhoaTwStationMarker[]),
+      fetchAdminAwsStations().catch(() => [] as AwsStationMarker[]),
+      fetchAdminNifsStations().catch(() => [] as NifsStationMarker[]),
     ])
-      .then(([, stations, fishingPoints, beachStations]) => {
+      .then(([, marineStations, fishingPoints, beachStations, khoaTwStations, awsStations, nifsStations]) => {
         if (cancelled || !mapRef.current) return;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -139,37 +221,62 @@ export default function AdminMapPage() {
             level: 13,
           });
 
-          // ── 클러스터러 ────────────────────────────────────────
+          const markerSize = new kakao.maps.Size(28, 38);
+
+          function addMarker<T extends { latitude: number; longitude: number }>(
+            station: T,
+            pinUrl: string,
+            infoHtml: string,
+          ) {
+            const position = new kakao.maps.LatLng(station.latitude, station.longitude);
+            const marker = new kakao.maps.Marker({
+              position,
+              image: new kakao.maps.MarkerImage(pinUrl, markerSize),
+            });
+            marker.setMap(map);
+            const infoWindow = new kakao.maps.InfoWindow({ content: infoHtml, removable: true });
+            kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
+          }
+
+          // ── KMA 해양부이 (핑크) ───────────────────────────────
+          const marinePinUrl = makePinUrl('#C2185B', '#880E4F');
+          marineStations.forEach((s: MarineStationMarker) =>
+            addMarker(s, marinePinUrl, buildMarineInfoHtml(s))
+          );
+
+          // ── KMA 해수욕장 (초록) ───────────────────────────────
+          const beachPinUrl = makePinUrl('#16A34A', '#14532D');
+          beachStations.forEach((bs: BeachStationMarker) =>
+            addMarker(bs, beachPinUrl, buildBeachInfoHtml(bs))
+          );
+
+          // ── KHOA 연안수온 (청록) ──────────────────────────────
+          const khoaPinUrl = makePinUrl('#0891B2', '#164E63');
+          khoaTwStations.forEach((s: KhoaTwStationMarker) =>
+            addMarker(s, khoaPinUrl, buildKhoaTwInfoHtml(s))
+          );
+
+          // ── KMA AWS (주황) ────────────────────────────────────
+          const awsPinUrl = makePinUrl('#EA580C', '#7C2D12');
+          awsStations.forEach((s: AwsStationMarker) =>
+            addMarker(s, awsPinUrl, buildAwsInfoHtml(s))
+          );
+
+          // ── NIFS 수산과학원 (보라) ────────────────────────────
+          const nifsPinUrl = makePinUrl('#7C3AED', '#4C1D95');
+          nifsStations.forEach((s: NifsStationMarker) =>
+            addMarker(s, nifsPinUrl, buildNifsInfoHtml(s))
+          );
+
+          // ── 낚시 포인트 (파란색) + 클러스터 ──────────────────
           const clusterer = new kakao.maps.MarkerClusterer({
             map,
             averageCenter: true,
             minLevel: 10,
           });
-
-          // ── 관측소 마커 (핑크) ────────────────────────────────
-          stations.forEach((s: MarineStationMarker) => {
-            const position = new kakao.maps.LatLng(s.latitude, s.longitude);
-            const marker = new kakao.maps.Marker({
-              position,
-              image: new kakao.maps.MarkerImage(
-                'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/marker_red.png',
-                new kakao.maps.Size(31, 35),
-              ),
-            });
-            marker.setMap(map);
-
-            const infoWindow = new kakao.maps.InfoWindow({
-              content: buildStationInfoHtml(s),
-              removable: true,
-            });
-            kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
-          });
-
-          // ── 낚시 포인트 마커 (파란색) + 클러스터 ─────────────
           const fpMarkers = fishingPoints.map((fp: FishingPointSummary) => {
             const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
             const marker = new kakao.maps.Marker({ position });
-
             const infoWindow = new kakao.maps.InfoWindow({
               content: `
                 <div style="padding:10px 14px;min-width:160px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">
@@ -184,29 +291,6 @@ export default function AdminMapPage() {
             return marker;
           });
           clusterer.addMarkers(fpMarkers);
-
-          // ── 해수욕장 관측소 마커 (초록) ───────────────────────
-          const beachMarkerSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 28 38">
-            <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 24 14 24S28 24.5 28 14C28 6.268 21.732 0 14 0z" fill="#16A34A" stroke="#14532D" stroke-width="1.5"/>
-            <circle cx="14" cy="14" r="5" fill="white"/>
-          </svg>`;
-          const beachMarkerUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(beachMarkerSvg);
-          const beachMarkerSize = new kakao.maps.Size(28, 38);
-
-          beachStations.forEach((bs: BeachStationMarker) => {
-            const position = new kakao.maps.LatLng(bs.latitude, bs.longitude);
-            const marker = new kakao.maps.Marker({
-              position,
-              image: new kakao.maps.MarkerImage(beachMarkerUrl, beachMarkerSize),
-            });
-            marker.setMap(map);
-
-            const infoWindow = new kakao.maps.InfoWindow({
-              content: buildBeachInfoHtml(bs),
-              removable: true,
-            });
-            kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
-          });
 
           setStatus('ready');
         });
@@ -235,8 +319,11 @@ export default function AdminMapPage() {
         </div>
       )}
       <div className={styles.legend}>
-        <span className={styles.legendPink}>● 해양관측소</span>
-        <span className={styles.legendGreen}>● 해수욕장관측소</span>
+        <span className={styles.legendPink}>● KMA 해양부이</span>
+        <span className={styles.legendGreen}>● KMA 해수욕장</span>
+        <span className={styles.legendCyan}>● KHOA 연안수온</span>
+        <span className={styles.legendOrange}>● KMA AWS</span>
+        <span className={styles.legendPurple}>● NIFS 수산과학원</span>
         <span className={styles.legendBlue}>● 낚시 포인트</span>
       </div>
       <div ref={mapRef} className={styles.map} />
