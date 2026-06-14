@@ -5,6 +5,107 @@
   animation: fadeIn 0.2s ease;
 }
 
+/* Scheduler Banner */
+.schedulerBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.schedulerOn {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.schedulerOff {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.schedulerInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.schedulerDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotOn {
+  background: #059669;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.dotOff {
+  background: var(--color-text-muted);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.schedulerLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.schedulerStatus {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.schedulerBtn {
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.schedulerBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.schedulerBtnOn {
+  background: #059669;
+  color: #fff;
+}
+
+.schedulerBtnOn:hover:not(:disabled) {
+  background: #047857;
+}
+
+.schedulerBtnOff {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.schedulerBtnOff:hover:not(:disabled) {
+  background: var(--color-border-light);
+  color: var(--color-text);
+}
+
 .pageHeader {
   display: flex;
   align-items: flex-start;
