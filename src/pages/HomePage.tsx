@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
-import LoginModal from '../components/common/LoginModal';
 import FishProbabilityCard, { FISH_LIST, type FishData } from '../components/fish/FishProbabilityCard';
 import {
   fetchProvinces, fetchFishingPointsByProvince, fetchConditions, analyzeFishingPoint,
@@ -64,7 +64,8 @@ function buildFishCards(results: SpeciesAnalysis[]): FishData[] {
 
 export default function HomePage() {
   const { isLoggedIn, isAdmin } = useAuth();
-  const [loginOpen, setLoginOpen] = useState(false);
+  const navigate = useNavigate();
+  const [loginToast, setLoginToast] = useState(false);
 
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [fishingPoints, setFishingPoints] = useState<FishingPointMapMarker[]>([]);
@@ -78,6 +79,7 @@ export default function HomePage() {
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
   const [conditionsResult, setConditionsResult] = useState<FishingConditionsResult | null>(null);
   const [analysisResult, setAnalysisResult] = useState<FishingAnalysisResult | null>(null);
+  const [analysisRefreshing, setAnalysisRefreshing] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
 
   const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
@@ -150,8 +152,12 @@ export default function HomePage() {
       return;
     }
     if (!isLoggedIn) {
-      setLoginOpen(true);
       setSelectedPointId('');
+      setLoginToast(true);
+      setTimeout(() => {
+        setLoginToast(false);
+        navigate('/login');
+      }, 1500);
       return;
     }
 
@@ -160,6 +166,7 @@ export default function HomePage() {
     setIsConditionsLoading(true);
     setIsAnalysisLoading(false);
     setAnalysisError('');
+    setAnalysisRefreshing(false);
     setExpandedSpecies(null);
 
     let cancelled = false;
@@ -176,7 +183,33 @@ export default function HomePage() {
         setIsAnalysisLoading(true);
         const analysis = await analyzeFishingPoint(selectedPointId);
         if (cancelled) return;
-        setAnalysisResult(analysis);
+        if (analysis?.refreshing) {
+          setAnalysisRefreshing(true);
+          setAnalysisResult(null);
+          setIsAnalysisLoading(false);
+
+          // 20초 후 1회 재시도
+          await new Promise<void>((resolve) => {
+            const t = setTimeout(resolve, 20000);
+            const check = () => { if (cancelled) { clearTimeout(t); resolve(); } };
+            const id = setInterval(check, 200);
+            setTimeout(() => clearInterval(id), 20500);
+          });
+          if (cancelled) return;
+
+          const retry = await analyzeFishingPoint(selectedPointId);
+          if (cancelled) return;
+          if (retry?.refreshing) {
+            setAnalysisRefreshing(false);
+            setAnalysisError('AI 분석 준비에 시간이 걸리고 있습니다. 잠시 후 포인트를 다시 선택해 주세요.');
+          } else {
+            setAnalysisRefreshing(false);
+            setAnalysisResult(retry);
+          }
+        } else {
+          setAnalysisRefreshing(false);
+          setAnalysisResult(analysis);
+        }
       } catch (err: any) {
         if (cancelled) return;
         setAnalysisError(err?.response?.data?.message ?? '분석 중 오류가 발생했습니다.');
@@ -206,7 +239,17 @@ export default function HomePage() {
   return (
     <div className={styles.page}>
       <Header />
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      {loginToast && (
+        <div style={{
+          position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
+          background: '#0B3D91', color: '#fff', borderRadius: 12,
+          padding: '14px 28px', fontSize: 15, fontWeight: 600,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 300,
+          whiteSpace: 'nowrap',
+        }}>
+          🔒 로그인 후 이용 가능한 서비스입니다
+        </div>
+      )}
 
       <main className={styles.main}>
         {/* ─── Hero ─── */}
@@ -428,6 +471,12 @@ export default function HomePage() {
                   <div className={styles.analyzingBanner}>
                     <div className={styles.analyzingSpinner} />
                     AI가 조황을 분석하고 있습니다...
+                  </div>
+                )}
+                {!isAnalysisLoading && analysisRefreshing && selectedPointId && (
+                  <div className={styles.refreshingBanner}>
+                    <div className={styles.analyzingSpinner} />
+                    AI 조황 분석을 준비 중입니다. 20초 후 자동으로 재시도합니다.
                   </div>
                 )}
               </>
