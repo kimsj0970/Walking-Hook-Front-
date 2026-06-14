@@ -5,6 +5,9 @@ import {
   searchFishingPoints,
   getFishingPoint,
   deleteFishingPoint,
+  getAiScheduleStatus,
+  startAiSchedule,
+  stopAiSchedule,
   SAFETY_LEVEL_LABELS,
   TERRAIN_TYPE_LABELS,
 } from '../../api/fishingPointApi';
@@ -26,6 +29,9 @@ export default function PointManagementPage() {
 
   const [toast, setToast] = useState('');
 
+  const [scheduleRunning, setScheduleRunning] = useState(false);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -41,6 +47,29 @@ export default function PointManagementPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    getAiScheduleStatus().then(setScheduleRunning).catch(() => {});
+  }, []);
+
+  const handleScheduleToggle = async () => {
+    setScheduleLoading(true);
+    try {
+      if (scheduleRunning) {
+        await stopAiSchedule();
+        setScheduleRunning(false);
+        showToast('AI 캐싱 스케줄러가 중지되었습니다.');
+      } else {
+        await startAiSchedule();
+        setScheduleRunning(true);
+        showToast('AI 캐싱 스케줄러가 시작되었습니다. (1시간 간격, 포인트당 35초 간격)');
+      }
+    } catch {
+      showToast('스케줄러 상태 변경에 실패했습니다.');
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -102,6 +131,28 @@ export default function PointManagementPage() {
 
   return (
     <div className={styles.page}>
+      {/* AI 캐싱 스케줄러 배너 */}
+      <div className={`${styles.schedulerBanner} ${scheduleRunning ? styles.schedulerOn : styles.schedulerOff}`}>
+        <div className={styles.schedulerInfo}>
+          <span className={`${styles.schedulerDot} ${scheduleRunning ? styles.dotOn : styles.dotOff}`} />
+          <span className={styles.schedulerLabel}>
+            AI 캐싱 스케줄러
+          </span>
+          <span className={styles.schedulerStatus}>
+            {scheduleRunning
+              ? '실행 중 — 1시간마다 전체 포인트 AI 분석 자동 갱신'
+              : '중지됨 — 켜면 1시간마다 전체 포인트 AI 분석을 자동으로 갱신합니다'}
+          </span>
+        </div>
+        <button
+          className={`${styles.schedulerBtn} ${scheduleRunning ? styles.schedulerBtnOff : styles.schedulerBtnOn}`}
+          onClick={handleScheduleToggle}
+          disabled={scheduleLoading}
+        >
+          {scheduleLoading ? '처리 중...' : scheduleRunning ? '스케줄러 끄기' : '스케줄러 켜기'}
+        </button>
+      </div>
+
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>낚시 포인트 관리</h1>
