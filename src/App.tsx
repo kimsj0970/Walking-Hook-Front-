@@ -15,6 +15,7 @@ import NoticePage from './pages/NoticePage';
 import FishingPostPage from './pages/FishingPostPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
+import LoginPage from './pages/LoginPage';
 import './App.css';
 
 function NicknameGuard({ children }: { children: ReactNode }) {
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/fishing-posts" element={<FishingPostPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/login" element={<LoginPage />} />
           </Routes>
           <Footer />
         </NicknameGuard>
