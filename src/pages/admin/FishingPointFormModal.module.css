@@ -145,6 +145,13 @@
   color: var(--color-danger);
 }
 
+.fieldHint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
 /* Boolean fields */
 .boolGrid {
   display: flex;
