@@ -401,7 +401,7 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
                 </select>
               </div>
               <div className={styles.field}>
-                <label className={styles.label}>구조물 밀도</label>
+                <label className={styles.label}>수중 구조물 밀도</label>
                 <select
                   className={styles.select}
                   value={form.structureDensity}
@@ -411,6 +411,7 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
                     <option key={val} value={val}>{label}</option>
                   ))}
                 </select>
+                <p className={styles.fieldHint}>암초·수중여 등 어류 은신처 밀도 (내가 서 있는 발판 기준이 아닌 캐스팅 수역 기준)</p>
               </div>
             </div>
           </section>
