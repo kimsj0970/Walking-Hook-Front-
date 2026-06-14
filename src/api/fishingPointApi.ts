@@ -280,6 +280,7 @@ export interface FishingConditionsResult {
 
 export interface FishingAnalysisResult {
   results: SpeciesAnalysis[] | null;
+  refreshing: boolean;
 }
 
 export async function fetchConditions(id: string): Promise<FishingConditionsResult> {
@@ -290,4 +291,19 @@ export async function fetchConditions(id: string): Promise<FishingConditionsResu
 export async function analyzeFishingPoint(id: string): Promise<FishingAnalysisResult> {
   const { data } = await api.get(`/fishing-points/${id}/analysis`);
   return data.data as FishingAnalysisResult;
+}
+
+// ── AI 캐시 스케줄러 Admin API ─────────────────────────────────────────────
+
+export async function getAiScheduleStatus(): Promise<boolean> {
+  const { data } = await api.get('/admin/fish-points/ai-schedule/status');
+  return data.data as boolean;
+}
+
+export async function startAiSchedule(): Promise<void> {
+  await api.post('/admin/fish-points/ai-schedule/start');
+}
+
+export async function stopAiSchedule(): Promise<void> {
+  await api.post('/admin/fish-points/ai-schedule/stop');
 }
