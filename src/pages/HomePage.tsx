@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import FishProbabilityCard, { FISH_LIST, type FishData } from '../components/fish/FishProbabilityCard';
@@ -51,6 +51,91 @@ function getWindDesc(windSpeed: number | null | undefined): string | null {
   return '강풍 · 안전을 위해 출조 자제 권장';
 }
 
+/* ─── 조건 카드 팝업 설명 데이터 ─── */
+type InfoRow = { label: string; desc: string; highlight?: boolean };
+type ConditionInfoKey = '파고' | '풍속' | '물때' | '조류' | '몇물' | '수온';
+
+const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string; rows: InfoRow[] }> = {
+  파고: {
+    title: '🌊 파고 (파도 높이)',
+    subtitle: '파도가 높을수록 물이 탁해져 물고기 경계심이 낮아지지만, 너무 높으면 채비 컨트롤이 어렵고 위험해요.',
+    rows: [
+      { label: '0 ~ 0.3m', desc: '잔잔함 · 물이 맑아 물고기 경계심이 높아져요. 광어·우럭 루어엔 불리하지 않지만 감성돔은 입질 적어요' },
+      { label: '0.3 ~ 0.5m', desc: '약한 파도 · 밑밥·루어 운용 안정적, 광어 등 저부 어종 활동 편함' },
+      { label: '0.5 ~ 0.7m', desc: '적당한 파도 · 채비 흐름이 생겨 루어 액션이 자연스러워요' },
+      { label: '0.7 ~ 1.5m', desc: '보통 파도 · 감성돔·농어 포말·탁도 활용 최고 활성', highlight: true },
+      { label: '1.5 ~ 2.0m', desc: '강한 파도 · 농어 계속 활발하지만 채비 컨트롤 난이도 증가' },
+      { label: '2.0 ~ 2.5m', desc: '거친 파도 · 갯바위 낚시 위험 구간, 방파제 낚시 주의' },
+      { label: '2.5m 이상', desc: '위험 파도 · 갯바위·방파제 출조 자제 권장 ⚠️' },
+    ],
+  },
+  풍속: {
+    title: '💨 풍속 (바람 세기)',
+    subtitle: '바람이 약할수록 캐스팅이 쉽고, 강해질수록 루어 비행 거리와 방향 컨트롤이 어려워져요.',
+    rows: [
+      { label: '0 ~ 1.5 m/s (실바람)', desc: '캐스팅 완벽 · 단 물이 잔잔해 물고기 경계심이 높아질 수 있어요' },
+      { label: '1.5 ~ 3.3 m/s (산들바람)', desc: '낚시 최적 조건 · 적당한 탁도와 쉬운 캐스팅', highlight: true },
+      { label: '3.3 ~ 5.4 m/s (건들바람)', desc: '루어 컨트롤에 신경 써야 해요 · 채비 흐름이 빨라져요' },
+      { label: '5.4 ~ 7.9 m/s (흔들바람)', desc: '캐스팅 거리 감소, 채비 유실 위험 · 원투 낚시 어려워요' },
+      { label: '7.9 ~ 10.7 m/s (된바람)', desc: '안전에 주의하세요 ⚠️ · 갯바위·방파제 위험 구간' },
+      { label: '10.7 ~ 13.8 m/s (센바람)', desc: '출조 자제 권장 ⚠️ · 캐스팅 거의 불가 수준' },
+      { label: '13.8 m/s 이상 (강풍)', desc: '출조 금지 수준 ⛔ · 생명 안전 위협' },
+    ],
+  },
+  물때: {
+    title: '🔄 물때 (조석 세기)',
+    subtitle: '한 달 동안 조류의 세기가 변하는 주기예요. 음력 15일(보름)·30일(그믐) 전후 사리, 음력 8일·23일 전후 조금이에요.',
+    rows: [
+      { label: '대조기', desc: '조류가 가장 강한 기간 · 농어·감성돔·돌돔 등 포식성 어종 활성 최고', highlight: true },
+      { label: '중조기', desc: '중간 세기 조류 · 대부분의 어종에 무난한 조건, 조류 예민 어종도 어느 정도 반응' },
+      { label: '소조기', desc: '조류가 가장 약한 기간 · 조류 의존 어종(농어·감성돔) 입질 감소. 광어·우럭은 비교적 무관' },
+    ],
+  },
+  조류: {
+    title: '🌊 조류 흐름 (들물·날물)',
+    subtitle: '하루 중 바닷물이 들어오고 나가는 방향이에요. 조류가 흐를 때 물고기 먹이 활동이 활발해져요.',
+    rows: [
+      { label: '들물 본 때', desc: '바닷물이 밀려오는 가장 활발한 시간 · 농어·감성돔 최고 조황 기대', highlight: true },
+      { label: '막들물', desc: '만조 1~2시간 전 · 조류가 서서히 느려지는 중, 입질이 점점 줄어드는 구간' },
+      { label: '만조 전환기', desc: '물이 가장 높고 조류가 멈추는 구간 · 일시적 입질 공백, 수면이 높아 포인트 접근 주의' },
+      { label: '날물 본 때', desc: '바닷물이 빠져나가는 가장 활발한 시간 · 높은 조황 기대', highlight: true },
+      { label: '막끝물', desc: '간조 1~2시간 전 · 조류가 서서히 느려지는 중, 입질이 점점 줄어드는 구간' },
+      { label: '간조 전환기', desc: '물이 가장 낮고 조류가 멈추는 구간 · 일시적 입질 공백, 수심 얕아져 밑걸림 주의' },
+      { label: '정보 없음', desc: '조석 데이터를 불러오지 못한 상태 · 조류 방향 판단 불가, 직접 현장 확인 권장' },
+    ],
+  },
+  몇물: {
+    title: '🌕 몇 물 (음력 물때)',
+    subtitle: '동·남해 기준 8물때식이에요. 조금(가장 약함) → 1물 → … → 8물(사리, 가장 강함) → 7물 → … → 조금 순으로 반복해요.',
+    rows: [
+      { label: '조금', desc: '조류가 가장 약한 날 · 물이 거의 흐르지 않아 베이트 이동 없음. 조류 의존 어종 입질 최저' },
+      { label: '무시', desc: '조금 전날 · 조류가 거의 멈춘 상태. 조금과 비슷한 조건으로 조황 기대 낮아요' },
+      { label: '1물', desc: '조금 직후 또는 무시 전날 · 조류가 아주 약하게 흐르기 시작하는 단계' },
+      { label: '2물', desc: '조류가 조금씩 강해지는 중 · 아직 약한 편이지만 베이트 이동이 조금씩 시작돼요' },
+      { label: '3물', desc: '조류가 점점 강해지는 중 · 일부 어종 입질이 살아나기 시작하는 구간' },
+      { label: '4물', desc: '중간 세기 조류 · 대부분 어종에 무난한 조건, 조황 평균 이상 기대' },
+      { label: '5물', desc: '중간 세기 조류 · 4물과 비슷, 조류가 계속 강해지거나 약해지는 과정' },
+      { label: '6물', desc: '중간~강한 세기 조류 · 먹이 이동이 활발해져 다양한 어종 입질 기대' },
+      { label: '7물', desc: '사리 전날 또는 다음날 · 강한 조류 시작, 농어·감성돔·돌돔 활성 높음', highlight: true },
+      { label: '7물(사리)', desc: '서해(7물때식) 조류 최대 · 서해안 기준 조차 최대인 날. 포식성 어종 최고 활성', highlight: true },
+      { label: '8물(사리)', desc: '동·남해(8물때식) 조류 최대 · 조차가 가장 큰 날. 포식성 어종 최고 활성, 최고의 조황 기대', highlight: true },
+    ],
+  },
+  수온: {
+    title: '🌡 수온 (물 온도)',
+    subtitle: '각 어종마다 선호하는 수온 범위가 달라요. 수온이 적정 범위를 벗어나면 활성이 떨어지고 입질이 줄어들어요.',
+    rows: [
+      { label: '5℃ 이하', desc: '극저수온 · 거의 모든 어종 활성 최저, 깊은 곳으로 이동해 연안 낚시 매우 어려움' },
+      { label: '5 ~ 10℃', desc: '저수온 · 대부분 어종 활성 감소. 감성돔은 한겨울 패턴으로 깊은 곳 공략 필요' },
+      { label: '10 ~ 15℃', desc: '봄 초반·초겨울 · 감성돔·우럭 서서히 회복 시작, 광어는 연안 진출 중' },
+      { label: '15 ~ 20℃', desc: '봄~초여름 · 감성돔·우럭·광어 최적 활성 시작', highlight: true },
+      { label: '20 ~ 26℃', desc: '여름 · 농어·광어·감성돔 모두 고활성, 연간 최고 조황 기대', highlight: true },
+      { label: '26 ~ 28℃', desc: '고수온 초입 · 농어는 여전히 활발, 감성돔은 심층 이동 시작' },
+      { label: '28℃ 이상', desc: '고수온 · 감성돔 연안 활성 대폭 저하, 일부 어종 심층 이동. 야간 농어 여전히 활발' },
+    ],
+  },
+};
+
 function buildFishCards(results: SpeciesAnalysis[]): FishData[] {
   return results.map((r) => ({
     id: FISH_META[r.species]?.id ?? r.species,
@@ -83,6 +168,9 @@ export default function HomePage() {
   const [analysisError, setAnalysisError] = useState('');
 
   const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
+  const [activeInfoKey, setActiveInfoKey] = useState<ConditionInfoKey | null>(null);
+  const handleInfoClick = useCallback((key: ConditionInfoKey) => setActiveInfoKey(key), []);
+  const handleInfoClose = useCallback(() => setActiveInfoKey(null), []);
 
   // 지도에서 포인트 선택 시 드롭다운 동기화용 refs
   const pendingPointIdRef = useRef<string | null>(null);
@@ -188,12 +276,12 @@ export default function HomePage() {
           setAnalysisResult(null);
           setIsAnalysisLoading(false);
 
-          // 20초 후 1회 재시도
+          // 30초 후 1회 재시도
           await new Promise<void>((resolve) => {
-            const t = setTimeout(resolve, 20000);
+            const t = setTimeout(resolve, 30000);
             const check = () => { if (cancelled) { clearTimeout(t); resolve(); } };
             const id = setInterval(check, 200);
-            setTimeout(() => clearInterval(id), 20500);
+            setTimeout(() => clearInterval(id), 30500);
           });
           if (cancelled) return;
 
@@ -309,24 +397,29 @@ export default function HomePage() {
             <div className={styles.conditionCards}>
               <ConditionCard icon="🌡" label="수온" loading={isConditionsLoading}
                 value={conditionsResult?.waterTemp != null ? `${conditionsResult.waterTemp}℃` : null}
-                source={conditionsResult?.waterTempSourceLabel} />
+                source={conditionsResult?.waterTempSourceLabel}
+                infoKey="수온" onInfoClick={handleInfoClick} />
               <ConditionCard icon="🌊" label="파고" loading={isConditionsLoading}
                 value={conditionsResult?.waveHeight != null ? `${conditionsResult.waveHeight}m` : null}
-                source={conditionsResult?.waveHeightSourceLabel} />
+                source={conditionsResult?.waveHeightSourceLabel}
+                infoKey="파고" onInfoClick={handleInfoClick} />
               <ConditionCard icon="💨" label="풍속" loading={isConditionsLoading}
                 value={conditionsResult?.windSpeed != null ? `${conditionsResult.windSpeed}m/s` : null}
                 desc={getWindDesc(conditionsResult?.windSpeed)}
-                source={conditionsResult?.windSourceLabel} />
+                source={conditionsResult?.windSourceLabel}
+                infoKey="풍속" onInfoClick={handleInfoClick} />
               {/* <WindDirectionCard direction={conditionsResult?.windDirection ?? null} loading={isConditionsLoading}
                 source={conditionsResult?.windDirectionSourceLabel} /> */}
               <ConditionCard icon="🔄" label="물때" loading={isConditionsLoading}
                 value={conditionsResult?.tideDescription ?? null}
-                source={conditionsResult?.tideSourceLabel} />
+                source={conditionsResult?.tideSourceLabel}
+                infoKey="물때" onInfoClick={handleInfoClick} />
               <ConditionCard icon="🌊" label="조류" loading={isConditionsLoading}
                 value={conditionsResult?.tideFlowPhase
                   ? TIDE_FLOW_LABELS[conditionsResult.tideFlowPhase]
                   : null}
-                source={conditionsResult?.tideSourceLabel} />
+                source={conditionsResult?.tideSourceLabel}
+                infoKey="조류" onInfoClick={handleInfoClick} />
               <ConditionCard
                 icon={conditionsResult?.sky ? (SKY_ICON[conditionsResult.sky] ?? '🌤') : '🌤'}
                 label="하늘"
@@ -341,6 +434,7 @@ export default function HomePage() {
                 waterNumber={conditionsResult?.waterNumber ?? null}
                 loading={isConditionsLoading}
                 source={conditionsResult?.tideSourceLabel}
+                onInfoClick={handleInfoClick}
               />
               <ConditionCard
                 icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌂'}
@@ -540,6 +634,11 @@ export default function HomePage() {
                         {r.caution && (
                           <ReasonSection title="⚠️ 주의사항" text={r.caution} />
                         )}
+                        {isAdmin && analysisResult?.analyzedAt && (
+                          <div className={styles.analyzedAt}>
+                            분석 생성: {analysisResult.analyzedAt}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -570,18 +669,66 @@ export default function HomePage() {
           <span className={styles.footerCopy}>실시간 조황 예측 서비스</span>
         </div>
       </footer>
+
+      <ConditionInfoSheet infoKey={activeInfoKey} onClose={handleInfoClose} />
+    </div>
+  );
+}
+
+/* ─── 조건 설명 바텀시트 ─── */
+function ConditionInfoSheet({ infoKey, onClose }: {
+  infoKey: ConditionInfoKey | null;
+  onClose: () => void;
+}) {
+  const info = infoKey ? CONDITION_INFO[infoKey] : null;
+
+  useEffect(() => {
+    if (!infoKey) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [infoKey, onClose]);
+
+  if (!info) return null;
+
+  return (
+    <div className={styles.infoOverlay} onClick={onClose}>
+      <div className={styles.infoSheet} onClick={e => e.stopPropagation()}>
+        <div className={styles.infoSheetHandle} />
+        <h3 className={styles.infoSheetTitle}>{info.title}</h3>
+        <p className={styles.infoSheetSubtitle}>{info.subtitle}</p>
+        <div className={styles.infoRowList}>
+          {info.rows.map((row) => (
+            <div key={row.label} className={`${styles.infoRow} ${row.highlight ? styles.infoRowHighlight : ''}`}>
+              <span className={styles.infoRowLabel}>{row.label}</span>
+              <span className={styles.infoRowDesc}>{row.desc}</span>
+            </div>
+          ))}
+        </div>
+        <button className={styles.infoSheetClose} onClick={onClose}>닫기</button>
+      </div>
     </div>
   );
 }
 
 /* ─── 조건 카드 ─── */
-function ConditionCard({ icon, label, value, loading, className, source, desc }: {
-  icon?: string; label: string; value: string | null; loading?: boolean; className?: string; source?: string | null; desc?: string | null;
+function ConditionCard({ icon, label, value, loading, className, source, desc, infoKey, onInfoClick }: {
+  icon?: string; label: string; value: string | null; loading?: boolean; className?: string;
+  source?: string | null; desc?: string | null;
+  infoKey?: ConditionInfoKey; onInfoClick?: (key: ConditionInfoKey) => void;
 }) {
+  const clickable = !!infoKey && !!onInfoClick;
   return (
-    <div className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''} ${className ?? ''}`}>
+    <div
+      className={`${styles.conditionCard} ${loading ? styles.conditionCardLoading : ''} ${className ?? ''} ${clickable ? styles.conditionCardClickable : ''}`}
+      onClick={clickable ? () => onInfoClick!(infoKey!) : undefined}
+      role={clickable ? 'button' : undefined}
+    >
       {icon && <span className={styles.conditionCardIcon}>{icon}</span>}
-      <span className={styles.conditionCardLabel}>{label}</span>
+      <span className={styles.conditionCardLabel}>
+        {label}
+        {clickable && <span className={styles.conditionCardInfoBadge}>?</span>}
+      </span>
       {loading
         ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
         : <span className={styles.conditionCardValue}>{value ?? '—'}</span>}
@@ -596,16 +743,26 @@ function ConditionCard({ icon, label, value, loading, className, source, desc }:
 }
 
 /* ─── 몇 물 카드 ─── */
-function WaterNumberCard({ waterNumber, loading, source }: {
+function WaterNumberCard({ waterNumber, loading, source, onInfoClick }: {
   waterNumber: string | null; loading?: boolean; source?: string | null;
+  onInfoClick?: (key: ConditionInfoKey) => void;
 }) {
   const moon = getWaterMoonIcon(waterNumber);
   return (
-    <div className={`${styles.conditionCard} ${styles.waterNumberCard} ${loading ? styles.conditionCardLoading : ''}`}>
+    <div
+      className={`${styles.conditionCard} ${styles.waterNumberCard} ${loading ? styles.conditionCardLoading : ''} ${onInfoClick ? styles.conditionCardClickable : ''}`}
+      onClick={onInfoClick ? () => onInfoClick('몇물') : undefined}
+      role={onInfoClick ? 'button' : undefined}
+    >
       <span className={styles.waterMoonEmoji}>{moon}</span>
       {loading
         ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
-        : <span className={styles.waterNumberValue}>{waterNumber ?? '—'}</span>}
+        : (
+          <span className={styles.waterNumberValue}>
+            {waterNumber ?? '—'}
+            {onInfoClick && <span className={styles.conditionCardInfoBadge}>?</span>}
+          </span>
+        )}
       {!loading && source && (
         <span className={styles.conditionCardSource}>{source}</span>
       )}
