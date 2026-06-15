@@ -63,7 +63,7 @@ export const DEPTH_FEATURE_LABELS: Record<DepthFeature, string> = {
   SHALLOW: '얕음',
   GENTLE_SLOPE: '완경사',
   DEPTH_BREAK: '수심 급변',
-  WATER_CHANNEL: '물길',
+  WATER_CHANNEL: '물골',
   DEEP_DROP: '급심',
 };
 
@@ -281,6 +281,7 @@ export interface FishingConditionsResult {
 export interface FishingAnalysisResult {
   results: SpeciesAnalysis[] | null;
   refreshing: boolean;
+  analyzedAt: string | null;
 }
 
 export async function fetchConditions(id: string): Promise<FishingConditionsResult> {
