@@ -13,6 +13,8 @@ export default function Footer() {
           <span>기상청 API 허브</span>
           <span className={styles.divider}>|</span>
           <span>국립해양조사원</span>
+          <span className={styles.divider}>|</span>
+          <span>국립수산과학원</span>
           <span className={styles.divider}>·</span>
           <span>공공누리 제1유형</span>
         </div>
