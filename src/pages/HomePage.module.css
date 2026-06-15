@@ -142,6 +142,31 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.conditionCardClickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.conditionCardClickable:active {
+  transform: scale(0.97);
+}
+
+.conditionCardInfoBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 4px;
+  vertical-align: middle;
+  line-height: 1;
+}
+
 .conditionCardLoading {
   opacity: 0.65;
   animation: pulse 1.8s ease-in-out infinite;
@@ -370,6 +395,16 @@
   color: var(--color-text);
   line-height: 1.75;
   margin: 0;
+}
+
+/* ─── 관리자 전용 분석 생성 시각 ─── */
+.analyzedAt {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 11px;
+  color: var(--color-text-muted, #94a3b8);
+  text-align: right;
 }
 
 /* ─── 샌드웍스 링크 ─── */
@@ -974,4 +1009,118 @@
 .tideEventHeight {
   font-size: 11px;
   color: rgba(255,255,255,0.55);
+}
+
+/* ─── 조건 설명 바텀시트 ─── */
+.infoOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.infoSheet {
+  width: 100%;
+  max-width: 480px;
+  background: #1a2744;
+  border-radius: 22px 22px 0 0;
+  padding: 12px 20px 32px;
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 82vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.infoSheetHandle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 0 auto 18px;
+}
+
+.infoSheetTitle {
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.infoSheetSubtitle {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.55;
+  margin: 0 0 18px;
+}
+
+.infoRowList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.infoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.infoRowHighlight {
+  background: rgba(74, 222, 128, 0.12);
+  border-color: rgba(74, 222, 128, 0.25);
+}
+
+.infoRowLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  min-width: 90px;
+  flex-shrink: 0;
+}
+
+.infoRowHighlight .infoRowLabel {
+  color: #4ade80;
+}
+
+.infoRowDesc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+}
+
+.infoSheetClose {
+  width: 100%;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.infoSheetClose:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
