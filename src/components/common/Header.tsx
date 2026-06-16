@@ -5,7 +5,7 @@ import LoginModal from './LoginModal';
 import styles from './Header.module.css';
 
 export default function Header() {
-  const { isLoggedIn, isAdmin, nickname, logout } = useAuth();
+  const { isLoggedIn, isAdmin, isModerator, nickname, logout } = useAuth();
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
 
@@ -28,7 +28,7 @@ export default function Header() {
           <div className={styles.right}>
             {isLoggedIn ? (
               <>
-                {isAdmin && (
+                {(isAdmin || isModerator) && (
                   <button className={styles.adminBtn} onClick={() => navigate('/admin')}>
                     관리자 페이지
                   </button>
