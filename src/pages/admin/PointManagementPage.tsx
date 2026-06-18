@@ -202,6 +202,7 @@ export default function PointManagementPage() {
                 <th>안전</th>
                 <th>공개</th>
                 <th>활성</th>
+                <th>AI 분석 생성</th>
                 <th>관리</th>
               </tr>
             </thead>
@@ -225,6 +226,9 @@ export default function PointManagementPage() {
                     <span className={`${styles.badge} ${p.enabled ? styles.badgeGreen : styles.badgeRed}`}>
                       {p.enabled ? '활성' : '비활성'}
                     </span>
+                  </td>
+                  <td className={styles.analyzedAtCell}>
+                    {p.lastAnalyzedAt ?? <span className={styles.noAnalysis}>미생성</span>}
                   </td>
                   <td>
                     <div className={styles.actions}>
