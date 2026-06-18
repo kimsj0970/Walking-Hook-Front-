@@ -640,9 +640,9 @@ export default function HomePage() {
                         {r.caution && (
                           <ReasonSection title="⚠️ 주의사항" text={r.caution} />
                         )}
-                        {isAdmin && analysisResult?.analyzedAt && (
+                        {analysisResult?.analyzedAt && (
                           <div className={styles.analyzedAt}>
-                            분석 생성: {analysisResult.analyzedAt}
+                            AI 분석 생성: {analysisResult.analyzedAt}
                           </div>
                         )}
                       </div>
