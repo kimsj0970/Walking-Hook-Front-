@@ -91,6 +91,7 @@ export interface FishingPointSummary {
   publicVisible: boolean;
   latitude: number;
   longitude: number;
+  lastAnalyzedAt: string | null;
 }
 
 export interface FishingPointMapMarker {
