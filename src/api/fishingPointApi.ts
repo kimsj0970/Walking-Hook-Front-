@@ -309,3 +309,7 @@ export async function startAiSchedule(): Promise<void> {
 export async function stopAiSchedule(): Promise<void> {
   await api.post('/admin/fish-points/ai-schedule/stop');
 }
+
+export async function deletePointAnalysis(id: string): Promise<void> {
+  await api.delete(`/admin/fish-points/${id}/analysis`);
+}
