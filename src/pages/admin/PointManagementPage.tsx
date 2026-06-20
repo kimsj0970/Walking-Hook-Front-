@@ -5,6 +5,7 @@ import {
   searchFishingPoints,
   getFishingPoint,
   deleteFishingPoint,
+  deletePointAnalysis,
   getAiScheduleStatus,
   startAiSchedule,
   stopAiSchedule,
@@ -26,6 +27,9 @@ export default function PointManagementPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<FishingPointSummary | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [deleteAnalysisTarget, setDeleteAnalysisTarget] = useState<FishingPointSummary | null>(null);
+  const [deletingAnalysis, setDeletingAnalysis] = useState(false);
 
   const [toast, setToast] = useState('');
 
@@ -126,6 +130,21 @@ export default function PointManagementPage() {
       showToast('삭제 중 오류가 발생했습니다.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleDeleteAnalysisConfirm = async () => {
+    if (!deleteAnalysisTarget) return;
+    setDeletingAnalysis(true);
+    try {
+      await deletePointAnalysis(deleteAnalysisTarget.id);
+      setDeleteAnalysisTarget(null);
+      showToast('AI 분석 캐시가 삭제되었습니다.');
+      load();
+    } catch {
+      showToast('AI 분석 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingAnalysis(false);
     }
   };
 
@@ -241,6 +260,14 @@ export default function PointManagementPage() {
                         ✏️
                       </button>
                       <button
+                        className={styles.deleteAnalysisBtn}
+                        onClick={() => setDeleteAnalysisTarget(p)}
+                        disabled={!p.lastAnalyzedAt}
+                        title={p.lastAnalyzedAt ? 'AI 분석 삭제' : 'AI 분석 없음'}
+                      >
+                        AI분석 삭제
+                      </button>
+                      <button
                         className={styles.deleteBtn}
                         onClick={() => setDeleteTarget(p)}
                         title="삭제"
@@ -287,6 +314,35 @@ export default function PointManagementPage() {
                 disabled={deleting}
               >
                 {deleting ? '삭제 중...' : '삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI 분석 삭제 확인 다이얼로그 */}
+      {deleteAnalysisTarget && (
+        <div className={styles.dialogOverlay} onClick={() => !deletingAnalysis && setDeleteAnalysisTarget(null)}>
+          <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.dialogTitle}>AI 분석 캐시 삭제</h3>
+            <p className={styles.dialogBody}>
+              <strong>{deleteAnalysisTarget.name}</strong> 포인트의 AI 분석 캐시를 삭제합니다.<br />
+              삭제 후 다음 조회 시 AI가 새로 분석을 생성합니다.
+            </p>
+            <div className={styles.dialogActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setDeleteAnalysisTarget(null)}
+                disabled={deletingAnalysis}
+              >
+                취소
+              </button>
+              <button
+                className={styles.confirmDeleteBtn}
+                onClick={handleDeleteAnalysisConfirm}
+                disabled={deletingAnalysis}
+              >
+                {deletingAnalysis ? '삭제 중...' : '삭제'}
               </button>
             </div>
           </div>
