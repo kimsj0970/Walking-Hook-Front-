@@ -103,3 +103,22 @@ export async function fetchAdminNifsStations(): Promise<NifsStationMarker[]> {
   const { data } = await api.get('/admin/nifs-stations');
   return (data.data ?? []) as NifsStationMarker[];
 }
+
+export interface NmpntStationMarker {
+  id: string;
+  stationType: string;
+  mmsiCode: string;
+  stationName: string;
+  latitude: number;
+  longitude: number;
+  observedAt: string | null;
+  windSpeed: number | null;
+  windDirection: number | null;
+  airTemp: number | null;
+  waterTemp: number | null;
+}
+
+export async function fetchAdminNmpntStations(): Promise<NmpntStationMarker[]> {
+  const { data } = await api.get('/admin/nmpnt-stations');
+  return (data.data ?? []) as NmpntStationMarker[];
+}
