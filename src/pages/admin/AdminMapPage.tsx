@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import {
   fetchAdminMarineStations, fetchAdminBeachStations,
   fetchAdminKhoaTwStations, fetchAdminAwsStations, fetchAdminNifsStations,
+  fetchAdminNmpntStations,
   type MarineStationMarker, type BeachStationMarker,
   type KhoaTwStationMarker, type AwsStationMarker, type NifsStationMarker,
+  type NmpntStationMarker,
 } from '../../api/marineStationApi';
 import { searchFishingPoints, type FishingPointSummary } from '../../api/fishingPointApi';
 import styles from './AdminMapPage.module.css';
@@ -48,6 +50,7 @@ function typeColor(stationType: string): string {
     case 'KHOA_TW':   return '#0891B2';
     case 'AWS':       return '#EA580C';
     case 'NIFS':      return '#7C3AED';
+    case 'NMPNT':     return '#D97706';
     default:          return '#64748B';
   }
 }
@@ -59,6 +62,7 @@ function typeLabel(stationType: string): string {
     case 'KHOA_TW':   return 'KHOA 연안수온';
     case 'AWS':       return 'KMA AWS';
     case 'NIFS':      return 'NIFS 수산과학원';
+    case 'NMPNT':     return 'NMPNT 등대·등부표';
     default:          return stationType;
   }
 }
@@ -174,6 +178,21 @@ function buildAwsInfoHtml(s: AwsStationMarker): string {
   );
 }
 
+function buildNmpntInfoHtml(s: NmpntStationMarker): string {
+  const windDir = s.windDirection != null ? `${windDegToDir(s.windDirection)} (${s.windDirection}°)` : '—';
+  const rows: [string, string][] = [
+    ['풍속',   fmt(s.windSpeed, 'm/s')],
+    ['풍향',   windDir],
+    ['기온',   fmt(s.airTemp, '°C')],
+    ['수온',   s.waterTemp != null ? fmt(s.waterTemp, '°C') : '지원하지 않음'],
+    ['파고',   '지원하지 않음'],
+  ];
+  return wrapInfoHtml(
+    infoHeader(s.stationName, s.mmsiCode, s.stationType) +
+    (s.observedAt ? buildRows(rows) + buildObsFooter(s.observedAt) : `<p style="font-size:12px;color:#94A3B8;margin:4px 0 0;">아직 관측 데이터 없음</p>`)
+  );
+}
+
 function buildNifsInfoHtml(s: NifsStationMarker): string {
   const rows: [string, string][] = [
     ['수온', fmt(s.waterTemp, '°C')],
@@ -207,8 +226,9 @@ export default function AdminMapPage() {
       fetchAdminKhoaTwStations().catch(() => [] as KhoaTwStationMarker[]),
       fetchAdminAwsStations().catch(() => [] as AwsStationMarker[]),
       fetchAdminNifsStations().catch(() => [] as NifsStationMarker[]),
+      fetchAdminNmpntStations().catch(() => [] as NmpntStationMarker[]),
     ])
-      .then(([, marineStations, fishingPoints, beachStations, khoaTwStations, awsStations, nifsStations]) => {
+      .then(([, marineStations, fishingPoints, beachStations, khoaTwStations, awsStations, nifsStations, nmpntStations]) => {
         if (cancelled || !mapRef.current) return;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -268,6 +288,12 @@ export default function AdminMapPage() {
             addMarker(s, nifsPinUrl, buildNifsInfoHtml(s))
           );
 
+          // ── NMPNT 등대·등부표 (황색) ─────────────────────────
+          const nmpntPinUrl = makePinUrl('#D97706', '#92400E');
+          nmpntStations.forEach((s: NmpntStationMarker) =>
+            addMarker(s, nmpntPinUrl, buildNmpntInfoHtml(s))
+          );
+
           // ── 낚시 포인트 (파란색) + 클러스터 ──────────────────
           const clusterer = new kakao.maps.MarkerClusterer({
             map,
@@ -324,6 +350,7 @@ export default function AdminMapPage() {
         <span className={styles.legendCyan}>● KHOA 연안수온</span>
         <span className={styles.legendOrange}>● KMA AWS</span>
         <span className={styles.legendPurple}>● NIFS 수산과학원</span>
+        <span className={styles.legendAmber}>● NMPNT 등대·등부표</span>
         <span className={styles.legendBlue}>● 낚시 포인트</span>
       </div>
       <div ref={mapRef} className={styles.map} />
