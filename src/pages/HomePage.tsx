@@ -612,7 +612,7 @@ export default function HomePage() {
                     {expandedSpecies === r.species && (
                       <div className={styles.reasonBody}>
                         {r.conditionReason && (
-                          <ReasonSection title="📊 조황 이유" text={r.conditionReason} />
+                          <ReasonSection title="📊 현재 상황" text={r.conditionReason} />
                         )}
                         {r.pointReason && (
                           <ReasonSection title="📍 포인트 적합성" text={r.pointReason} />
