@@ -135,7 +135,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
       { label: '5 ~ 10℃', desc: '저수온 · 대부분 어종 활성 감소. 감성돔은 한겨울 패턴으로 깊은 곳 공략 필요' },
       { label: '10 ~ 15℃', desc: '봄 초반·초겨울 · 감성돔·우럭 서서히 회복 시작, 광어는 연안 진출 중' },
       { label: '15 ~ 20℃', desc: '봄~초여름 · 감성돔·우럭·광어 최적 활성 시작', highlight: true },
-      { label: '20 ~ 26℃', desc: '여름 · 농어·광어·감성돔 모두 고활성, 연간 최고 조황 기대', highlight: true },
+      { label: '20 ~ 26℃', desc: '수온 상승기로 어종별 선호 수심 편차가 커짐', highlight: true },
       { label: '26 ~ 28℃', desc: '고수온 초입 · 농어는 여전히 활발, 감성돔은 심층 이동 시작' },
       { label: '28℃ 이상', desc: '고수온 · 감성돔 연안 활성 대폭 저하, 일부 어종 심층 이동. 야간 농어 여전히 활발' },
     ],
