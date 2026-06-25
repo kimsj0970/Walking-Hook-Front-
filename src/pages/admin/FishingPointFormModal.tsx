@@ -66,7 +66,7 @@ const TERRAIN_FEATURE_FIELDS: BoolFieldMeta[] = [
   },
   {
     key: 'isRockField',
-    label: '돌밭',
+    label: '여밭',
     description: '넓은 암석·돌이 분포한 지형입니다.',
   },
   {
