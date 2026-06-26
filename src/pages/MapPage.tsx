@@ -61,23 +61,26 @@ export default function MapPage() {
             minLevel: 10,
           });
 
+          // 마우스 오버 시 이름만 표시하는 공유 InfoWindow
+          const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
+
           const markers = fishingPoints.map((fp: FishingPointMapMarker) => {
             const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
             const marker = new kakao.maps.Marker({ position });
 
-            const infoWindow = new kakao.maps.InfoWindow({
-              content: `
-                <div style="padding:10px 14px;min-width:160px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">
-                  <strong style="font-size:13px;color:#0B3D91">${escapeHtml(fp.name)}</strong>
-                  <p style="margin:4px 0 0;font-size:11px;color:#64748B">
-                    클릭하여 메인 페이지에서 조황 확인
-                  </p>
-                </div>`,
-              removable: true,
+            kakao.maps.event.addListener(marker, 'mouseover', () => {
+              hoverInfoWindow.setContent(
+                `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">${escapeHtml(fp.name)}</div>`
+              );
+              hoverInfoWindow.open(map, marker);
+            });
+
+            kakao.maps.event.addListener(marker, 'mouseout', () => {
+              hoverInfoWindow.close();
             });
 
             kakao.maps.event.addListener(marker, 'click', () => {
-              infoWindow.open(map, marker);
+              hoverInfoWindow.close();
               setSelectedName(fp.name);
 
               // 메인 페이지(부모 창)에 포인트 선택 메시지 전송 후 팝업 닫기
