@@ -10,6 +10,7 @@ import {
 } from '../api/fishingPointApi';
 import { useAuth } from '../context/AuthContext';
 import { FishingBoard, NoticeBoard } from './CommunityPage';
+import LoginModal from '../components/common/LoginModal';
 import styles from './HomePage.module.css';
 
 const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
@@ -76,7 +77,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
       { label: '0 ~ 1.5 m/s (실바람)', desc: '캐스팅 완벽 · 단 물이 잔잔해 물고기 경계심이 높아질 수 있어요' },
       { label: '1.5 ~ 3.3 m/s (산들바람)', desc: '낚시 최적 조건 · 적당한 탁도와 쉬운 캐스팅', highlight: true },
       { label: '3.3 ~ 5.4 m/s (건들바람)', desc: '루어 컨트롤에 신경 써야 해요 · 채비 흐름이 빨라져요' },
-      { label: '5.4 ~ 7.9 m/s (흔들바람)', desc: '캐스팅 거리 감소, 채비 유실 위험 · 원투 낚시 어려워요' },
+      { label: '5.4 ~ 7.9 m/s (흔들바람)', desc: '캐스팅 거리 감소, 캐스팅 손실 위험 · 원투 낚시 어려워요' },
       { label: '7.9 ~ 10.7 m/s (된바람)', desc: '안전에 주의하세요 ⚠️ · 갯바위·방파제 위험 구간' },
       { label: '10.7 ~ 13.8 m/s (센바람)', desc: '출조 자제 권장 ⚠️ · 캐스팅 거의 불가 수준' },
       { label: '13.8 m/s 이상 (강풍)', desc: '출조 금지 수준 ⛔ · 생명 안전 위협' },
@@ -157,6 +158,7 @@ export default function HomePage() {
   const { isLoggedIn, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [loginToast, setLoginToast] = useState(false);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
   const [fishingPoints, setFishingPoints] = useState<FishingPointMapMarker[]>([]);
@@ -382,7 +384,15 @@ export default function HomePage() {
                 {fishingPoints.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
               </select>
               <button className={styles.mapBtn}
-                onClick={() => window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes')}>
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setLoginToast(true);
+                    setTimeout(() => setLoginToast(false), 2000);
+                    setLoginModalOpen(true);
+                    return;
+                  }
+                  window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes');
+                }}>
                 지도 보기
               </button>
             </div>
@@ -677,6 +687,7 @@ export default function HomePage() {
       </footer>
 
       <ConditionInfoSheet infoKey={activeInfoKey} onClose={handleInfoClose} />
+      <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
     </div>
   );
 }
