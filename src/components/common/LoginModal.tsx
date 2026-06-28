@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import styles from './LoginModal.module.css';
 
 const KAKAO_REST_API_KEY = import.meta.env.VITE_KAKAO_REST_API_KEY as string;
+const NAVER_CLIENT_ID = import.meta.env.VITE_NAVER_CLIENT_ID as string;
 
 function buildKakaoLoginUrl(): string {
   const redirectUri = `${window.location.origin}/oauth/callback`;
@@ -11,6 +12,20 @@ function buildKakaoLoginUrl(): string {
   return (
     `https://kauth.kakao.com/oauth/authorize` +
     `?client_id=${KAKAO_REST_API_KEY}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&state=${state}`
+  );
+}
+
+function buildNaverLoginUrl(): string {
+  const redirectUri = `${window.location.origin}/oauth/naver/callback`;
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oauth_state', state);
+  sessionStorage.setItem('oauth_provider', 'naver');
+  return (
+    `https://nid.naver.com/oauth2.0/authorize` +
+    `?client_id=${NAVER_CLIENT_ID}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&response_type=code` +
     `&state=${state}`
@@ -42,6 +57,11 @@ export default function LoginModal({ open, onClose }: Props) {
     window.location.href = buildKakaoLoginUrl();
   };
 
+  const handleNaverClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.href = buildNaverLoginUrl();
+  };
+
   return (
     <div className={styles.overlay}>
       <div className={styles.modal}>
@@ -61,13 +81,12 @@ export default function LoginModal({ open, onClose }: Props) {
             <span>카카오로 시작하기</span>
           </a>
 
-          <button className={`${styles.providerBtn} ${styles.naver} ${styles.disabled}`} disabled>
+          <a href="#" onClick={handleNaverClick} className={`${styles.providerBtn} ${styles.naver}`}>
             <svg className={styles.providerIcon} viewBox="0 0 24 24" fill="currentColor">
               <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
             </svg>
             <span>네이버로 시작하기</span>
-            <span className={styles.badge}>준비 중</span>
-          </button>
+          </a>
 
           <button className={`${styles.providerBtn} ${styles.google} ${styles.disabled}`} disabled>
             <svg className={styles.providerIcon} viewBox="0 0 24 24">
