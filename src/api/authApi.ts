@@ -43,6 +43,8 @@ api.interceptors.request.use((config) => {
 
 // 토큰 재발급 중복 요청 방지 (Queue 패턴)
 let refreshPromise: Promise<string> | null = null;
+// auth-expired 이벤트 중복 발행 방지 — 동시 401로 catch 블록이 여러 번 진입해도 1번만 알림
+let authExpiredFired = false;
 
 // 401 시 자동 토큰 재발급 후 재시도
 api.interceptors.response.use(
@@ -129,8 +131,8 @@ export interface AuthResult {
 // ─── API 함수 ─────────────────────────────────────────────────────────────────
 
 /** OAuth 로그인 */
-export async function oauthLogin(provider: string, code: string): Promise<AuthResult> {
-  const { data } = await api.post(`/oauth/${provider}`, { code });
+export async function oauthLogin(provider: string, code: string, state?: string): Promise<AuthResult> {
+  const { data } = await api.post(`/oauth/${provider}`, { code, state });
   const accessToken: string = data.data.accessToken;
   setCsrfToken(data.data.csrfToken);
   return {
