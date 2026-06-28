@@ -15,12 +15,31 @@ function buildKakaoLoginUrl(): string {
   );
 }
 
+function buildNaverLoginUrl(): string {
+  const redirectUri = `${window.location.origin}/oauth/naver/callback`;
+  const state = crypto.randomUUID();
+  sessionStorage.setItem('oauth_state', state);
+  sessionStorage.setItem('oauth_provider', 'naver');
+  return (
+    `https://nid.naver.com/oauth2.0/authorize` +
+    `?client_id=${import.meta.env.VITE_NAVER_CLIENT_ID as string}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&response_type=code` +
+    `&state=${state}`
+  );
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
 
   const handleKakaoClick = (e: React.MouseEvent) => {
     e.preventDefault();
     window.location.href = buildKakaoLoginUrl();
+  };
+
+  const handleNaverClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.href = buildNaverLoginUrl();
   };
 
   return (
@@ -42,13 +61,12 @@ export default function LoginPage() {
             <span>카카오로 시작하기</span>
           </a>
 
-          <button className={`${styles.providerBtn} ${styles.naver} ${styles.disabled}`} disabled>
+          <a href="#" onClick={handleNaverClick} className={`${styles.providerBtn} ${styles.naver}`}>
             <svg className={styles.providerIcon} viewBox="0 0 24 24" fill="currentColor">
               <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z"/>
             </svg>
             <span>네이버로 시작하기</span>
-            <span className={styles.badge}>준비 중</span>
-          </button>
+          </a>
 
           <button className={`${styles.providerBtn} ${styles.google} ${styles.disabled}`} disabled>
             <svg className={styles.providerIcon} viewBox="0 0 24 24">
