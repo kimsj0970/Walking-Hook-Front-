@@ -42,7 +42,7 @@ export default function OAuthCallbackPage() {
       return;
     }
 
-    oauthLogin(provider, code)
+    oauthLogin(provider, code, returnedState ?? undefined)
       .then(({ accessToken, nickName, role }) => {
         login(accessToken, nickName, role);
         // 닉네임 없으면 닉네임 설정 페이지로
