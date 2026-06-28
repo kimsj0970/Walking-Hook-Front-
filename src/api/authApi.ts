@@ -72,6 +72,7 @@ api.interceptors.response.use(
 
               setInMemoryToken(newToken);
               setCsrfToken(data.data.csrfToken);
+              authExpiredFired = false;
 
               window.dispatchEvent(
                 new CustomEvent('token-refreshed', {
@@ -92,7 +93,10 @@ api.interceptors.response.use(
       } catch {
         setInMemoryToken(null);
         setCsrfToken(null);
-        window.dispatchEvent(new Event('auth-expired'));
+        if (!authExpiredFired) {
+          authExpiredFired = true;
+          window.dispatchEvent(new Event('auth-expired'));
+        }
         return Promise.reject(error);
       }
     }
