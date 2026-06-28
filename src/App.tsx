@@ -36,6 +36,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+            <Route path="/oauth/naver/callback" element={<OAuthCallbackPage />} />
             <Route path="/nickname" element={<PrivateRoute><NicknamePage /></PrivateRoute>} />
             <Route path="/my" element={<PrivateRoute><MyPage /></PrivateRoute>} />
             <Route path="/map" element={<MapPage />} />
