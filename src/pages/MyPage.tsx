@@ -145,9 +145,11 @@ export default function MyPage() {
             </div>
           ) : userInfo ? (
             <>
-              <InfoRow label="이름" value={userInfo.name} />
-              <InfoRow label="이메일" value={userInfo.email} />
+              <InfoRow label="이름" value={userInfo.name || '없음'} />
+              <InfoRow label="이메일" value={userInfo.email || '없음'} />
               <InfoRow label="로그인" value={PROVIDER_LABEL[userInfo.provider] ?? userInfo.provider} />
+              <InfoRow label="출생연도" value={userInfo.birthyear || '없음'} />
+              <InfoRow label="연령대" value={userInfo.age || '없음'} />
               <InfoRow label="포인트" value={`${userInfo.point.toLocaleString()} P`} highlight />
             </>
           ) : infoError ? (

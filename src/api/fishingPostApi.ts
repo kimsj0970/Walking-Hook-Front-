@@ -6,6 +6,11 @@ export interface FishingPostListItem {
   title: string;
   authorNickname: string;
   createdAt: string;
+  photoUrls: string[];
+  migratoryPointId: string | null;
+  pointName: string | null;
+  caughtAt: string | null;
+  commentCount: number;
 }
 
 export interface FishingPostDetail {
@@ -16,6 +21,10 @@ export interface FishingPostDetail {
   authorId: string;
   createdAt: string;
   updatedAt: string | null;
+  photoUrls: string[];
+  migratoryPointId: string | null;
+  pointName: string | null;
+  caughtAt: string | null;
 }
 
 export async function getFishingPostsPreview(): Promise<FishingPostListItem[]> {
@@ -37,13 +46,27 @@ export async function getFishingPostDetail(id: string): Promise<FishingPostDetai
   return data.data as FishingPostDetail;
 }
 
-export async function createFishingPost(title: string, content: string): Promise<string> {
-  const { data } = await api.post('/fishing-posts', { title, content });
+export async function createFishingPost(
+  title: string, content: string, photoUrls: string[] = [],
+  migratoryPointId?: string, caughtAt?: string
+): Promise<string> {
+  const { data } = await api.post('/fishing-posts', {
+    title, content, photoUrls,
+    migratoryPointId: migratoryPointId ?? null,
+    caughtAt: caughtAt ?? null,
+  });
   return data.data as string;
 }
 
-export async function updateFishingPost(id: string, title: string, content: string): Promise<void> {
-  await api.patch(`/fishing-posts/${id}`, { title, content });
+export async function updateFishingPost(
+  id: string, title: string, content: string, photoUrls: string[] = [],
+  migratoryPointId?: string | null, caughtAt?: string | null
+): Promise<void> {
+  await api.patch(`/fishing-posts/${id}`, {
+    title, content, photoUrls,
+    migratoryPointId: migratoryPointId ?? null,
+    caughtAt: caughtAt ?? null,
+  });
 }
 
 export async function deleteFishingPost(id: string): Promise<void> {

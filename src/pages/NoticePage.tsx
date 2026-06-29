@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PostFormModal from '../components/common/PostFormModal';
+import ImageLightbox from '../components/common/ImageLightbox';
 import {
   getNoticesPage, getNoticeDetail, createNotice, updateNotice, deleteNotice,
   getNoticeComments, addNoticeComment, deleteNoticeComment,
@@ -30,6 +32,7 @@ function formatDate(iso: string) {
 
 export default function NoticePage() {
   const { isAdmin, isLoggedIn, userId } = useAuth();
+  const location = useLocation();
 
   const [view, setView]     = useState<View>('list');
   const [items, setItems]   = useState<NoticeListItem[]>([]);
@@ -49,6 +52,7 @@ export default function NoticePage() {
   const [commentInput, setCommentInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; nickname: string } | null>(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
 
   const fetchList = useCallback(async (page: number) => {
     setLoading(true);
@@ -67,6 +71,15 @@ export default function NoticePage() {
   }, []);
 
   useEffect(() => { fetchList(0); }, [fetchList]);
+
+  useEffect(() => {
+    const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
+    if (openPostId) {
+      openDetail(openPostId);
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const goToPage = (page: number) => {
     fetchList(page);
@@ -105,12 +118,12 @@ export default function NoticePage() {
   const openCreate = () => { setEditingNotice(null); setModalOpen(true); };
   const openEdit   = () => { if (!detail) return; setEditingNotice(detail); setModalOpen(true); };
 
-  const handleSubmit = async (title: string, content: string) => {
+  const handleSubmit = async (title: string, content: string, photoUrls: string[]) => {
     if (editingNotice) {
-      await updateNotice(editingNotice.id, title, content);
+      await updateNotice(editingNotice.id, title, content, photoUrls);
       setDetail(await getNoticeDetail(editingNotice.id));
     } else {
-      await createNotice(title, content);
+      await createNotice(title, content, photoUrls);
     }
     await fetchList(currentPage);
   };
@@ -156,6 +169,8 @@ export default function NoticePage() {
                     <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
                       <span className={styles.listTitle}>{item.title}</span>
                       <span className={styles.listMeta}>
+                        {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷</span>}
+                        {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
                         <AuthorLabel nickname={item.authorNickname} />
                         <span className={styles.listDate}>{formatDate(item.createdAt)}</span>
                       </span>
@@ -196,6 +211,14 @@ export default function NoticePage() {
                   </div>
                 </div>
                 <p className={styles.detailContent}>{detail.content}</p>
+                {detail.photoUrls?.length > 0 && (
+                  <div className={styles.photoGrid}>
+                    {detail.photoUrls.map((url, i) => (
+                      <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo}
+                        style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
+                    ))}
+                  </div>
+                )}
                 <div className={styles.detailActions}>
                   {isAdmin && (
                     <>
@@ -284,7 +307,19 @@ export default function NoticePage() {
         contentPlaceholder="공지 내용을 입력하세요"
         initialTitle={editingNotice?.title ?? ''}
         initialContent={editingNotice?.content ?? ''}
+        maxPhotos={null}
+        boardType="NOTICE"
+        initialPhotoUrls={editingNotice?.photoUrls ?? []}
       />
+      {lbIdx !== null && detail?.photoUrls && (
+        <ImageLightbox
+          images={detail.photoUrls}
+          index={lbIdx}
+          onClose={() => setLbIdx(null)}
+          onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
+          onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
+        />
+      )}
     </div>
   );
 }

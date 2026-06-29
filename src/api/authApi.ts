@@ -41,8 +41,38 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// 토큰 재발급 중복 요청 방지 (Queue 패턴)
-let refreshPromise: Promise<string> | null = null;
+interface ReissueData {
+  accessToken: string;
+  csrfToken: string;
+  userNickName: string | null;
+}
+
+// silentRefresh와 401 인터셉터가 공유하는 단일 reissue 요청 — race condition 방지
+let reissuePromise: Promise<ReissueData> | null = null;
+
+function callReissue(): Promise<ReissueData> {
+  if (!reissuePromise) {
+    reissuePromise = axios
+      .post(
+        `${BASE_URL}/user/reissue`,
+        {},
+        {
+          withCredentials: true,
+          headers: inMemoryCsrfToken ? { 'X-CSRF-Token': inMemoryCsrfToken } : {},
+        }
+      )
+      .then(({ data }) => ({
+        accessToken: data.data.accessToken as string,
+        csrfToken: data.data.csrfToken as string,
+        userNickName: (data.data.userNickName as string | null) ?? null,
+      }))
+      .finally(() => {
+        reissuePromise = null;
+      });
+  }
+  return reissuePromise;
+}
+
 // auth-expired 이벤트 중복 발행 방지 — 동시 401로 catch 블록이 여러 번 진입해도 1번만 알림
 let authExpiredFired = false;
 
@@ -52,43 +82,23 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config as typeof error.config & { _retry?: boolean };
 
-    if (error.response?.status === 401 && !original._retry) {
+    if (error.response?.status === 401 && !original._retry && inMemoryToken) {
       original._retry = true;
 
       try {
-        if (!refreshPromise) {
-          refreshPromise = axios
-            .post(
-              `${BASE_URL}/user/reissue`,
-              {},
-              {
-                withCredentials: true,
-                headers: { 'X-CSRF-Token': inMemoryCsrfToken ?? '' },
-              }
-            )
-            .then(({ data }) => {
-              const newToken: string = data.data.accessToken;
-              const newNickname: string | null = data.data.userNickName ?? null;
+        const { accessToken, csrfToken, userNickName } = await callReissue();
 
-              setInMemoryToken(newToken);
-              setCsrfToken(data.data.csrfToken);
-              authExpiredFired = false;
+        setInMemoryToken(accessToken);
+        setCsrfToken(csrfToken);
+        authExpiredFired = false;
 
-              window.dispatchEvent(
-                new CustomEvent('token-refreshed', {
-                  detail: { accessToken: newToken, nickname: newNickname, role: parseJwtRole(newToken), userId: parseJwtUserId(newToken) },
-                })
-              );
+        window.dispatchEvent(
+          new CustomEvent('token-refreshed', {
+            detail: { accessToken, nickname: userNickName, role: parseJwtRole(accessToken), userId: parseJwtUserId(accessToken) },
+          })
+        );
 
-              return newToken;
-            })
-            .finally(() => {
-              refreshPromise = null;
-            });
-        }
-
-        const newToken = await refreshPromise;
-        original.headers.Authorization = `Bearer ${newToken}`;
+        original.headers.Authorization = `Bearer ${accessToken}`;
         return api(original);
       } catch {
         setInMemoryToken(null);
@@ -150,19 +160,12 @@ export async function oauthLogin(provider: string, code: string, state?: string)
 /** 앱 시작 시 silent refresh (httpOnly 쿠키 → 메모리 토큰 복원) */
 export async function silentRefresh(): Promise<AuthResult | null> {
   try {
-    const { data } = await axios.post(
-      `${BASE_URL}/user/reissue`,
-      {},
-      {
-        withCredentials: true,
-        headers: inMemoryCsrfToken ? { 'X-CSRF-Token': inMemoryCsrfToken } : {},
-      }
-    );
-    const accessToken: string = data.data.accessToken;
-    setCsrfToken(data.data.csrfToken);
+    const { accessToken, csrfToken, userNickName } = await callReissue();
+    setInMemoryToken(accessToken);
+    setCsrfToken(csrfToken);
     return {
       accessToken,
-      nickName: data.data.userNickName ?? null,
+      nickName: userNickName,
       role: parseJwtRole(accessToken),
       userId: parseJwtUserId(accessToken),
     };
@@ -217,6 +220,8 @@ export interface UserInfoResponse {
   point: number;
   role?: string;
   nicknameChangedAt?: string | null;
+  age?: string | null;
+  birthyear?: string | null;
 }
 
 export async function getMyInfoApi(): Promise<UserInfoResponse> {

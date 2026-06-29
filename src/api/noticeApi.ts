@@ -5,6 +5,8 @@ export interface NoticeListItem {
   title: string;
   authorNickname: string;
   createdAt: string;
+  photoUrls: string[];
+  commentCount: number;
 }
 
 export interface NoticeDetail {
@@ -12,6 +14,7 @@ export interface NoticeDetail {
   title: string;
   content: string;
   authorNickname: string;
+  photoUrls: string[];
   createdAt: string;
   updatedAt: string | null;
 }
@@ -43,13 +46,13 @@ export async function getNoticeDetail(id: string): Promise<NoticeDetail> {
   return data.data as NoticeDetail;
 }
 
-export async function createNotice(title: string, content: string): Promise<string> {
-  const { data } = await api.post('/admin/notices', { title, content });
+export async function createNotice(title: string, content: string, photoUrls: string[] = []): Promise<string> {
+  const { data } = await api.post('/admin/notices', { title, content, photoUrls });
   return data.data as string;
 }
 
-export async function updateNotice(id: string, title: string, content: string): Promise<void> {
-  await api.patch(`/admin/notices/${id}`, { title, content });
+export async function updateNotice(id: string, title: string, content: string, photoUrls: string[] = []): Promise<void> {
+  await api.patch(`/admin/notices/${id}`, { title, content, photoUrls });
 }
 
 export async function deleteNotice(id: string): Promise<void> {

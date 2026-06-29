@@ -13,6 +13,7 @@ import InquiryPage from './pages/InquiryPage';
 import CommunityPage from './pages/CommunityPage';
 import NoticePage from './pages/NoticePage';
 import FishingPostPage from './pages/FishingPostPage';
+import MigratoryPostPage from './pages/MigratoryPostPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import LoginPage from './pages/LoginPage';
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/notices" element={<NoticePage />} />
             <Route path="/fishing-posts" element={<FishingPostPage />} />
+            <Route path="/migratory-posts" element={<MigratoryPostPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/login" element={<LoginPage />} />

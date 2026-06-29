@@ -1,17 +1,205 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PostFormModal from '../components/common/PostFormModal';
+import PhotoUploader from '../components/common/PhotoUploader';
+import ImageLightbox from '../components/common/ImageLightbox';
 import {
   getFishingPostsPreview, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
   type FishingPostListItem, type FishingPostDetail,
 } from '../api/fishingPostApi';
 import {
+  fetchMigratoryFishPointMapMarkers, MIGRATORY_SPECIES_LABELS,
+  type MigratoryFishPointMapMarker,
+} from '../api/migratoryFishPointApi';
+import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
+import {
   getNoticesPreview, getNoticeDetail, createNotice, updateNotice, deleteNotice,
   type NoticeListItem, type NoticeDetail,
 } from '../api/noticeApi';
 import styles from './CommunityPage.module.css';
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+/* ── 조황 작성/수정 모달 ──────────────────────────────────────────── */
+interface FishingWriteState {
+  title: string; content: string; photoUrls: string[];
+  selectedProvince: Province | ''; migratoryPointId: string; selectedPointName: string;
+  caughtAt: string;
+}
+interface FishingWriteModalProps {
+  open: boolean; editTarget: FishingPostDetail | null;
+  points: MigratoryFishPointMapMarker[];
+  onClose: () => void; onSaved: () => void;
+}
+function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: FishingWriteModalProps) {
+  const [form, setForm] = useState<FishingWriteState>({
+    title: '', content: '', photoUrls: [],
+    selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(),
+  });
+  const [errors, setErrors] = useState<{ title?: string; content?: string }>({});
+  const [serverError, setServerError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [dropOpen, setDropOpen] = useState(false);
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    if (editTarget) {
+      const pt = editTarget.migratoryPointId ? points.find(p => p.id === editTarget.migratoryPointId) : undefined;
+      setForm({
+        title: editTarget.title, content: editTarget.content, photoUrls: editTarget.photoUrls ?? [],
+        selectedProvince: pt?.province ?? '',
+        migratoryPointId: editTarget.migratoryPointId ?? '',
+        selectedPointName: pt?.name ?? editTarget.pointName ?? '',
+        caughtAt: editTarget.caughtAt ?? todayStr(),
+      });
+    } else {
+      setForm({ title: '', content: '', photoUrls: [], selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr() });
+    }
+    setErrors({}); setServerError(''); setDropOpen(false);
+  }, [open, editTarget, points]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (dropOpen) setDropOpen(false); else onClose(); } };
+    if (open) document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose, dropOpen]);
+
+  useEffect(() => {
+    if (!dropOpen) return;
+    const onClick = (e: MouseEvent) => { if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false); };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [dropOpen]);
+
+  if (!open) return null;
+
+  const set = <K extends keyof FishingWriteState>(k: K, v: FishingWriteState[K]) =>
+    setForm(prev => ({ ...prev, [k]: v }));
+
+  const filteredPoints = form.selectedProvince ? points.filter(p => p.province === form.selectedProvince) : [];
+
+  const handleSubmit = async () => {
+    const e: { title?: string; content?: string } = {};
+    if (!form.title.trim()) e.title = '제목을 입력하세요.';
+    if (!form.content.trim()) e.content = '내용을 입력하세요.';
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true); setServerError('');
+    const pointId = form.migratoryPointId || undefined;
+    const caughtAt = form.caughtAt || undefined;
+    try {
+      if (editTarget) {
+        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt);
+      } else {
+        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt);
+      }
+      onSaved();
+    } catch { setServerError('저장 중 오류가 발생했습니다.'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={() => !saving && onClose()}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>{editTarget ? '조황 수정' : '조황 등록'}</h2>
+          <button className={styles.modalClose} onClick={onClose} disabled={saving}>✕</button>
+        </div>
+        <div className={styles.modalBody}>
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>제목 <span className={styles.required}>*</span></label>
+            <input className={`${styles.fieldInput} ${errors.title ? styles.fieldInputError : ''}`}
+              value={form.title} onChange={e => set('title', e.target.value)}
+              placeholder="게시글 제목을 입력하세요" maxLength={200} />
+            {errors.title && <p className={styles.errorMsg}>{errors.title}</p>}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>조황 날짜</label>
+              <input type="date" className={styles.fieldInput}
+                value={form.caughtAt} max={todayStr()}
+                onChange={e => set('caughtAt', e.target.value)} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>시/도</label>
+              <select className={styles.fieldSelect} value={form.selectedProvince}
+                onChange={e => { const v = e.target.value as Province | '';
+                  setForm(prev => ({ ...prev, selectedProvince: v, migratoryPointId: '', selectedPointName: '' }));
+                  setDropOpen(false); }}>
+                <option value="">시/도 선택</option>
+                {PROVINCE_OPTIONS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>낚시 포인트 <span className={styles.fieldHint}>(선택)</span></label>
+            <div className={styles.pointDropdown} ref={dropRef}>
+              <button type="button" className={styles.pointSelectBtn}
+                onClick={() => { if (form.selectedProvince) setDropOpen(v => !v); }}
+                disabled={!form.selectedProvince}
+                style={!form.selectedProvince ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
+                {form.selectedPointName
+                  ? <span>{form.selectedPointName}</span>
+                  : <span className={styles.pointSelectPlaceholder}>{form.selectedProvince ? '포인트 선택' : '시/도를 먼저 선택하세요'}</span>}
+                {form.selectedProvince && <span>{dropOpen ? '▲' : '▼'}</span>}
+              </button>
+              {dropOpen && form.selectedProvince && (
+                <div className={styles.pointList}>
+                  <div className={`${styles.pointListItem} ${!form.migratoryPointId ? styles.pointListItemSelected : ''}`}
+                    onClick={() => { setForm(prev => ({ ...prev, migratoryPointId: '', selectedPointName: '' })); setDropOpen(false); }}>
+                    <span style={{ color: 'var(--color-text-muted)' }}>포인트 없음</span>
+                  </div>
+                  {filteredPoints.length === 0
+                    ? <div className={styles.pointListItem} style={{ cursor: 'default', color: 'var(--color-text-muted)' }}>
+                        {PROVINCE_LABELS[form.selectedProvince as Province]}에 등록된 포인트가 없습니다
+                      </div>
+                    : filteredPoints.map(p => (
+                        <div key={p.id}
+                          className={`${styles.pointListItem} ${form.migratoryPointId === p.id ? styles.pointListItemSelected : ''}`}
+                          onClick={() => { setForm(prev => ({ ...prev, migratoryPointId: p.id, selectedPointName: p.name })); setDropOpen(false); }}>
+                          <span>{p.name}</span>
+                          <span className={styles.pointListItemRegion}>{p.targetSpecies.map(s => MIGRATORY_SPECIES_LABELS[s]).join('·')}</span>
+                        </div>
+                      ))
+                  }
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>내용 <span className={styles.required}>*</span></label>
+            <textarea className={`${styles.fieldTextarea} ${errors.content ? styles.fieldInputError : ''}`}
+              value={form.content} onChange={e => set('content', e.target.value)}
+              placeholder="조황 내용을 공유해 주세요" rows={5} />
+            {errors.content && <p className={styles.errorMsg}>{errors.content}</p>}
+          </div>
+
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>사진 (최대 3장)</label>
+            <PhotoUploader value={form.photoUrls} onChange={urls => set('photoUrls', urls)}
+              boardType="FISHING_POST" maxPhotos={3} disabled={saving} />
+          </div>
+
+          {serverError && <p className={styles.serverError}>{serverError}</p>}
+        </div>
+        <div className={styles.modalFooter}>
+          <button className={styles.cancelBtn} onClick={onClose} disabled={saving}>취소</button>
+          <button className={styles.submitBtn} onClick={handleSubmit} disabled={saving}>
+            {saving ? '저장 중...' : editTarget ? '수정 완료' : '등록'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ADMIN_NICKNAMES = ['운영자', '관리자', 'admin', 'Admin'];
 
@@ -31,7 +219,7 @@ type BoardView = 'list' | 'detail';
 /* ─────────────────────────────────────────────────────────── */
 /* 조황 게시판                                                  */
 /* ─────────────────────────────────────────────────────────── */
-export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; className?: string }) {
+export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLoggedIn: boolean; className?: string; navigateOnClick?: boolean }) {
   const navigate = useNavigate();
   const [view, setView]     = useState<BoardView>('list');
   const [items, setItems]   = useState<FishingPostListItem[]>([]);
@@ -41,6 +229,8 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
   const [error, setError]   = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<FishingPostDetail | null>(null);
+  const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -50,6 +240,7 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
   }, []);
 
   useEffect(() => { fetchList(); }, [fetchList]);
+  useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
 
   const openDetail = async (id: string) => {
     setDetailLoading(true); setDetail(null); setView('detail');
@@ -61,13 +252,12 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
   const openCreate = () => { setEditingPost(null); setModalOpen(true); };
   const openEdit   = () => { if (!detail) return; setEditingPost(detail); setModalOpen(true); };
 
-  const handleSubmit = async (title: string, content: string) => {
-    if (editingPost) {
-      await updateFishingPost(editingPost.id, title, content);
-      const updated = await getFishingPostDetail(editingPost.id);
-      setDetail(updated);
+  const handleSaved = async () => {
+    setModalOpen(false);
+    if (editingPost && detail) {
+      const updated = await getFishingPostDetail(detail.id).catch(() => null);
+      if (updated) setDetail(updated);
     } else {
-      await createFishingPost(title, content);
       setView('list');
     }
     await fetchList();
@@ -106,11 +296,16 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
         : <>
             <div className={styles.board}>
               {items.map(item => (
-                <div key={item.id} className={styles.boardItem} onClick={() => openDetail(item.id)}>
+                <div key={item.id} className={styles.boardItem}
+                  onClick={() => navigateOnClick
+                    ? navigate('/fishing-posts', { state: { openPostId: item.id } })
+                    : openDetail(item.id)}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
+                    {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷</span>}
+                    {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
                     <AuthorLabel nickname={item.authorNickname} />
-                    <span className={styles.boardDate}>{formatDate(item.createdAt)}</span>
+                    <span className={styles.boardDate}>{item.caughtAt ?? formatDate(item.createdAt)}</span>
                   </span>
                 </div>
               ))}
@@ -126,10 +321,20 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
               <h3 className={styles.detailTitle}>{detail.title}</h3>
               <div className={styles.detailMeta}>
                 <AuthorLabel nickname={detail.authorNickname} />
+                {detail.caughtAt && <span>🗓 {detail.caughtAt}</span>}
+                {detail.pointName && <span>📍 {detail.pointName}</span>}
                 <span>{formatDate(detail.createdAt)}</span>
               </div>
             </div>
             <p className={styles.detailContent}>{detail.content}</p>
+            {detail.photoUrls?.length > 0 && (
+              <div className={styles.photoGrid}>
+                {detail.photoUrls.map((url, i) => (
+                  <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo}
+                    style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
+                ))}
+              </div>
+            )}
             {isLoggedIn && (
               <div className={styles.detailActions}>
                 <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
@@ -139,16 +344,22 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
           </div>
       )}
 
-      <PostFormModal
-        isOpen={modalOpen}
+      <FishingWriteModal
+        open={modalOpen}
+        editTarget={editingPost}
+        points={points}
         onClose={() => setModalOpen(false)}
-        onSubmit={handleSubmit}
-        modalTitle={editingPost ? '조황 수정' : '조황 작성'}
-        titlePlaceholder="제목을 입력하세요"
-        contentPlaceholder="조황 내용을 공유해 주세요"
-        initialTitle={editingPost?.title ?? ''}
-        initialContent={editingPost?.content ?? ''}
+        onSaved={handleSaved}
       />
+      {lbIdx !== null && detail?.photoUrls && (
+        <ImageLightbox
+          images={detail.photoUrls}
+          index={lbIdx}
+          onClose={() => setLbIdx(null)}
+          onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
+          onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
+        />
+      )}
     </div>
   );
 }
@@ -156,7 +367,7 @@ export function FishingBoard({ isLoggedIn, className }: { isLoggedIn: boolean; c
 /* ─────────────────────────────────────────────────────────── */
 /* 공지사항 게시판                                              */
 /* ─────────────────────────────────────────────────────────── */
-export function NoticeBoard({ isAdmin }: { isAdmin: boolean }) {
+export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; navigateOnClick?: boolean }) {
   const navigate = useNavigate();
   const [view, setView]     = useState<BoardView>('list');
   const [items, setItems]   = useState<NoticeListItem[]>([]);
@@ -166,6 +377,7 @@ export function NoticeBoard({ isAdmin }: { isAdmin: boolean }) {
   const [error, setError]   = useState('');
   const [modalOpen, setModalOpen]   = useState(false);
   const [editingNotice, setEditingNotice] = useState<NoticeDetail | null>(null);
+  const [lbIdx, setLbIdx] = useState<number | null>(null);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -186,12 +398,12 @@ export function NoticeBoard({ isAdmin }: { isAdmin: boolean }) {
   const openCreate = () => { setEditingNotice(null); setModalOpen(true); };
   const openEdit   = () => { if (!detail) return; setEditingNotice(detail); setModalOpen(true); };
 
-  const handleSubmit = async (title: string, content: string) => {
+  const handleSubmit = async (title: string, content: string, photoUrls: string[]) => {
     if (editingNotice) {
-      await updateNotice(editingNotice.id, title, content);
+      await updateNotice(editingNotice.id, title, content, photoUrls);
       setDetail(await getNoticeDetail(editingNotice.id));
     } else {
-      await createNotice(title, content);
+      await createNotice(title, content, photoUrls);
       setView('list');
     }
     await fetchList();
@@ -231,9 +443,14 @@ export function NoticeBoard({ isAdmin }: { isAdmin: boolean }) {
         : <>
             <div className={styles.board}>
               {items.map(item => (
-                <div key={item.id} className={styles.boardItem} onClick={() => openDetail(item.id)}>
+                <div key={item.id} className={styles.boardItem}
+                  onClick={() => navigateOnClick
+                    ? navigate('/notices', { state: { openPostId: item.id } })
+                    : openDetail(item.id)}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
+                    {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷</span>}
+                    {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
                     <AuthorLabel nickname={item.authorNickname} />
                     <span className={styles.boardDate}>{formatDate(item.createdAt)}</span>
                   </span>
@@ -258,6 +475,14 @@ export function NoticeBoard({ isAdmin }: { isAdmin: boolean }) {
               </div>
             </div>
             <p className={styles.detailContent}>{detail.content}</p>
+            {detail.photoUrls?.length > 0 && (
+              <div className={styles.photoGrid}>
+                {detail.photoUrls.map((url, i) => (
+                  <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo}
+                    style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
+                ))}
+              </div>
+            )}
             {isAdmin && (
               <div className={styles.detailActions}>
                 <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
@@ -276,7 +501,19 @@ export function NoticeBoard({ isAdmin }: { isAdmin: boolean }) {
         contentPlaceholder="공지 내용을 입력하세요"
         initialTitle={editingNotice?.title ?? ''}
         initialContent={editingNotice?.content ?? ''}
+        maxPhotos={null}
+        boardType="NOTICE"
+        initialPhotoUrls={editingNotice?.photoUrls ?? []}
       />
+      {lbIdx !== null && detail?.photoUrls && (
+        <ImageLightbox
+          images={detail.photoUrls}
+          index={lbIdx}
+          onClose={() => setLbIdx(null)}
+          onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
+          onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
+        />
+      )}
     </div>
   );
 }

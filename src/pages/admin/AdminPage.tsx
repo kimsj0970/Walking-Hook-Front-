@@ -9,18 +9,20 @@ import AdminMapPage from './AdminMapPage';
 import AiChatPage from './AiChatPage';
 import AdminInquiryManagement from './AdminInquiryManagement';
 import AdminNoticeManagement from './AdminNoticeManagement';
+import MigratoryPointManagementPage from './MigratoryPointManagementPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'ai';
+type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'ai';
 
 const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
-  { tab: 'points',    label: '포인트 관리',    adminOnly: false },
-  { tab: 'documents', label: 'RAG 문서 관리',  adminOnly: true  },
-  { tab: 'users',     label: '사용자 관리',    adminOnly: false },
-  { tab: 'inquiries', label: '고객센터 관리',  adminOnly: false },
-  { tab: 'notices',   label: '공지사항 관리',  adminOnly: false },
-  { tab: 'map',       label: '지도 보기',      adminOnly: false },
-  { tab: 'ai',        label: 'AI에게 질문',   adminOnly: true  },
+  { tab: 'points',           label: '포인트 관리',      adminOnly: false },
+  { tab: 'migratory-points', label: '회유성 포인트 관리', adminOnly: false },
+  { tab: 'documents',        label: 'RAG 문서 관리',    adminOnly: true  },
+  { tab: 'users',            label: '사용자 관리',      adminOnly: false },
+  { tab: 'inquiries',        label: '고객센터 관리',    adminOnly: false },
+  { tab: 'notices',          label: '공지사항 관리',    adminOnly: false },
+  { tab: 'map',              label: '지도 보기',        adminOnly: false },
+  { tab: 'ai',               label: 'AI에게 질문',     adminOnly: true  },
 ];
 
 export default function AdminPage() {
@@ -71,13 +73,14 @@ export default function AdminPage() {
           </nav>
         </aside>
         <main className={`${styles.content} ${activeTab === 'map' ? styles.contentMap : ''}`}>
-          {activeTab === 'points'    && <PointManagementPage />}
-          {activeTab === 'documents' && <DocumentManagementPage />}
-          {activeTab === 'users'     && <UserManagementPage />}
-          {activeTab === 'inquiries' && <AdminInquiryManagement />}
-          {activeTab === 'notices'   && <AdminNoticeManagement />}
-          {activeTab === 'map'       && <AdminMapPage />}
-          {activeTab === 'ai'        && <AiChatPage />}
+          {activeTab === 'points'           && <PointManagementPage />}
+          {activeTab === 'migratory-points' && <MigratoryPointManagementPage />}
+          {activeTab === 'documents'        && <DocumentManagementPage />}
+          {activeTab === 'users'            && <UserManagementPage />}
+          {activeTab === 'inquiries'        && <AdminInquiryManagement />}
+          {activeTab === 'notices'          && <AdminNoticeManagement />}
+          {activeTab === 'map'              && <AdminMapPage />}
+          {activeTab === 'ai'              && <AiChatPage />}
         </main>
       </div>
     </div>

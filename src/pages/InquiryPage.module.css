@@ -176,6 +176,9 @@
   color: var(--color-text);
 }
 
+.tdPhotoIcon { font-size: 12px; color: var(--color-text-muted); margin-left: 6px; }
+.tdCommentCount { font-size: 12px; color: var(--color-text-muted); margin-left: 6px; }
+
 .tdAuthor {
   padding: 16px 16px;
   font-size: 13px;
@@ -244,6 +247,9 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.photoGrid { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.photo { width: 160px; height: 160px; object-fit: cover; border-radius: 8px; cursor: pointer; }
 
 /* ── Create Form ── */
 .formCard {
@@ -356,6 +362,19 @@
   border-top: 1px solid var(--color-border-light);
   margin-top: 8px;
 }
+
+.editBtn {
+  padding: 9px 20px;
+  background: transparent;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.editBtn:hover { background: rgba(0,180,216,0.06); }
 
 .deleteBtn {
   padding: 9px 20px;

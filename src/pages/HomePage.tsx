@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { FishingBoard, NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
+import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migratoryPostApi';
 import styles from './HomePage.module.css';
 
 const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
@@ -30,7 +31,7 @@ const PTY_ICON: Record<string, string> = {
 };
 
 function getWaterMoonIcon(waterNumber: string | null | undefined): string {
-  if (!waterNumber) return '';
+  if (!waterNumber) return '🌙';
   if (waterNumber === '조금') return '🌑';
   if (waterNumber.includes('사리')) return '🌕';
   const match = waterNumber.match(/^(\d+)물/);
@@ -180,6 +181,10 @@ export default function HomePage() {
   const handleInfoClick = useCallback((key: ConditionInfoKey) => setActiveInfoKey(key), []);
   const handleInfoClose = useCallback(() => setActiveInfoKey(null), []);
 
+  // 회유성 지도 모달
+  const [migratoryMapOpen, setMigratoryMapOpen] = useState(false);
+  const [migratoryPostsPreview, setMigratoryPostsPreview] = useState<MigratoryPostListItem[]>([]);
+
   // 지도에서 포인트 선택 시 드롭다운 동기화용 refs
   const pendingPointIdRef = useRef<string | null>(null);
   const provincesRef = useRef<ProvinceItem[]>([]);
@@ -189,6 +194,10 @@ export default function HomePage() {
     fetchProvinces()
       .then(setProvinces)
       .catch(() => setProvincesError('시/도 목록을 불러오지 못했습니다.'));
+  }, []);
+
+  useEffect(() => {
+    getMigratoryPostsPage(0, 5).then(r => setMigratoryPostsPreview(r.content)).catch(() => {});
   }, []);
 
   // 지도 팝업 → 메인 페이지 포인트 수신 + 드롭다운 동기화
@@ -467,6 +476,15 @@ export default function HomePage() {
               />
             </div>
 
+            {/* 실시간 회유성 정보(지도) 버튼 */}
+            <button
+              className={styles.migratoryMapBtn}
+              onClick={() => setMigratoryMapOpen(true)}
+            >
+              <span className={styles.migratoryMapBtnDot} />
+              🐟 실시간 회유성 정보(지도)
+            </button>
+
             {/* 낙뢰 경고 */}
             {conditionsResult?.hasLightning && (
               <div className={styles.lightningBanner}>
@@ -664,17 +682,95 @@ export default function HomePage() {
           </section>
         )}
 
+        {/* ─── 회유성 조황 게시판 미리보기 ─── */}
+        <section className={styles.section}>
+          <div className={styles.sectionInner}>
+            <div className={styles.sectionHeader}>
+              <h2
+                className={styles.sectionTitle}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={() => navigate('/migratory-posts')}
+                title="전체 회유성 조황 게시판 보기"
+              >
+                🐟 회유성 조황 게시판
+                <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
+              </h2>
+              {isLoggedIn && (
+                <button
+                  onClick={() => navigate('/migratory-posts')}
+                  style={{
+                    padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
+                    border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  글쓰기
+                </button>
+              )}
+            </div>
+            {migratoryPostsPreview.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
+                아직 등록된 게시글이 없습니다.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+                {migratoryPostsPreview.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '13px 18px',
+                      borderBottom: '1px solid var(--color-border)',
+                      cursor: 'pointer', transition: 'background 0.15s',
+                    }}
+                    onClick={() => navigate('/migratory-posts', { state: { openPostId: item.id } })}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}
+                  >
+                    <span style={{
+                      padding: '2px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700,
+                      background: 'rgba(11,61,145,0.08)', color: 'var(--color-primary)', flexShrink: 0,
+                    }}>
+                      {item.speciesDisplayNames?.join('·') ?? ''}
+                    </span>
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.title}
+                    </span>
+                    {item.photoUrls?.length > 0 && <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>📷</span>}
+                    {(item.commentCount ?? 0) > 0 && <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>💬 {item.commentCount}</span>}
+                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>{item.authorNickname}</span>
+                    <span style={{ fontSize: 11, color: 'var(--color-text-muted)', flexShrink: 0 }}>{item.caughtAt}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ textAlign: 'center', marginTop: 14 }}>
+              <button
+                onClick={() => navigate('/migratory-posts')}
+                style={{
+                  padding: '8px 24px', background: 'transparent',
+                  border: '1px solid var(--color-border)', borderRadius: 999,
+                  fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                더보기
+              </button>
+            </div>
+          </div>
+        </section>
+
         {/* ─── 커뮤니티 게시판 ─── */}
         <section className={styles.section}>
           <div className={styles.sectionInner}>
-            <FishingBoard isLoggedIn={isLoggedIn} />
+            <FishingBoard isLoggedIn={isLoggedIn} navigateOnClick />
           </div>
         </section>
 
         {/* ─── 공지사항 게시판 ─── */}
         <section className={styles.section}>
           <div className={styles.sectionInner}>
-            <NoticeBoard isAdmin={isAdmin} />
+            <NoticeBoard isAdmin={isAdmin} navigateOnClick />
           </div>
         </section>
       </main>
@@ -688,6 +784,7 @@ export default function HomePage() {
 
       <ConditionInfoSheet infoKey={activeInfoKey} onClose={handleInfoClose} />
       <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
+      {migratoryMapOpen && <MigratoryMapModal onClose={() => setMigratoryMapOpen(false)} />}
     </div>
   );
 }
@@ -1033,6 +1130,243 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
           );
         })}
       </svg>
+    </div>
+  );
+}
+
+/* ─── 실시간 회유성 정보 카카오맵 모달 ─── */
+function loadKakaoSDK(appKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).kakao?.maps) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('카카오맵 스크립트 로드 실패'));
+    document.head.appendChild(script);
+  });
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+const MIGRATORY_SPECIES_COLORS: Record<string, string> = {
+  SAMCHI:    '#F59E0B',
+  BANGEO:    '#3B82F6',
+  BUSSIRI:   '#8B5CF6',
+  JATBANGEO: '#6D28D9',
+  MACKEREL:  '#10B981',
+  TUNA:      '#EF4444',
+};
+
+const MIGRATORY_SPECIES_KO: Record<string, string> = {
+  SAMCHI:'삼치', BANGEO:'방어', BUSSIRI:'부시리', JATBANGEO:'잿방어', MACKEREL:'고등어', TUNA:'참치',
+};
+
+function makeFishPin(color: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+    <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26S32 28 32 16C32 7.163 24.837 0 16 0z"
+      fill="${color}" stroke="rgba(0,0,0,0.2)" stroke-width="1.5"/>
+    <circle cx="16" cy="16" r="6.5" fill="white"/>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+function MigratoryMapModal({ onClose }: { onClose: () => void }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [markerCount, setMarkerCount] = useState(0);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    (window as any).__openMigratoryPost = (postId: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      onClose();
+      navigate('/migratory-posts', { state: { openPostId: postId } });
+    };
+    return () => { delete (window as any).__openMigratoryPost; }; // eslint-disable-line @typescript-eslint/no-explicit-any
+  }, [onClose, navigate]);
+
+  useEffect(() => {
+    const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
+    if (!appKey) {
+      setErrorMsg('.env 파일에 VITE_KAKAO_MAP_KEY를 설정해주세요.');
+      setStatus('error');
+      return;
+    }
+
+    let cancelled = false;
+
+    import('../api/migratoryPostApi').then(({ getTodayMigratoryMarkers }) =>
+      Promise.all([loadKakaoSDK(appKey), getTodayMigratoryMarkers().catch(() => [])])
+    ).then(([, markers]) => {
+      if (cancelled || !mapRef.current) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const kakao = (window as any).kakao;
+      kakao.maps.load(() => {
+        if (cancelled || !mapRef.current) return;
+
+        const map = new kakao.maps.Map(mapRef.current, {
+          center: new kakao.maps.LatLng(36.0, 127.8),
+          level: 12,
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const validMarkers = (markers as any[]).filter(m => m.latitude != null && m.longitude != null);
+        setMarkerCount(validMarkers.length);
+
+        if (validMarkers.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          validMarkers.forEach((m: any) => {
+            const pos = new kakao.maps.LatLng(Number(m.latitude), Number(m.longitude));
+
+            // 물고기 이모지 마커 (어종 색상 무관하게 통일)
+            const marker = new kakao.maps.Marker({
+              position: pos,
+              image: new kakao.maps.MarkerImage(
+                makeFishPin('#0B3D91'),
+                new kakao.maps.Size(32, 42),
+                { offset: new kakao.maps.Point(16, 42) },
+              ),
+            });
+            marker.setMap(map);
+
+            // 어종 뱃지 목록
+            const speciesBadges = (m.species as string[]).map((s: string) => {
+              const color = MIGRATORY_SPECIES_COLORS[s] ?? '#0B3D91';
+              const label = MIGRATORY_SPECIES_KO[s] ?? s;
+              return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${color}20;color:${color};margin:2px 2px 2px 0;">${escapeHtml(label)}</span>`;
+            }).join('');
+
+            // 게시글 목록
+            const postList = (m.posts as any[]).map((p: any) => {
+              const pBadges = (p.species as string[]).map((s: string) => {
+                const color = MIGRATORY_SPECIES_COLORS[s] ?? '#0B3D91';
+                const label = MIGRATORY_SPECIES_KO[s] ?? s;
+                return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;background:${color}20;color:${color};margin-right:2px;">${escapeHtml(label)}</span>`;
+              }).join('');
+              return `<div style="padding:6px 0;border-top:1px solid #F1F5F9;">
+                <div style="margin-bottom:3px;">${pBadges}</div>
+                <div onclick="window.__openMigratoryPost('${p.postId}')" style="font-size:12px;font-weight:600;color:#1E293B;cursor:pointer;text-decoration:underline;">${escapeHtml(p.title)}</div>
+                <div style="font-size:11px;color:#94A3B8;">${escapeHtml(p.authorNickname)}</div>
+              </div>`;
+            }).join('');
+
+            const infoContent = `<div style="padding:12px 14px;min-width:200px;max-width:280px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;line-height:1.5;">
+              ${m.pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;">📍 ${escapeHtml(m.pointName)}</div>` : ''}
+              <div style="margin-bottom:6px;">${speciesBadges}</div>
+              ${postList}
+            </div>`;
+
+            const iw = new kakao.maps.InfoWindow({ content: infoContent, removable: true });
+            kakao.maps.event.addListener(marker, 'click', () => iw.open(map, marker));
+          });
+
+        }
+
+        setStatus('ready');
+      });
+    }).catch((err: Error) => {
+      if (!cancelled) { setErrorMsg(err.message); setStatus('error'); }
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)',
+        zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: 'var(--color-surface)', borderRadius: 16,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
+          width: '100%', maxWidth: 860, height: '80vh', maxHeight: 640,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 20px', borderBottom: '1px solid var(--color-border)', flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)' }}>
+              🐟 실시간 회유성 정보(지도)
+            </span>
+            {status === 'ready' && (
+              <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                오늘 조황 {markerCount}건
+              </span>
+            )}
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--color-border)',
+            background: 'var(--color-bg)', cursor: 'pointer', fontSize: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--color-text-muted)',
+          }}>✕</button>
+        </div>
+
+        {/* 지도 영역 */}
+        <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+          {status !== 'ready' && (
+            <div style={{
+              position: 'absolute', inset: 0, background: 'var(--color-bg)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 12, zIndex: 2,
+            }}>
+              {status === 'loading' ? (
+                <>
+                  <div style={{
+                    width: 36, height: 36, border: '3px solid var(--color-border)',
+                    borderTopColor: 'var(--color-primary)', borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: 0 }}>지도를 불러오는 중...</p>
+                </>
+              ) : (
+                <p style={{ fontSize: 14, color: '#EF4444', margin: 0 }}>⚠️ {errorMsg}</p>
+              )}
+            </div>
+          )}
+
+          {status === 'ready' && markerCount === 0 && (
+            <div style={{
+              position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(255,255,255,0.92)', padding: '10px 18px',
+              borderRadius: 10, fontSize: 13, color: '#475569', zIndex: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)', whiteSpace: 'nowrap',
+            }}>
+              오늘 등록된 회유성 조황이 없습니다
+            </div>
+          )}
+
+          <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+        </div>
+
+        {/* 안내 문구 */}
+        <div style={{
+          padding: '8px 16px', borderTop: '1px solid var(--color-border)',
+          flexShrink: 0, background: 'var(--color-bg)',
+        }}>
+          <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 어종과 조황을 확인할 수 있습니다</span>
+        </div>
+      </div>
     </div>
   );
 }

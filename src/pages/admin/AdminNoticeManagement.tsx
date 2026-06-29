@@ -37,11 +37,11 @@ export default function AdminNoticeManagement() {
     catch { setError('공지사항을 불러오지 못했습니다.'); setView('list'); }
   };
 
-  const handleSubmit = async (title: string, content: string) => {
+  const handleSubmit = async (title: string, content: string, photoUrls: string[]) => {
     if (editing) {
-      await updateNotice(editing.id, title, content);
+      await updateNotice(editing.id, title, content, photoUrls);
     } else {
-      await createNotice(title, content);
+      await createNotice(title, content, photoUrls);
     }
     fetchList(0);
     setView('list');
@@ -110,6 +110,13 @@ export default function AdminNoticeManagement() {
               </div>
               <div className={styles.divider} />
               <p className={styles.detailContent}>{detail.content}</p>
+              {detail.photoUrls?.length > 0 && (
+                <div className={styles.photoGrid}>
+                  {detail.photoUrls.map((url, i) => (
+                    <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo} />
+                  ))}
+                </div>
+              )}
               <div className={styles.actions}>
                 <button className={styles.editBtn} onClick={() => { setEditing(detail); setModalOpen(true); }}>수정</button>
                 <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
@@ -128,6 +135,9 @@ export default function AdminNoticeManagement() {
         contentPlaceholder="내용을 입력하세요."
         initialTitle={editing?.title}
         initialContent={editing?.content}
+        maxPhotos={null}
+        boardType="NOTICE"
+        initialPhotoUrls={editing?.photoUrls ?? []}
       />
     </div>
   );

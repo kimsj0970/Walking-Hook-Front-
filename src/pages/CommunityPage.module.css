@@ -127,6 +127,7 @@
 .authorNickname { font-size: 13px; color: var(--color-text-muted); }
 .authorNicknameAdmin { font-size: 13px; font-weight: 700; color: #E53E3E; }
 .boardDate { font-size: 12px; color: var(--color-text-muted); }
+.boardBadgeIcon { font-size: 12px; color: var(--color-text-muted); }
 
 /* ── 상세 ── */
 .detailWrap {
@@ -257,3 +258,39 @@
 
 .error { font-size: 13px; color: #E53E3E; }
 .empty { text-align: center; padding: 40px 0; color: var(--color-text-muted); font-size: 14px; }
+
+.photoGrid { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.photo { width: 160px; height: 160px; object-fit: cover; border-radius: 8px; }
+
+/* ── 조황 작성/수정 모달 ── */
+.modalOverlay { position: fixed; inset: 0; background: rgba(15,23,42,0.55); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { background: var(--color-surface); border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.2); width: 100%; max-width: 560px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+.modalHeader { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 16px; border-bottom: 1px solid var(--color-border); }
+.modalTitle { font-size: 18px; font-weight: 700; color: var(--color-text); margin: 0; }
+.modalClose { width: 32px; height: 32px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 50%; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); }
+.modalClose:hover { background: var(--color-border-light); }
+.modalBody { padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.modalFooter { display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid var(--color-border); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.fieldLabel { font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.fieldHint { font-size: 11px; color: var(--color-text-muted); font-weight: 400; }
+.required { color: #E53E3E; margin-left: 2px; }
+.fieldInput, .fieldSelect, .fieldTextarea { padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 14px; color: var(--color-text); background: var(--color-bg); font-family: inherit; transition: border-color 0.2s; width: 100%; box-sizing: border-box; }
+.fieldInput:focus, .fieldSelect:focus, .fieldTextarea:focus { outline: none; border-color: var(--color-primary); }
+.fieldTextarea { min-height: 140px; resize: vertical; line-height: 1.6; }
+.fieldInputError { border-color: #E53E3E !important; }
+.errorMsg { font-size: 12px; color: #E53E3E; margin: 0; }
+.serverError { font-size: 13px; color: #E53E3E; text-align: center; }
+.pointDropdown { position: relative; }
+.pointSelectBtn { width: 100%; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 14px; color: var(--color-text); background: var(--color-bg); text-align: left; cursor: pointer; transition: border-color 0.2s; display: flex; align-items: center; justify-content: space-between; }
+.pointSelectBtn:hover:not(:disabled) { border-color: var(--color-primary); }
+.pointSelectPlaceholder { color: var(--color-text-muted); }
+.pointList { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 50; max-height: 200px; overflow-y: auto; }
+.pointListItem { padding: 10px 14px; cursor: pointer; font-size: 14px; color: var(--color-text); border-bottom: 1px solid var(--color-border-light); transition: background 0.1s; display: flex; align-items: center; justify-content: space-between; }
+.pointListItem:last-child { border-bottom: none; }
+.pointListItem:hover { background: var(--color-bg); }
+.pointListItemSelected { background: rgba(11,61,145,0.06); font-weight: 600; }
+.pointListItemRegion { font-size: 12px; color: var(--color-text-muted); }
+.cancelBtn { padding: 10px 22px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-full); font-size: 14px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; }
+.cancelBtn:hover:not(:disabled) { background: var(--color-border-light); }
+.cancelBtn:disabled { opacity: 0.5; cursor: not-allowed; }

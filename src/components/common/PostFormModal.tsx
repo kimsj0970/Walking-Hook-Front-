@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
+import PhotoUploader from './PhotoUploader';
+import type { BoardType } from '../../api/s3Api';
 import styles from './PostFormModal.module.css';
 
 interface PostFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (title: string, content: string) => Promise<void>;
+  onSubmit: (title: string, content: string, photoUrls: string[]) => Promise<void>;
   modalTitle: string;
   titlePlaceholder?: string;
   contentPlaceholder?: string;
   initialTitle?: string;
   initialContent?: string;
+  /** undefined = 사진 업로드 없음, null = 무제한, number = 최대 장수 */
+  maxPhotos?: number | null;
+  boardType?: BoardType;
+  initialPhotoUrls?: string[];
 }
 
 export default function PostFormModal({
@@ -21,19 +27,25 @@ export default function PostFormModal({
   contentPlaceholder = '내용을 입력하세요',
   initialTitle = '',
   initialContent = '',
+  maxPhotos,
+  boardType,
+  initialPhotoUrls = [],
 }: PostFormModalProps) {
-  const [title,   setTitle]   = useState(initialTitle);
-  const [content, setContent] = useState(initialContent);
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(false);
+  const [title,     setTitle]     = useState(initialTitle);
+  const [content,   setContent]   = useState(initialContent);
+  const [photoUrls, setPhotoUrls] = useState<string[]>(initialPhotoUrls);
+  const [error,     setError]     = useState('');
+  const [loading,   setLoading]   = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setTitle(initialTitle);
       setContent(initialContent);
+      setPhotoUrls(initialPhotoUrls);
       setError('');
     }
-  }, [isOpen, initialTitle, initialContent]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -53,7 +65,7 @@ export default function PostFormModal({
     setError('');
     setLoading(true);
     try {
-      await onSubmit(t, c);
+      await onSubmit(t, c, photoUrls);
       onClose();
     } catch {
       setError('저장에 실패했습니다. 다시 시도해 주세요.');
@@ -61,6 +73,8 @@ export default function PostFormModal({
       setLoading(false);
     }
   };
+
+  const showPhotoUploader = maxPhotos !== undefined && boardType !== undefined;
 
   return (
     <div className={styles.overlay}>
@@ -91,6 +105,20 @@ export default function PostFormModal({
               placeholder={contentPlaceholder}
             />
           </div>
+          {showPhotoUploader && (
+            <div className={styles.field}>
+              <label className={styles.label}>
+                사진{maxPhotos !== null ? ` (최대 ${maxPhotos}장)` : ''}
+              </label>
+              <PhotoUploader
+                value={photoUrls}
+                onChange={setPhotoUrls}
+                boardType={boardType}
+                maxPhotos={maxPhotos ?? undefined}
+                disabled={loading}
+              />
+            </div>
+          )}
           {error && <p className={styles.error}>{error}</p>}
           <div className={styles.actions}>
             <button type="button" className={styles.cancelBtn} onClick={onClose} disabled={loading}>
