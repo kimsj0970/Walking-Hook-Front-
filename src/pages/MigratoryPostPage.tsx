@@ -469,7 +469,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
 
 /* ── 메인 페이지 ─────────────────────────────────────────────── */
 export default function MigratoryPostPage() {
-  const { isLoggedIn, userId, isAdmin } = useAuth();
+  const { isLoggedIn, userId } = useAuth();
   const location = useLocation();
 
   const [view, setView] = useState<View>('list');
