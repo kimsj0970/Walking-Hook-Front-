@@ -476,13 +476,31 @@ export default function HomePage() {
               />
             </div>
 
-            {/* 실시간 회유성 정보(지도) 버튼 */}
+            {/* 실시간 회유성 정보(지도) 카드 */}
             <button
-              className={styles.migratoryMapBtn}
-              onClick={() => setMigratoryMapOpen(true)}
+              className={styles.migratoryCard}
+              onClick={() => {
+                if (!isLoggedIn) {
+                  setLoginToast(true);
+                  setTimeout(() => setLoginToast(false), 2000);
+                  setLoginModalOpen(true);
+                  return;
+                }
+                setMigratoryMapOpen(true);
+              }}
             >
-              <span className={styles.migratoryMapBtnDot} />
-              🐟 실시간 회유성 정보(지도)
+              <span className={styles.migratoryCardShimmer} />
+              <span className={styles.migratoryCardFish}>🐟</span>
+              <div className={styles.migratoryCardBody}>
+                <div className={styles.migratoryCardTop}>
+                  <span className={styles.migratoryCardLive}>● LIVE</span>
+                  <span className={styles.migratoryCardTitle}>실시간 회유성 정보 지도</span>
+                </div>
+                <p className={styles.migratoryCardDesc}>
+                  {now.getMonth() + 1}월 {now.getDate()}일 잡히는 포인트를 지도에서 확인하세요
+                </p>
+              </div>
+              <span className={styles.migratoryCardCta}>보기 →</span>
             </button>
 
             {/* 낙뢰 경고 */}
@@ -1140,7 +1158,7 @@ function loadKakaoSDK(appKey: string): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((window as any).kakao?.maps) { resolve(); return; }
     const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=clusterer`;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('카카오맵 스크립트 로드 실패'));
     document.head.appendChild(script);
@@ -1200,9 +1218,11 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
     let cancelled = false;
 
-    import('../api/migratoryPostApi').then(({ getTodayMigratoryMarkers }) =>
-      Promise.all([loadKakaoSDK(appKey), getTodayMigratoryMarkers().catch(() => [])])
-    ).then(([, markers]) => {
+    Promise.all([
+      import('../api/migratoryPostApi').then(m => m.getTodayMigratoryMarkers().catch(() => [])),
+      import('../api/fishingZoneApi').then(m => m.fetchFishingZones().catch(() => [])),
+      loadKakaoSDK(appKey),
+    ]).then(([markers, fishingZones]) => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
@@ -1212,6 +1232,42 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         const map = new kakao.maps.Map(mapRef.current, {
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 12,
+        });
+
+        // ── 낚시 금지·제한구역 폴리곤 ──────────────────────────────
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (fishingZones as any[]).forEach((zone: any) => {
+          try {
+            const parsed = JSON.parse(zone.geoJson);
+            const ring: [number, number][] = parsed.coordinates[0];
+            const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
+              new kakao.maps.LatLng(lat, lng)
+            );
+            const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+            const poly = new kakao.maps.Polygon({
+              map,
+              path,
+              strokeWeight: 2,
+              strokeColor: color,
+              strokeOpacity: 0.9,
+              fillColor: color,
+              fillOpacity: 0.2,
+            });
+            const infoWindow = new kakao.maps.InfoWindow({
+              content: `<div style="padding:12px 14px;min-width:180px;font-family:'Pretendard','Noto Sans KR',sans-serif;">
+                <strong style="font-size:14px;color:${color};">${escapeHtml(zone.name)}</strong>
+                <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
+                ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
+              </div>`,
+              removable: true,
+            });
+            kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
+              infoWindow.setPosition(e.latLng);
+              infoWindow.open(map);
+            });
+          } catch {
+            // GeoJSON 파싱 실패 시 무시
+          }
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
