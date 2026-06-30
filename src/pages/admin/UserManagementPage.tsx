@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchAdminUsersPage, setSuspended, setRole, deleteUser, updateNickname,
-  type UserSummary,
+  fetchActiveUserCount, fetchRegisteredUserCount,
+  fetchReRegistrationRequests, approveReRegistration, rejectReRegistration,
+  type UserSummary, type ReRegistrationRequest,
 } from '../../api/adminUserApi';
 import styles from './UserManagementPage.module.css';
 
@@ -44,6 +46,16 @@ export default function UserManagementPage() {
   const [totalPages, setTotalPages]     = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  const [activeCount, setActiveCount]               = useState<number | null>(null);
+  const [activeCountLoading, setActiveCountLoading] = useState(false);
+  const [registeredCount, setRegisteredCount]       = useState<number | null>(null);
+
+  // 재가입 대기자 모달
+  const [showReRegModal, setShowReRegModal]     = useState(false);
+  const [reRegRequests, setReRegRequests]       = useState<ReRegistrationRequest[]>([]);
+  const [reRegLoading, setReRegLoading]         = useState(false);
+  const [reRegProcessing, setReRegProcessing]   = useState<string | null>(null);
+
   // 편집 draft 상태
   const [draftNickname, setDraftNickname]         = useState('');
   const [draftRole, setDraftRole]                 = useState<'USER' | 'MIDDLE_ADMIN'>('USER');
@@ -56,6 +68,22 @@ export default function UserManagementPage() {
     setToast(msg);
     setTimeout(() => setToast(''), 3000);
   };
+
+  const loadActiveCount = useCallback(async () => {
+    setActiveCountLoading(true);
+    try {
+      const [active, registered] = await Promise.all([
+        fetchActiveUserCount(),
+        fetchRegisteredUserCount(),
+      ]);
+      setActiveCount(active);
+      setRegisteredCount(registered);
+    } catch {
+      // ignore
+    } finally {
+      setActiveCountLoading(false);
+    }
+  }, []);
 
   const load = useCallback(async (page: number) => {
     setLoading(true);
@@ -72,7 +100,47 @@ export default function UserManagementPage() {
     }
   }, []);
 
+  const loadReRegRequests = useCallback(async () => {
+    setReRegLoading(true);
+    try {
+      setReRegRequests(await fetchReRegistrationRequests());
+    } catch {
+      showToast('재가입 대기자 목록을 불러오지 못했습니다.');
+    } finally {
+      setReRegLoading(false);
+    }
+  }, []);
+
+  const handleReRegApprove = async (requestId: string) => {
+    setReRegProcessing(requestId);
+    try {
+      await approveReRegistration(requestId);
+      setReRegRequests(prev => prev.filter(r => r.requestId !== requestId));
+      showToast('재가입이 승인되었습니다.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(msg ?? '처리 중 오류가 발생했습니다.');
+    } finally {
+      setReRegProcessing(null);
+    }
+  };
+
+  const handleReRegReject = async (requestId: string) => {
+    setReRegProcessing(requestId);
+    try {
+      await rejectReRegistration(requestId);
+      setReRegRequests(prev => prev.filter(r => r.requestId !== requestId));
+      showToast('재가입이 거절되었습니다.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(msg ?? '처리 중 오류가 발생했습니다.');
+    } finally {
+      setReRegProcessing(null);
+    }
+  };
+
   useEffect(() => { load(0); }, [load]);
+  useEffect(() => { loadActiveCount(); }, [loadActiveCount]);
 
   // 선택된 사용자 바뀌면 draft 초기화
   useEffect(() => {
@@ -179,6 +247,36 @@ export default function UserManagementPage() {
         <div>
           <h1 className={styles.pageTitle}>사용자 관리</h1>
           <p className={styles.pageSubtitle}>전체 {totalElements}명</p>
+        </div>
+        <div className={styles.headerActions}>
+          {isAdmin && (
+            <button
+              className={styles.reRegBtn}
+              onClick={() => { setShowReRegModal(true); loadReRegRequests(); }}
+            >
+              재가입 대기자 목록
+            </button>
+          )}
+          <div className={styles.activeCountBox}>
+            <span className={styles.activeCountLabel}>현재 접속 중</span>
+            <span className={styles.activeCountValue}>
+              {activeCountLoading ? '...' : `${activeCount ?? '-'}명`}
+            </span>
+            <button
+              className={styles.refreshBtn}
+              onClick={loadActiveCount}
+              disabled={activeCountLoading}
+              title="새로고침"
+            >
+              ↺
+            </button>
+          </div>
+          <div className={styles.activeCountBox}>
+            <span className={styles.activeCountLabel}>총 가입자</span>
+            <span className={styles.activeCountValue}>
+              {activeCountLoading ? '...' : `${registeredCount ?? '-'}명`}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -388,6 +486,52 @@ export default function UserManagementPage() {
           )}
         </div>
       </div>
+
+      {/* ── 재가입 대기자 모달 ── */}
+      {showReRegModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowReRegModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>재가입 대기자 목록</h2>
+              <button className={styles.modalClose} onClick={() => setShowReRegModal(false)}>✕</button>
+            </div>
+
+            {reRegLoading ? (
+              <div className={styles.loading}><div className={styles.spinner} /></div>
+            ) : reRegRequests.length === 0 ? (
+              <p className={styles.empty}>대기 중인 재가입 요청이 없습니다.</p>
+            ) : (
+              <ul className={styles.reRegList}>
+                {reRegRequests.map(r => (
+                  <li key={r.requestId} className={styles.reRegItem}>
+                    <div className={styles.reRegInfo}>
+                      <span className={styles.reRegName}>{r.name ?? '(이름 없음)'}</span>
+                      <span className={styles.reRegEmail}>{r.email ?? '—'}</span>
+                      <span className={styles.reRegMeta}>{r.provider} · {formatDate(r.requestedAt)}</span>
+                    </div>
+                    <div className={styles.reRegActions}>
+                      <button
+                        className={styles.reRegApproveBtn}
+                        onClick={() => handleReRegApprove(r.requestId)}
+                        disabled={reRegProcessing === r.requestId}
+                      >
+                        {reRegProcessing === r.requestId ? '처리 중...' : '승인'}
+                      </button>
+                      <button
+                        className={styles.reRegRejectBtn}
+                        onClick={() => handleReRegReject(r.requestId)}
+                        disabled={reRegProcessing === r.requestId}
+                      >
+                        거절
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       {toast && <div className={styles.toast}>{toast}</div>}
     </div>
