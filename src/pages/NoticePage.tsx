@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PostFormModal from '../components/common/PostFormModal';
@@ -32,6 +32,7 @@ function formatDate(iso: string) {
 
 export default function NoticePage() {
   const { isAdmin, isLoggedIn, userId } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const [view, setView]     = useState<View>('list');
@@ -87,6 +88,7 @@ export default function NoticePage() {
   };
 
   const openDetail = async (id: string) => {
+    if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setComments([]); setCommentInput(''); setReplyTo(null); setView('detail');
     try {
       const [d, c] = await Promise.all([getNoticeDetail(id), getNoticeComments(id)]);
