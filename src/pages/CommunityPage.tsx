@@ -243,6 +243,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
   useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
 
   const openDetail = async (id: string) => {
+    if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setView('detail');
     try { setDetail(await getFishingPostDetail(id)); }
     catch { setError('게시글을 불러오지 못했습니다.'); setView('list'); }
@@ -297,9 +298,12 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
             <div className={styles.board}>
               {items.map(item => (
                 <div key={item.id} className={styles.boardItem}
-                  onClick={() => navigateOnClick
-                    ? navigate('/fishing-posts', { state: { openPostId: item.id } })
-                    : openDetail(item.id)}>
+                  onClick={() => {
+                    if (!isLoggedIn) { navigate('/login'); return; }
+                    navigateOnClick
+                      ? navigate('/fishing-posts', { state: { openPostId: item.id } })
+                      : openDetail(item.id);
+                  }}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
                     {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷</span>}
@@ -369,6 +373,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
 /* ─────────────────────────────────────────────────────────── */
 export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; navigateOnClick?: boolean }) {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
   const [view, setView]     = useState<BoardView>('list');
   const [items, setItems]   = useState<NoticeListItem[]>([]);
   const [detail, setDetail] = useState<NoticeDetail | null>(null);
@@ -389,6 +394,7 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
   useEffect(() => { fetchList(); }, [fetchList]);
 
   const openDetail = async (id: string) => {
+    if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setView('detail');
     try { setDetail(await getNoticeDetail(id)); }
     catch { setError('공지사항을 불러오지 못했습니다.'); setView('list'); }
@@ -444,9 +450,12 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
             <div className={styles.board}>
               {items.map(item => (
                 <div key={item.id} className={styles.boardItem}
-                  onClick={() => navigateOnClick
-                    ? navigate('/notices', { state: { openPostId: item.id } })
-                    : openDetail(item.id)}>
+                  onClick={() => {
+                    if (!isLoggedIn) { navigate('/login'); return; }
+                    navigateOnClick
+                      ? navigate('/notices', { state: { openPostId: item.id } })
+                      : openDetail(item.id);
+                  }}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
                     {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷</span>}
