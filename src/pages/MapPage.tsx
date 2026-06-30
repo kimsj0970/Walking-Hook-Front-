@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPublicFishingPointsForMap, type FishingPointMapMarker } from '../api/fishingPointApi';
+import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import styles from './MapPage.module.css';
 
 function loadKakaoSDK(appKey: string): Promise<void> {
@@ -41,8 +42,9 @@ export default function MapPage() {
     Promise.all([
       loadKakaoSDK(appKey),
       fetchPublicFishingPointsForMap().catch(() => [] as FishingPointMapMarker[]),
+      fetchFishingZones().catch(() => [] as FishingZone[]),
     ])
-      .then(([, fishingPoints]) => {
+      .then(([, fishingPoints, fishingZones]) => {
         if (cancelled || !mapRef.current) return;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,6 +55,42 @@ export default function MapPage() {
           const map = new kakao.maps.Map(mapRef.current, {
             center: new kakao.maps.LatLng(36.5, 127.8),
             level: 13,
+          });
+
+          // ── 낚시 금지·제한구역 폴리곤 ─────────────────────────────
+          fishingZones.forEach((zone: FishingZone) => {
+            try {
+              const parsed = JSON.parse(zone.geoJson);
+              const ring: [number, number][] = parsed.coordinates[0];
+              const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
+                new kakao.maps.LatLng(lat, lng)
+              );
+              const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+              const poly = new kakao.maps.Polygon({
+                map,
+                path,
+                strokeWeight: 2,
+                strokeColor: color,
+                strokeOpacity: 0.9,
+                fillColor: color,
+                fillOpacity: 0.2,
+              });
+              const infoWindow = new kakao.maps.InfoWindow({
+                content: `
+                  <div style="padding:12px 16px;min-width:180px;font-family:'Pretendard','Noto Sans KR',sans-serif;">
+                    <strong style="font-size:14px;color:${color};">${escapeHtml(zone.name)}</strong>
+                    <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
+                    ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
+                  </div>`,
+                removable: true,
+              });
+              kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
+                infoWindow.setPosition(e.latLng);
+                infoWindow.open(map);
+              });
+            } catch {
+              // GeoJSON 파싱 실패 시 무시
+            }
           });
 
           const clusterer = new kakao.maps.MarkerClusterer({
