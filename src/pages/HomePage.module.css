@@ -705,36 +705,130 @@
   margin-bottom: 20px;
 }
 
-/* ─── 실시간 회유성 정보(지도) 버튼 ─── */
-.migratoryMapBtn {
-  display: inline-flex;
+/* ─── 실시간 회유성 정보(지도) 카드 ─── */
+.migratoryCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #080E24 0%, #0D1535 60%, #0A1A40 100%);
+  border: 1.5px solid rgba(34, 211, 238, 0.5);
+  border-radius: 16px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: migratoryPulseRing 2.8s ease-in-out infinite;
+  text-align: left;
+}
+
+.migratoryCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.85);
+  box-shadow: 0 8px 36px rgba(0,0,0,0.55), 0 0 20px rgba(34,211,238,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.migratoryCard:hover .migratoryCardFish {
+  animation: fishWiggle 0.5s ease-in-out;
+}
+
+@keyframes migratoryPulseRing {
+  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(34,211,238,0.5); }
+  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(34,211,238,0); }
+}
+
+@keyframes fishWiggle {
+  0%   { transform: rotate(0deg) scale(1); }
+  25%  { transform: rotate(-12deg) scale(1.15); }
+  75%  { transform: rotate(10deg) scale(1.15); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+/* 시머 스윕 */
+.migratoryCardShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(34,211,238,0.07) 50%, transparent 62%);
+  background-size: 200% 100%;
+  animation: shimmerSweep 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmerSweep {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.migratoryCard > *:not(.migratoryCardShimmer) { position: relative; z-index: 1; }
+
+.migratoryCardFish {
+  font-size: 30px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.migratoryCardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.migratoryCardTop {
+  display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 20px;
-  padding: 11px 22px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-  letter-spacing: 0.01em;
 }
 
-.migratoryMapBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-.migratoryMapBtnDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #4ADE80;
+.migratoryCardLive {
+  font-size: 10px;
+  font-weight: 800;
+  color: #4ADE80;
+  letter-spacing: 0.1em;
   flex-shrink: 0;
   animation: pulse 2s ease-in-out infinite;
+}
+
+.migratoryCardTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.migratoryCardDesc {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.migratoryCardCta {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: rgba(34,211,238,0.15);
+  border: 1px solid rgba(34,211,238,0.5);
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #67E8F9;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.migratoryCard:hover .migratoryCardCta {
+  background: rgba(34,211,238,0.28);
+  border-color: rgba(34,211,238,0.8);
 }
 
 /* ─── 에러 배너 ─── */
