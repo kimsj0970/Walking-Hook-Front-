@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   type MigratoryFishPointDetail,
   type MigratoryFishPointCreateRequest,
@@ -63,19 +63,105 @@ interface Props {
   onSaved: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Kakao = any;
+
+function loadKakaoSDK(appKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).kakao?.maps) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=clusterer`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('카카오맵 로드 실패'));
+    document.head.appendChild(script);
+  });
+}
+
 export default function MigratoryFishPointFormModal({ open, editTarget, onClose, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState('');
 
+  const [showMap, setShowMap] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const kakaoMapRef = useRef<Kakao>(null);
+  const markerRef = useRef<Kakao>(null);
+
   useEffect(() => {
     if (open) {
       setForm(editTarget ? detailToForm(editTarget) : DEFAULT_FORM);
       setErrors({});
       setServerError('');
+      setShowMap(false);
     }
   }, [open, editTarget]);
+
+  // 지도 초기화
+  const initMap = useCallback(() => {
+    const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
+    if (!appKey || !mapContainerRef.current) return;
+
+    loadKakaoSDK(appKey).then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const kakao = (window as any).kakao;
+      kakao.maps.load(() => {
+        if (!mapContainerRef.current) return;
+
+        const lat = parseFloat(form.latitude);
+        const lng = parseFloat(form.longitude);
+        const hasCoord = !isNaN(lat) && !isNaN(lng);
+        const center = hasCoord
+          ? new kakao.maps.LatLng(lat, lng)
+          : new kakao.maps.LatLng(36.5, 127.8);
+
+        const map = new kakao.maps.Map(mapContainerRef.current, {
+          center,
+          level: hasCoord ? 5 : 13,
+        });
+        kakaoMapRef.current = map;
+
+        // 기존 좌표가 있으면 마커 표시
+        if (hasCoord) {
+          markerRef.current = new kakao.maps.Marker({ position: center, map });
+        }
+
+        // 클릭 시 좌표 자동 입력
+        kakao.maps.event.addListener(map, 'click', (e: Kakao) => {
+          const clickLat = e.latLng.getLat();
+          const clickLng = e.latLng.getLng();
+
+          setForm(prev => ({
+            ...prev,
+            latitude: clickLat.toFixed(7),
+            longitude: clickLng.toFixed(7),
+          }));
+          setErrors(prev => ({ ...prev, latitude: undefined, longitude: undefined }));
+
+          // 마커 이동
+          const pos = new kakao.maps.LatLng(clickLat, clickLng);
+          if (markerRef.current) {
+            markerRef.current.setPosition(pos);
+          } else {
+            markerRef.current = new kakao.maps.Marker({ position: pos, map });
+          }
+        });
+      });
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMap]);
+
+  useEffect(() => {
+    if (showMap) {
+      // DOM이 그려진 후 초기화
+      const timer = setTimeout(initMap, 50);
+      return () => clearTimeout(timer);
+    } else {
+      kakaoMapRef.current = null;
+      markerRef.current = null;
+    }
+  }, [showMap, initMap]);
 
   if (!open) return null;
 
@@ -233,6 +319,21 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
                 {errors.longitude && <p className={styles.errorMsg}>{errors.longitude}</p>}
               </div>
             </div>
+
+            <button
+              type="button"
+              className={styles.mapToggleBtn}
+              onClick={() => setShowMap(v => !v)}
+            >
+              🗺️ {showMap ? '지도 닫기' : '지도에서 선택'}
+            </button>
+
+            {showMap && (
+              <div className={styles.mapArea}>
+                <div ref={mapContainerRef} className={styles.mapCanvas} />
+                <p className={styles.mapHint}>지도를 클릭하면 위도·경도가 자동으로 입력됩니다</p>
+              </div>
+            )}
 
             <div className={styles.field}>
               <label className={styles.label}>설명</label>
