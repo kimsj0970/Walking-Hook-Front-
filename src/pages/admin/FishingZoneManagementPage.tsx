@@ -107,8 +107,8 @@ export default function FishingZoneManagementPage() {
       });
       const infoWindow = new kakao.maps.InfoWindow({
         content: `
-          <div style="padding:12px 16px;min-width:200px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;">
-            <strong style="font-size:14px;color:${color};">${escapeHtml(zone.name)}</strong>
+          <div style="padding:12px 16px;width:240px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
+            <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
             <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '낚시금지구역' : '낚시제한구역'}</div>
             ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0 0 10px;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
             <button id="del-${zone.id}" style="padding:5px 12px;background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">삭제</button>
