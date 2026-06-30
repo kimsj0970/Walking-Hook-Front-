@@ -14,6 +14,16 @@ export interface UserSummary {
   deletedAt: string | null;
 }
 
+export interface ReRegistrationRequest {
+  requestId: string;
+  userId: string;
+  name: string | null;
+  email: string | null;
+  provider: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  requestedAt: string;
+}
+
 export async function fetchAdminUsersPage(page: number, size = 20): Promise<PageResult<UserSummary>> {
   const { data } = await api.get('/admin/users', { params: { page, size } });
   return data.data as PageResult<UserSummary>;
@@ -33,4 +43,27 @@ export async function deleteUser(id: string): Promise<void> {
 
 export async function updateNickname(id: string, nickname: string): Promise<void> {
   await api.patch(`/admin/users/${id}/nickname`, { nickname });
+}
+
+export async function fetchReRegistrationRequests(): Promise<ReRegistrationRequest[]> {
+  const { data } = await api.get('/admin/users/reregistrations');
+  return data.data as ReRegistrationRequest[];
+}
+
+export async function approveReRegistration(requestId: string): Promise<void> {
+  await api.patch(`/admin/users/reregistrations/${requestId}/approve`);
+}
+
+export async function rejectReRegistration(requestId: string): Promise<void> {
+  await api.patch(`/admin/users/reregistrations/${requestId}/reject`);
+}
+
+export async function fetchActiveUserCount(): Promise<number> {
+  const { data } = await api.get('/admin/users/active-count');
+  return data.data as number;
+}
+
+export async function fetchRegisteredUserCount(): Promise<number> {
+  const { data } = await api.get('/admin/users/registered-count');
+  return data.data as number;
 }
