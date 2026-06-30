@@ -10,19 +10,21 @@ import AiChatPage from './AiChatPage';
 import AdminInquiryManagement from './AdminInquiryManagement';
 import AdminNoticeManagement from './AdminNoticeManagement';
 import MigratoryPointManagementPage from './MigratoryPointManagementPage';
+import FishingZoneManagementPage from './FishingZoneManagementPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'ai';
+type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai';
 
 const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
-  { tab: 'points',           label: '포인트 관리',      adminOnly: false },
-  { tab: 'migratory-points', label: '회유성 포인트 관리', adminOnly: false },
-  { tab: 'documents',        label: 'RAG 문서 관리',    adminOnly: true  },
-  { tab: 'users',            label: '사용자 관리',      adminOnly: false },
-  { tab: 'inquiries',        label: '고객센터 관리',    adminOnly: false },
-  { tab: 'notices',          label: '공지사항 관리',    adminOnly: false },
-  { tab: 'map',              label: '지도 보기',        adminOnly: false },
-  { tab: 'ai',               label: 'AI에게 질문',     adminOnly: true  },
+  { tab: 'points',           label: '포인트 관리',        adminOnly: false },
+  { tab: 'migratory-points', label: '회유성 포인트 관리',  adminOnly: false },
+  { tab: 'fishing-zones',    label: '낚시 금지구역 추가',  adminOnly: false },
+  { tab: 'documents',        label: 'RAG 문서 관리',      adminOnly: true  },
+  { tab: 'users',            label: '사용자 관리',        adminOnly: false },
+  { tab: 'inquiries',        label: '고객센터 관리',      adminOnly: false },
+  { tab: 'notices',          label: '공지사항 관리',      adminOnly: false },
+  { tab: 'map',              label: '지도 보기',          adminOnly: false },
+  { tab: 'ai',               label: 'AI에게 질문',       adminOnly: true  },
 ];
 
 export default function AdminPage() {
@@ -72,9 +74,10 @@ export default function AdminPage() {
             ))}
           </nav>
         </aside>
-        <main className={`${styles.content} ${activeTab === 'map' ? styles.contentMap : ''}`}>
+        <main className={`${styles.content} ${(activeTab === 'map' || activeTab === 'fishing-zones') ? styles.contentMap : ''}`}>
           {activeTab === 'points'           && <PointManagementPage />}
           {activeTab === 'migratory-points' && <MigratoryPointManagementPage />}
+          {activeTab === 'fishing-zones'    && <FishingZoneManagementPage />}
           {activeTab === 'documents'        && <DocumentManagementPage />}
           {activeTab === 'users'            && <UserManagementPage />}
           {activeTab === 'inquiries'        && <AdminInquiryManagement />}
