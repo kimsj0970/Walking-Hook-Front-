@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PhotoUploader from '../components/common/PhotoUploader';
@@ -302,6 +302,7 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
 export default function FishingPostPage() {
   const { isLoggedIn, isAdmin, userId } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [view, setView]     = useState<View>('list');
   const [items, setItems]   = useState<FishingPostListItem[]>([]);
@@ -359,6 +360,7 @@ export default function FishingPostPage() {
   };
 
   const openDetail = async (id: string) => {
+    if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setComments([]); setCommentInput(''); setReplyTo(null); setView('detail');
     try {
       const [d, c] = await Promise.all([getFishingPostDetail(id), getFishingPostComments(id)]);
