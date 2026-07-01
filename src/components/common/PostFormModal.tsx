@@ -16,6 +16,8 @@ interface PostFormModalProps {
   maxPhotos?: number | null;
   boardType?: BoardType;
   initialPhotoUrls?: string[];
+  /** undefined = 무제한, number = 내용 최대 글자 수 */
+  maxContentLength?: number;
 }
 
 export default function PostFormModal({
@@ -30,6 +32,7 @@ export default function PostFormModal({
   maxPhotos,
   boardType,
   initialPhotoUrls = [],
+  maxContentLength,
 }: PostFormModalProps) {
   const [title,     setTitle]     = useState(initialTitle);
   const [content,   setContent]   = useState(initialContent);
@@ -95,6 +98,7 @@ export default function PostFormModal({
               maxLength={200}
               autoFocus
             />
+            <span className={styles.charCount}>{title.length}/200자</span>
           </div>
           <div className={styles.field}>
             <label className={styles.label}>내용</label>
@@ -103,7 +107,11 @@ export default function PostFormModal({
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder={contentPlaceholder}
+              maxLength={maxContentLength}
             />
+            {maxContentLength !== undefined && (
+              <span className={styles.charCount}>{content.length}/{maxContentLength}자</span>
+            )}
           </div>
           {showPhotoUploader && (
             <div className={styles.field}>
