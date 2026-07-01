@@ -1251,3 +1251,104 @@
 .infoSheetClose:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* ── 회유성 미리보기 목록 ── */
+.previewList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.previewCard {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.previewCard:hover {
+  border-color: rgba(11, 61, 145, 0.25);
+  box-shadow: 0 2px 8px rgba(11, 61, 145, 0.07);
+}
+
+.previewCardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.previewCardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.previewSpeciesBadge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(11, 61, 145, 0.08);
+  color: var(--color-primary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.previewTitle {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewDate {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.previewPointBadge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(34, 139, 34, 0.1);
+  color: #276827;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.previewNoPointBadge {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.previewMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.previewMetaIcon {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.previewAuthor {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
