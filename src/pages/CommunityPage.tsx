@@ -6,7 +6,7 @@ import PostFormModal from '../components/common/PostFormModal';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import {
-  getFishingPostsPreview, getFishingPostsPage, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
+  getFishingPostsPage, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
   type FishingPostListItem, type FishingPostDetail,
 } from '../api/fishingPostApi';
 import {
