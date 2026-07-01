@@ -80,6 +80,7 @@ export default function PhotoUploader({ value, onChange, boardType, maxPhotos, d
       {maxPhotos !== undefined && (
         <p className={styles.hint}>{value.length}/{maxPhotos}장</p>
       )}
+      <p className={styles.notice}>업로드한 사진은 다른 사용자에게 공개됩니다.</p>
 
       <input
         ref={inputRef}
