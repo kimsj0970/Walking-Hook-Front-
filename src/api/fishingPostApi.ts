@@ -25,6 +25,9 @@ export interface FishingPostDetail {
   migratoryPointId: string | null;
   pointName: string | null;
   caughtAt: string | null;
+  lure: string | null;
+  fishSize: string | null;
+  action: string | null;
 }
 
 export async function getFishingPostsPreview(): Promise<FishingPostListItem[]> {
@@ -48,24 +51,32 @@ export async function getFishingPostDetail(id: string): Promise<FishingPostDetai
 
 export async function createFishingPost(
   title: string, content: string, photoUrls: string[] = [],
-  migratoryPointId?: string, caughtAt?: string
+  migratoryPointId?: string, caughtAt?: string,
+  lure?: string, fishSize?: string, action?: string
 ): Promise<string> {
   const { data } = await api.post('/fishing-posts', {
     title, content, photoUrls,
     migratoryPointId: migratoryPointId ?? null,
     caughtAt: caughtAt ?? null,
+    lure: lure || null,
+    fishSize: fishSize || null,
+    action: action || null,
   });
   return data.data as string;
 }
 
 export async function updateFishingPost(
   id: string, title: string, content: string, photoUrls: string[] = [],
-  migratoryPointId?: string | null, caughtAt?: string | null
+  migratoryPointId?: string | null, caughtAt?: string | null,
+  lure?: string | null, fishSize?: string | null, action?: string | null
 ): Promise<void> {
   await api.patch(`/fishing-posts/${id}`, {
     title, content, photoUrls,
     migratoryPointId: migratoryPointId ?? null,
     caughtAt: caughtAt ?? null,
+    lure: lure || null,
+    fishSize: fishSize || null,
+    action: action || null,
   });
 }
 
@@ -82,6 +93,7 @@ export interface FishingPostComment {
   parentId: string | null;
   content: string;
   createdAt: string;
+  deleted: boolean;
 }
 
 export async function getFishingPostComments(postId: string): Promise<FishingPostComment[]> {
