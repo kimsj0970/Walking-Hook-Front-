@@ -13,6 +13,7 @@ import {
   PROVINCE_OPTIONS,
   TERRAIN_TYPE_OPTIONS,
 } from '../../api/fishingPointApi';
+import { fetchFishingZones } from '../../api/fishingZoneApi';
 import styles from './FishingPointFormModal.module.css';
 
 interface FormState {
@@ -65,6 +66,12 @@ interface Props {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Kakao = any;
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
 
 function loadKakaoSDK(appKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -121,6 +128,42 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
           level: hasCoord ? 5 : 13,
         });
         kakaoMapRef.current = map;
+
+        // 낚시 금지·제한구역 폴리곤 — 포인트 좌표 선택 시 참고용
+        fetchFishingZones().then(zones => {
+          zones.forEach(zone => {
+            try {
+              const parsed = JSON.parse(zone.geoJson);
+              const ring: [number, number][] = parsed.coordinates[0];
+              const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
+                new kakao.maps.LatLng(lat, lng)
+              );
+              const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+              const poly = new kakao.maps.Polygon({
+                map,
+                path,
+                strokeWeight: 2,
+                strokeColor: color,
+                strokeOpacity: 0.9,
+                fillColor: color,
+                fillOpacity: 0.2,
+              });
+              const infoWindow = new kakao.maps.InfoWindow({
+                content: `<div style="padding:10px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;">
+                  <strong style="font-size:13px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
+                  <div style="font-size:11px;color:#94A3B8;margin-top:3px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
+                </div>`,
+                removable: true,
+              });
+              kakao.maps.event.addListener(poly, 'click', (e: Kakao) => {
+                infoWindow.setPosition(e.latLng);
+                infoWindow.open(map);
+              });
+            } catch {
+              // GeoJSON 파싱 실패 시 무시
+            }
+          });
+        }).catch(() => {});
 
         // 기존 좌표가 있으면 마커 표시
         if (hasCoord) {
