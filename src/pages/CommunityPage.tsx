@@ -6,7 +6,7 @@ import PostFormModal from '../components/common/PostFormModal';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import {
-  getFishingPostsPreview, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
+  getFishingPostsPreview, getFishingPostsPage, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
   type FishingPostListItem, type FishingPostDetail,
 } from '../api/fishingPostApi';
 import {
@@ -15,9 +15,10 @@ import {
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
 import {
-  getNoticesPreview, getNoticeDetail, createNotice, updateNotice, deleteNotice,
+  getNoticesPreview, getNoticesPage, getNoticeDetail, createNotice, updateNotice, deleteNotice,
   type NoticeListItem, type NoticeDetail,
 } from '../api/noticeApi';
+import ReportModal from '../components/common/ReportModal';
 import styles from './CommunityPage.module.css';
 
 function todayStr() {
@@ -30,6 +31,7 @@ interface FishingWriteState {
   title: string; content: string; photoUrls: string[];
   selectedProvince: Province | ''; migratoryPointId: string; selectedPointName: string;
   caughtAt: string;
+  lure: string; fishSize: string; action: string;
 }
 interface FishingWriteModalProps {
   open: boolean; editTarget: FishingPostDetail | null;
@@ -40,6 +42,7 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
   const [form, setForm] = useState<FishingWriteState>({
     title: '', content: '', photoUrls: [],
     selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(),
+    lure: '', fishSize: '', action: '',
   });
   const [errors, setErrors] = useState<{ title?: string; content?: string }>({});
   const [serverError, setServerError] = useState('');
@@ -57,9 +60,10 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
         migratoryPointId: editTarget.migratoryPointId ?? '',
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         caughtAt: editTarget.caughtAt ?? todayStr(),
+        lure: editTarget.lure ?? '', fishSize: editTarget.fishSize ?? '', action: editTarget.action ?? '',
       });
     } else {
-      setForm({ title: '', content: '', photoUrls: [], selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr() });
+      setForm({ title: '', content: '', photoUrls: [], selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(), lure: '', fishSize: '', action: '' });
     }
     setErrors({}); setServerError(''); setDropOpen(false);
   }, [open, editTarget, points]);
@@ -92,11 +96,14 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
     setSaving(true); setServerError('');
     const pointId = form.migratoryPointId || undefined;
     const caughtAt = form.caughtAt || undefined;
+    const lure = form.lure.trim() || undefined;
+    const fishSize = form.fishSize.trim() || undefined;
+    const action = form.action.trim() || undefined;
     try {
       if (editTarget) {
-        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt);
+        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
       } else {
-        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt);
+        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
       }
       onSaved();
     } catch { setServerError('저장 중 오류가 발생했습니다.'); }
@@ -182,6 +189,27 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
             {errors.content && <p className={styles.errorMsg}>{errors.content}</p>}
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>루어 <span className={styles.fieldHint}>(선택)</span></label>
+              <input className={styles.fieldInput}
+                value={form.lure} onChange={e => set('lure', e.target.value)}
+                placeholder="예: 바이브 20g" maxLength={100} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>어종 크기 <span className={styles.fieldHint}>(선택)</span></label>
+              <input className={styles.fieldInput}
+                value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
+                placeholder="예: 45cm, 1.2kg" maxLength={50} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>사용한 액션 <span className={styles.fieldHint}>(선택)</span></label>
+              <input className={styles.fieldInput}
+                value={form.action} onChange={e => set('action', e.target.value)}
+                placeholder="예: 저킹, 슬로우롤" maxLength={100} />
+            </div>
+          </div>
+
           <div className={styles.field}>
             <label className={styles.fieldLabel}>사진 (최대 3장)</label>
             <PhotoUploader value={form.photoUrls} onChange={urls => set('photoUrls', urls)}
@@ -221,6 +249,7 @@ type BoardView = 'list' | 'detail';
 /* ─────────────────────────────────────────────────────────── */
 export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLoggedIn: boolean; className?: string; navigateOnClick?: boolean }) {
   const navigate = useNavigate();
+  const { userId, isAdmin, isModerator } = useAuth();
   const [view, setView]     = useState<BoardView>('list');
   const [items, setItems]   = useState<FishingPostListItem[]>([]);
   const [detail, setDetail] = useState<FishingPostDetail | null>(null);
@@ -231,13 +260,25 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
   const [editingPost, setEditingPost] = useState<FishingPostDetail | null>(null);
   const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
 
-  const fetchList = useCallback(async () => {
+  const fetchList = useCallback(async (page = 0) => {
     setLoading(true);
-    try { setItems(await getFishingPostsPreview()); }
+    try {
+      if (navigateOnClick) {
+        setItems((await getFishingPostsPage(0, 5)).content);
+      } else {
+        const result = await getFishingPostsPage(page, 10);
+        setItems(result.content);
+        setTotalPages(result.totalPages);
+        setCurrentPage(result.page);
+      }
+    }
     catch { setError('목록을 불러오지 못했습니다.'); }
     finally { setLoading(false); }
-  }, []);
+  }, [navigateOnClick]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
   useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
@@ -261,12 +302,12 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
     } else {
       setView('list');
     }
-    await fetchList();
+    await fetchList(currentPage);
   };
 
   const handleDelete = async () => {
     if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
-    try { await deleteFishingPost(detail.id); await fetchList(); setView('list'); }
+    try { await deleteFishingPost(detail.id); await fetchList(currentPage); setView('list'); }
     catch { setError('삭제에 실패했습니다.'); }
   };
 
@@ -304,17 +345,32 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                       ? navigate('/fishing-posts', { state: { openPostId: item.id } })
                       : openDetail(item.id);
                   }}>
-                  <span className={styles.boardTitle}>{item.title}</span>
-                  <span className={styles.boardMeta}>
-                    {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷</span>}
-                    {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
-                    <AuthorLabel nickname={item.authorNickname} />
+                  <div className={styles.boardTop}>
+                    <span className={styles.boardTitle}>{item.title}</span>
                     <span className={styles.boardDate}>{item.caughtAt ?? formatDate(item.createdAt)}</span>
-                  </span>
+                  </div>
+                  <div className={styles.boardBottom}>
+                    {item.pointName
+                      ? <span className={styles.boardPoint}>📍 {item.pointName}</span>
+                      : <span />}
+                    <div className={styles.boardMeta}>
+                      {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷 {item.photoUrls.length}</span>}
+                      {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
+                      <AuthorLabel nickname={item.authorNickname} />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
-            <button className={styles.moreBtn} onClick={() => navigate('/fishing-posts')}>더보기</button>
+            {navigateOnClick ? (
+              <button className={styles.moreBtn} onClick={() => navigate('/fishing-posts')}>더보기</button>
+            ) : totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => fetchList(currentPage - 1)}>‹ 이전</button>
+                <span className={styles.pageInfo}>{currentPage + 1} / {totalPages}</span>
+                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => fetchList(currentPage + 1)}>다음 ›</button>
+              </div>
+            )}
           </>
       )}
 
@@ -329,7 +385,17 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                 {detail.pointName && <span>📍 {detail.pointName}</span>}
                 <span>{formatDate(detail.createdAt)}</span>
               </div>
+              {isLoggedIn && (
+                <button className={styles.reportBtn} onClick={() => setReportOpen(true)}>신고하기</button>
+              )}
             </div>
+            {(detail.lure || detail.fishSize || detail.action) && (
+              <div className={styles.catchInfoRow}>
+                {detail.lure && <span className={styles.catchInfoTag}>🎣 {detail.lure}</span>}
+                {detail.fishSize && <span className={styles.catchInfoTag}>📏 {detail.fishSize}</span>}
+                {detail.action && <span className={styles.catchInfoTag}>💫 {detail.action}</span>}
+              </div>
+            )}
             <p className={styles.detailContent}>{detail.content}</p>
             {detail.photoUrls?.length > 0 && (
               <div className={styles.photoGrid}>
@@ -339,13 +405,22 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                 ))}
               </div>
             )}
-            {isLoggedIn && (
+            {(detail.authorId === userId || isAdmin || isModerator) && (
               <div className={styles.detailActions}>
                 <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
                 <button className={styles.editBtn} onClick={openEdit}>수정</button>
               </div>
             )}
           </div>
+      )}
+
+      {reportOpen && detail && (
+        <ReportModal
+          postId={detail.id}
+          postType="FISHING_POST"
+          postTitle={detail.title}
+          onClose={() => setReportOpen(false)}
+        />
       )}
 
       <FishingWriteModal
@@ -383,13 +458,24 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
   const [modalOpen, setModalOpen]   = useState(false);
   const [editingNotice, setEditingNotice] = useState<NoticeDetail | null>(null);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  const fetchList = useCallback(async () => {
+  const fetchList = useCallback(async (page = 0) => {
     setLoading(true);
-    try { setItems(await getNoticesPreview()); }
+    try {
+      if (navigateOnClick) {
+        setItems(await getNoticesPreview());
+      } else {
+        const result = await getNoticesPage(page, 20);
+        setItems(result.content);
+        setTotalPages(result.totalPages);
+        setCurrentPage(result.page);
+      }
+    }
     catch { setError('목록을 불러오지 못했습니다.'); }
     finally { setLoading(false); }
-  }, []);
+  }, [navigateOnClick]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
@@ -412,12 +498,12 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
       await createNotice(title, content, photoUrls);
       setView('list');
     }
-    await fetchList();
+    await fetchList(currentPage);
   };
 
   const handleDelete = async () => {
     if (!detail || !window.confirm('공지사항을 삭제하시겠습니까?')) return;
-    try { await deleteNotice(detail.id); await fetchList(); setView('list'); }
+    try { await deleteNotice(detail.id); await fetchList(currentPage); setView('list'); }
     catch { setError('삭제에 실패했습니다.'); }
   };
 
@@ -466,7 +552,15 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
                 </div>
               ))}
             </div>
-            <button className={styles.moreBtn} onClick={() => navigate('/notices')}>더보기</button>
+            {navigateOnClick ? (
+              <button className={styles.moreBtn} onClick={() => navigate('/notices')}>더보기</button>
+            ) : totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => fetchList(currentPage - 1)}>‹ 이전</button>
+                <span className={styles.pageInfo}>{currentPage + 1} / {totalPages}</span>
+                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => fetchList(currentPage + 1)}>다음 ›</button>
+              </div>
+            )}
           </>
       )}
 
