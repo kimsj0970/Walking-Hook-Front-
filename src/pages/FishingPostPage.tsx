@@ -455,6 +455,7 @@ export default function FishingPostPage() {
 
   const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const [comments, setComments] = useState<FishingPostComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
@@ -636,6 +637,11 @@ export default function FishingPostPage() {
                           <button className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`} onClick={handleDelete}><span>🗑️</span>삭제</button>
                         </>
                       )}
+                      {isLoggedIn && (
+                        <button className={styles.iconActionBtn} onClick={() => setReportOpen(true)} title="신고하기">
+                          <span>🚨</span>신고
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -779,6 +785,14 @@ export default function FishingPostPage() {
           onClose={() => setLbIdx(null)}
           onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
           onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
+        />
+      )}
+      {reportOpen && detail && (
+        <ReportModal
+          postId={detail.id}
+          postType="FISHING_POST"
+          postTitle={detail.title}
+          onClose={() => setReportOpen(false)}
         />
       )}
       {commentReportTarget && detail && (
