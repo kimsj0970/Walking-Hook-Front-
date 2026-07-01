@@ -9,9 +9,10 @@ import {
   type SpeciesAnalysis, type TideEvent, type TidePoint, TIDE_FLOW_LABELS,
 } from '../api/fishingPointApi';
 import { useAuth } from '../context/AuthContext';
-import { FishingBoard, NoticeBoard } from './CommunityPage';
+import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
 import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migratoryPostApi';
+import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPostApi';
 import styles from './HomePage.module.css';
 
 const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
@@ -184,6 +185,7 @@ export default function HomePage() {
   // 회유성 지도 모달
   const [migratoryMapOpen, setMigratoryMapOpen] = useState(false);
   const [migratoryPostsPreview, setMigratoryPostsPreview] = useState<MigratoryPostListItem[]>([]);
+  const [fishingPostsPreview, setFishingPostsPreview] = useState<FishingPostListItem[]>([]);
 
   // 지도에서 포인트 선택 시 드롭다운 동기화용 refs
   const pendingPointIdRef = useRef<string | null>(null);
@@ -198,6 +200,7 @@ export default function HomePage() {
 
   useEffect(() => {
     getMigratoryPostsPage(0, 5).then(r => setMigratoryPostsPreview(r.content)).catch(() => {});
+    getFishingPostsPage(0, 5).then(r => setFishingPostsPreview(r.content)).catch(() => {});
   }, []);
 
   // 지도 팝업 → 메인 페이지 포인트 수신 + 드롭다운 동기화
@@ -731,33 +734,30 @@ export default function HomePage() {
                 아직 등록된 게시글이 없습니다.
               </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div className={styles.previewList}>
                 {migratoryPostsPreview.map(item => (
                   <div
                     key={item.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '13px 18px',
-                      borderBottom: '1px solid var(--color-border)',
-                      cursor: 'pointer', transition: 'background 0.15s',
-                    }}
+                    className={styles.previewCard}
                     onClick={() => navigate('/migratory-posts', { state: { openPostId: item.id } })}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '')}
                   >
-                    <span style={{
-                      padding: '2px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700,
-                      background: 'rgba(11,61,145,0.08)', color: 'var(--color-primary)', flexShrink: 0,
-                    }}>
-                      {item.speciesDisplayNames?.join('·') ?? ''}
-                    </span>
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.title}
-                    </span>
-                    {item.photoUrls?.length > 0 && <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>📷</span>}
-                    {(item.commentCount ?? 0) > 0 && <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>💬 {item.commentCount}</span>}
-                    <span style={{ fontSize: 12, color: 'var(--color-text-muted)', flexShrink: 0 }}>{item.authorNickname}</span>
-                    <span style={{ fontSize: 11, color: 'var(--color-text-muted)', flexShrink: 0 }}>{item.caughtAt}</span>
+                    <div className={styles.previewCardTop}>
+                      <span className={styles.previewSpeciesBadge}>
+                        {item.speciesDisplayNames?.join('·') ?? ''}
+                      </span>
+                      <span className={styles.previewTitle}>{item.title}</span>
+                      <span className={styles.previewDate}>{item.caughtAt}</span>
+                    </div>
+                    <div className={styles.previewCardBottom}>
+                      {item.pointName
+                        ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
+                        : <span />}
+                      <div className={styles.previewMeta}>
+                        {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
+                        {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
+                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -778,10 +778,75 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ─── 커뮤니티 게시판 ─── */}
+        {/* ─── 조황 게시판 미리보기 ─── */}
         <section className={styles.section}>
           <div className={styles.sectionInner}>
-            <FishingBoard isLoggedIn={isLoggedIn} navigateOnClick />
+            <div className={styles.sectionHeader}>
+              <h2
+                className={styles.sectionTitle}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={() => navigate('/fishing-posts')}
+                title="전체 조황 게시판 보기"
+              >
+                🐟 조황 게시판
+                <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
+              </h2>
+              {isLoggedIn && (
+                <button
+                  onClick={() => navigate('/fishing-posts')}
+                  style={{
+                    padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
+                    border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  글쓰기
+                </button>
+              )}
+            </div>
+            {fishingPostsPreview.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
+                아직 등록된 게시글이 없습니다.
+              </p>
+            ) : (
+              <div className={styles.previewList}>
+                {fishingPostsPreview.map(item => (
+                  <div
+                    key={item.id}
+                    className={styles.previewCard}
+                    onClick={() => navigate('/fishing-posts', { state: { openPostId: item.id } })}
+                  >
+                    <div className={styles.previewCardTop}>
+                      <span className={styles.previewTitle}>{item.title}</span>
+                      {item.caughtAt && <span className={styles.previewDate}>{item.caughtAt}</span>}
+                    </div>
+                    <div className={styles.previewCardBottom}>
+                      {item.pointName
+                        ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
+                        : <span className={styles.previewNoPointBadge}>포인트 미지정</span>}
+                      <div className={styles.previewMeta}>
+                        {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
+                        {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
+                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ textAlign: 'center', marginTop: 14 }}>
+              <button
+                onClick={() => navigate('/fishing-posts')}
+                style={{
+                  padding: '8px 24px', background: 'transparent',
+                  border: '1px solid var(--color-border)', borderRadius: 999,
+                  fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                더보기
+              </button>
+            </div>
           </div>
         </section>
 
@@ -1217,15 +1282,74 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
     }
 
     let cancelled = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pointPageState = new Map<string, { page: number; totalPages: number; pointName: string | null; speciesBadges: string; iw: any }>();
 
     Promise.all([
-      import('../api/migratoryPostApi').then(m => m.getTodayMigratoryMarkers().catch(() => [])),
-      import('../api/fishingZoneApi').then(m => m.fetchFishingZones().catch(() => [])),
+      import('../api/migratoryPostApi'),
+      import('../api/fishingZoneApi'),
       loadKakaoSDK(appKey),
-    ]).then(([markers, fishingZones]) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ]).then(([migratoryPostApi, fishingZoneApi]): any => {
+      if (cancelled || !mapRef.current) return;
+      return Promise.all([
+        migratoryPostApi.getTodayMigratoryMarkers().catch(() => []),
+        fishingZoneApi.fetchFishingZones().catch(() => []),
+      ]).then(([markers, fishingZones]) => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
+
+      // 게시글 목록 HTML 생성 (최초 로딩·화살표 페이지 이동 공통)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const buildPostListHtml = (posts: any[]) => posts.map((p: any) => {
+        const pBadges = (p.species as string[]).map((s: string) => {
+          const color = MIGRATORY_SPECIES_COLORS[s] ?? '#0B3D91';
+          const label = MIGRATORY_SPECIES_KO[s] ?? s;
+          return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;background:${color}20;color:${color};margin-right:2px;">${escapeHtml(label)}</span>`;
+        }).join('');
+        return `<div style="padding:6px 0;border-top:1px solid #F1F5F9;">
+          <div style="margin-bottom:3px;">${pBadges}</div>
+          <div onclick="window.__openMigratoryPost('${p.postId}')" style="font-size:12px;font-weight:600;color:#1E293B;cursor:pointer;text-decoration:underline;">${escapeHtml(p.title)}</div>
+          <div style="font-size:11px;color:#94A3B8;">${escapeHtml(p.authorNickname)}</div>
+        </div>`;
+      }).join('');
+
+      // 게시글 3개 초과 시 좌우 화살표 페이지네이션
+      const buildPaginationHtml = (pointId: string, page: number, totalPages: number) => {
+        if (totalPages <= 1) return '';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #F1F5F9;">
+          <button onclick="window.__migratoryMapPage('${pointId}', -1)" ${page === 0 ? 'disabled' : ''} style="border:none;background:none;cursor:pointer;font-size:15px;font-weight:700;color:#0B3D91;padding:2px 8px;opacity:${page === 0 ? 0.3 : 1};">‹</button>
+          <span style="font-size:11px;color:#94A3B8;">${page + 1} / ${totalPages}</span>
+          <button onclick="window.__migratoryMapPage('${pointId}', 1)" ${page >= totalPages - 1 ? 'disabled' : ''} style="border:none;background:none;cursor:pointer;font-size:15px;font-weight:700;color:#0B3D91;padding:2px 8px;opacity:${page >= totalPages - 1 ? 0.3 : 1};">›</button>
+        </div>`;
+      };
+
+      const buildInfoContent = (pointName: string | null, speciesBadges: string, postsHtml: string, paginationHtml: string) => `<div style="padding:12px 14px;min-width:200px;max-width:280px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;line-height:1.5;">
+        ${pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;">📍 ${escapeHtml(pointName)}</div>` : ''}
+        <div style="margin-bottom:6px;">${speciesBadges}</div>
+        ${postsHtml}
+        ${paginationHtml}
+      </div>`;
+
+      // 화살표 클릭 시 해당 포인트의 다음/이전 페이지 게시물을 불러와 InfoWindow 내용을 갱신
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__migratoryMapPage = (pointId: string, direction: number) => {
+        const state = pointPageState.get(pointId);
+        if (!state) return;
+        const nextPage = state.page + direction;
+        if (nextPage < 0 || nextPage >= state.totalPages) return;
+        migratoryPostApi.getTodayMigratoryPostsByPoint(pointId, nextPage, 3).then((result) => {
+          state.page = result.page;
+          state.totalPages = result.totalPages;
+          state.iw.setContent(buildInfoContent(
+            state.pointName, state.speciesBadges,
+            buildPostListHtml(result.content),
+            buildPaginationHtml(pointId, state.page, state.totalPages),
+          ));
+        }).catch(() => { /* 페이지 이동 실패 시 기존 내용 유지 */ });
+      };
+
       kakao.maps.load(() => {
         if (cancelled || !mapRef.current) return;
 
@@ -1297,27 +1421,17 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
               return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${color}20;color:${color};margin:2px 2px 2px 0;">${escapeHtml(label)}</span>`;
             }).join('');
 
-            // 게시글 목록
-            const postList = (m.posts as any[]).map((p: any) => {
-              const pBadges = (p.species as string[]).map((s: string) => {
-                const color = MIGRATORY_SPECIES_COLORS[s] ?? '#0B3D91';
-                const label = MIGRATORY_SPECIES_KO[s] ?? s;
-                return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;background:${color}20;color:${color};margin-right:2px;">${escapeHtml(label)}</span>`;
-              }).join('');
-              return `<div style="padding:6px 0;border-top:1px solid #F1F5F9;">
-                <div style="margin-bottom:3px;">${pBadges}</div>
-                <div onclick="window.__openMigratoryPost('${p.postId}')" style="font-size:12px;font-weight:600;color:#1E293B;cursor:pointer;text-decoration:underline;">${escapeHtml(p.title)}</div>
-                <div style="font-size:11px;color:#94A3B8;">${escapeHtml(p.authorNickname)}</div>
-              </div>`;
-            }).join('');
-
-            const infoContent = `<div style="padding:12px 14px;min-width:200px;max-width:280px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;line-height:1.5;">
-              ${m.pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;">📍 ${escapeHtml(m.pointName)}</div>` : ''}
-              <div style="margin-bottom:6px;">${speciesBadges}</div>
-              ${postList}
-            </div>`;
+            const totalPages = Math.max(1, Math.ceil((m.totalPostCount ?? m.posts.length) / 3));
+            const infoContent = buildInfoContent(
+              m.pointName, speciesBadges,
+              buildPostListHtml(m.posts),
+              buildPaginationHtml(m.migratoryPointId, 0, totalPages),
+            );
 
             const iw = new kakao.maps.InfoWindow({ content: infoContent, removable: true });
+            pointPageState.set(m.migratoryPointId, {
+              page: 0, totalPages, pointName: m.pointName, speciesBadges, iw,
+            });
             kakao.maps.event.addListener(marker, 'click', () => iw.open(map, marker));
           });
 
@@ -1325,11 +1439,15 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
         setStatus('ready');
       });
+      });
     }).catch((err: Error) => {
       if (!cancelled) { setErrorMsg(err.message); setStatus('error'); }
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      delete (window as any).__migratoryMapPage; // eslint-disable-line @typescript-eslint/no-explicit-any
+    };
   }, []);
 
   useEffect(() => {
