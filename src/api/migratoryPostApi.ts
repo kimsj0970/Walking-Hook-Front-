@@ -30,6 +30,9 @@ export interface MigratoryPostDetail {
   photoUrls: string[];
   createdAt: string;
   updatedAt: string | null;
+  lure: string | null;
+  fishSize: string | null;
+  action: string | null;
 }
 
 export interface PostSummary {
@@ -47,6 +50,7 @@ export interface TodayMigratoryMapMarker {
   longitude: number | null;
   species: MigratorySpecies[];
   posts: PostSummary[];
+  totalPostCount: number;
 }
 
 export interface PageResult<T> {
@@ -64,6 +68,9 @@ export interface MigratoryPostCreateRequest {
   caughtAt?: string;
   migratoryPointId: string;
   photoUrls?: string[];
+  lure?: string | null;
+  fishSize?: string | null;
+  action?: string | null;
 }
 
 export interface MigratoryPostUpdateRequest {
@@ -72,6 +79,9 @@ export interface MigratoryPostUpdateRequest {
   species?: MigratorySpecies[];
   caughtAt?: string;
   photoUrls?: string[];
+  lure?: string | null;
+  fishSize?: string | null;
+  action?: string | null;
 }
 
 export async function getMigratoryPostsPage(page = 0, size = 20): Promise<PageResult<MigratoryPostListItem>> {
@@ -87,6 +97,15 @@ export async function getMigratoryPostDetail(id: string): Promise<MigratoryPostD
 export async function getTodayMigratoryMarkers(): Promise<TodayMigratoryMapMarker[]> {
   const { data } = await api.get('/migratory-catch-posts/map/today');
   return (data.data ?? []) as TodayMigratoryMapMarker[];
+}
+
+export async function getTodayMigratoryPostsByPoint(
+  pointId: string, page = 0, size = 3
+): Promise<PageResult<PostSummary>> {
+  const { data } = await api.get(`/migratory-catch-posts/points/${pointId}/today-posts`, {
+    params: { page, size },
+  });
+  return data.data as PageResult<PostSummary>;
 }
 
 export async function createMigratoryPost(req: MigratoryPostCreateRequest): Promise<string> {
@@ -111,6 +130,7 @@ export interface MigratoryPostComment {
   parentId: string | null;
   content: string;
   createdAt: string;
+  deleted: boolean;
 }
 
 export async function getMigratoryPostComments(postId: string): Promise<MigratoryPostComment[]> {
