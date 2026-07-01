@@ -143,21 +143,24 @@ export default function NoticePage() {
       <Header />
       <div className={styles.inner}>
 
+        <div className={styles.pageHeader}>
+          <div>
+            <h1 className={styles.pageTitle}>공지사항</h1>
+            <p className={styles.pageDesc}>
+              Walking Hook 운영 공지를 확인하세요.
+              {view === 'list' && totalElements > 0 && <span className={styles.totalCount}> 총 {totalElements}개</span>}
+            </p>
+          </div>
+          {view === 'list' && isAdmin && (
+            <button className={styles.createBtn} onClick={openCreate}>+ 공지 작성</button>
+          )}
+          {view === 'detail' && (
+            <button className={styles.iconActionBtn} onClick={() => setView('list')}>← 목록</button>
+          )}
+        </div>
+
         {view === 'list' && (
           <>
-            <div className={styles.pageHeader}>
-              <div>
-                <h1 className={styles.pageTitle}>공지사항</h1>
-                <p className={styles.pageDesc}>
-                  Walking Hook 운영 공지를 확인하세요.
-                  {totalElements > 0 && <span className={styles.totalCount}> 총 {totalElements}개</span>}
-                </p>
-              </div>
-              {isAdmin && (
-                <button className={styles.createBtn} onClick={openCreate}>+ 공지 작성</button>
-              )}
-            </div>
-
             {error && <p className={styles.error}>{error}</p>}
 
             {loading ? (
@@ -201,43 +204,56 @@ export default function NoticePage() {
             {detailLoading || !detail ? (
               <p className={styles.empty}>불러오는 중...</p>
             ) : (
-              <>
+              <div className={styles.detailCard}>
                 <div className={styles.detailHeader}>
-                  <h2 className={styles.detailTitle}>{detail.title}</h2>
+                  <div className={styles.detailTitleRow}>
+                    <h2 className={styles.detailTitle}>{detail.title}</h2>
+                    <div className={styles.detailTopActions}>
+                      {isAdmin && (
+                        <>
+                          <button className={styles.iconActionBtn} onClick={openEdit}><span>✏️</span>수정</button>
+                          <button className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`} onClick={handleDelete}><span>🗑️</span>삭제</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <div className={styles.detailMeta}>
-                    <AuthorLabel nickname={detail.authorNickname} />
+                    <span className={styles.authorChip}>
+                      <span className={styles.authorAvatar}>{detail.authorNickname.charAt(0)}</span>
+                      {detail.authorNickname}
+                    </span>
+                    <span className={styles.metaDot}>·</span>
                     <span>{formatDate(detail.createdAt)}</span>
                     {detail.updatedAt && detail.updatedAt !== detail.createdAt && (
-                      <span>(수정됨 {formatDate(detail.updatedAt)})</span>
+                      <>
+                        <span className={styles.metaDot}>·</span>
+                        <span>수정됨 {formatDate(detail.updatedAt)}</span>
+                      </>
                     )}
                   </div>
                 </div>
+
+                <h3 className={styles.contentLabel}>📢 공지 내용</h3>
                 <p className={styles.detailContent}>{detail.content}</p>
+
                 {detail.photoUrls?.length > 0 && (
-                  <div className={styles.photoGrid}>
+                  <div className={`${styles.photoGrid} ${detail.photoUrls.length === 1 ? styles.photoGridSingle : ''}`}>
                     {detail.photoUrls.map((url, i) => (
-                      <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo}
-                        style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
+                      <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.detailPhoto}
+                        onClick={() => setLbIdx(i)} />
                     ))}
                   </div>
                 )}
-                <div className={styles.detailActions}>
-                  {isAdmin && (
-                    <>
-                      <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
-                      <button className={styles.editBtn} onClick={openEdit}>수정</button>
-                    </>
-                  )}
-                  <button className={styles.backBtn} onClick={() => setView('list')}>목록으로</button>
-                </div>
 
                 {/* 댓글 영역 */}
                 <div className={styles.commentSection}>
-                  <h4 className={styles.commentTitle}>댓글 {comments.length}개</h4>
+                  <h4 className={styles.commentTitle}>댓글 <span className={styles.commentCountNum}>{comments.length}</span></h4>
 
                   {comments.filter(c => !c.parentId).map(c => (
                     <div key={c.id} className={styles.comment}>
                       <div className={styles.commentHeader}>
+                        <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
                         <span className={styles.commentAuthor}>{c.authorNickname}</span>
                         <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
                         <div className={styles.commentActions}>
@@ -255,6 +271,7 @@ export default function NoticePage() {
                         <div key={r.id} className={styles.reply}>
                           <div className={styles.commentHeader}>
                             <span className={styles.replyArrow}>↳</span>
+                            <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
                             <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
                             {(isAdmin || r.authorId === userId) && (
@@ -293,7 +310,7 @@ export default function NoticePage() {
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
           </>
         )}
