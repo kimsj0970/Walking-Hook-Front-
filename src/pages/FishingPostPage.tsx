@@ -70,6 +70,15 @@ interface MapPickerProps {
 function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
+
+  // 모달 열린 동안 배경 스크롤 잠금
+  useEffect(() => {
+    const saved = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = saved; };
+  }, []);
 
   useEffect(() => {
     const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
@@ -85,25 +94,25 @@ function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 13,
         });
-        const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
-        points.forEach((fp) => {
+        const markers = points.map((fp) => {
           const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
           const marker = new kakao.maps.Marker({ position });
-          marker.setMap(map);
-          kakao.maps.event.addListener(marker, 'mouseover', () => {
-            hoverInfoWindow.setContent(
-              `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">📍 ${escapeHtml(fp.name)}</div>`
-            );
-            hoverInfoWindow.open(map, marker);
-          });
-          kakao.maps.event.addListener(marker, 'mouseout', () => hoverInfoWindow.close());
-          kakao.maps.event.addListener(marker, 'click', () => { hoverInfoWindow.close(); onSelect(fp); });
+          kakao.maps.event.addListener(marker, 'click', () => onSelectRef.current(fp));
+          return marker;
+        });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        new (kakao.maps as any).MarkerClusterer({
+          map,
+          markers,
+          gridSize: 60,
+          averageCenter: true,
+          minLevel: 5,
         });
         setMapStatus('ready');
       });
     }).catch(() => setMapStatus('error'));
     return () => { cancelled = true; };
-  }, [points, onSelect]);
+  }, [points]); // onSelect는 ref로 안정화 — deps에서 제외
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
