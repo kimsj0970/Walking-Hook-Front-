@@ -11,9 +11,10 @@ import AdminInquiryManagement from './AdminInquiryManagement';
 import AdminNoticeManagement from './AdminNoticeManagement';
 import MigratoryPointManagementPage from './MigratoryPointManagementPage';
 import FishingZoneManagementPage from './FishingZoneManagementPage';
+import AdminReportPage from './AdminReportPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai';
+type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai' | 'reports';
 
 const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
   { tab: 'points',           label: '포인트 관리',        adminOnly: false },
@@ -23,6 +24,7 @@ const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
   { tab: 'users',            label: '사용자 관리',        adminOnly: false },
   { tab: 'inquiries',        label: '고객센터 관리',      adminOnly: false },
   { tab: 'notices',          label: '공지사항 관리',      adminOnly: false },
+  { tab: 'reports',          label: '신고 관리',          adminOnly: false },
   { tab: 'map',              label: '지도 보기',          adminOnly: false },
   { tab: 'ai',               label: 'AI에게 질문',       adminOnly: true  },
 ];
@@ -82,6 +84,7 @@ export default function AdminPage() {
           {activeTab === 'users'            && <UserManagementPage />}
           {activeTab === 'inquiries'        && <AdminInquiryManagement />}
           {activeTab === 'notices'          && <AdminNoticeManagement />}
+          {activeTab === 'reports'          && <AdminReportPage />}
           {activeTab === 'map'              && <AdminMapPage />}
           {activeTab === 'ai'              && <AiChatPage />}
         </main>
