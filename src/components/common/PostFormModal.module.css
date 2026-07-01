@@ -118,6 +118,13 @@
 }
 .textarea:focus { border-color: var(--color-primary, #1565c0); }
 
+.charCount {
+  font-size: 11px;
+  color: var(--color-text-muted, #64748b);
+  text-align: right;
+  margin-top: -4px;
+}
+
 .error {
   font-size: 13px;
   color: #E53E3E;
