@@ -1265,6 +1265,13 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
   const [markerCount, setMarkerCount] = useState(0);
   const navigate = useNavigate();
 
+  // 모달 열린 동안 배경 스크롤 잠금
+  useEffect(() => {
+    const saved = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = saved; };
+  }, []);
+
   useEffect(() => {
     (window as any).__openMigratoryPost = (postId: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       onClose();
