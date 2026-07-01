@@ -387,6 +387,7 @@ export default function InquiryPage() {
         contentPlaceholder="문의 내용을 자세히 입력해 주세요."
         maxPhotos={3}
         boardType="INQUIRY"
+        maxContentLength={1000}
       />
       <PostFormModal
         isOpen={editModalOpen}
@@ -400,6 +401,7 @@ export default function InquiryPage() {
         initialTitle={detail?.title}
         initialContent={detail?.content}
         initialPhotoUrls={detail?.photoUrls}
+        maxContentLength={1000}
       />
     </div>
   );
