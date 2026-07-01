@@ -15,12 +15,13 @@ import {
   type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
+import ReportModal from '../components/common/ReportModal';
 import styles from './FishingPostPage.module.css';
 
 type View = 'list' | 'detail';
 
 const ADMIN_NICKNAMES = ['운영자', '관리자', 'admin', 'Admin'];
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 function AuthorLabel({ nickname }: { nickname: string }) {
   const isAdmin = ADMIN_NICKNAMES.includes(nickname);
@@ -39,6 +40,97 @@ function formatDate(iso: string) {
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function loadKakaoSDK(appKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).kakao?.maps) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=clusterer`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('카카오맵 로드 실패'));
+    document.head.appendChild(script);
+  });
+}
+
+/* ── 지도 포인트 선택 모달 ── */
+interface MapPickerProps {
+  points: MigratoryFishPointMapMarker[];
+  onSelect: (point: MigratoryFishPointMapMarker) => void;
+  onClose: () => void;
+}
+
+function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+
+  useEffect(() => {
+    const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
+    if (!appKey) { setMapStatus('error'); return; }
+    let cancelled = false;
+    loadKakaoSDK(appKey).then(() => {
+      if (cancelled || !mapRef.current) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const kakao = (window as any).kakao;
+      kakao.maps.load(() => {
+        if (cancelled || !mapRef.current) return;
+        const map = new kakao.maps.Map(mapRef.current, {
+          center: new kakao.maps.LatLng(36.0, 127.8),
+          level: 13,
+        });
+        const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
+        points.forEach((fp) => {
+          const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
+          const marker = new kakao.maps.Marker({ position });
+          marker.setMap(map);
+          kakao.maps.event.addListener(marker, 'mouseover', () => {
+            hoverInfoWindow.setContent(
+              `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">📍 ${escapeHtml(fp.name)}</div>`
+            );
+            hoverInfoWindow.open(map, marker);
+          });
+          kakao.maps.event.addListener(marker, 'mouseout', () => hoverInfoWindow.close());
+          kakao.maps.event.addListener(marker, 'click', () => { hoverInfoWindow.close(); onSelect(fp); });
+        });
+        setMapStatus('ready');
+      });
+    }).catch(() => setMapStatus('error'));
+    return () => { cancelled = true; };
+  }, [points, onSelect]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className={styles.mapPickerOverlay} onClick={onClose}>
+      <div className={styles.mapPickerModal} onClick={e => e.stopPropagation()}>
+        <div className={styles.mapPickerHeader}>
+          <span>지도에서 포인트 선택</span>
+          <button className={styles.mapPickerClose} onClick={onClose}>✕</button>
+        </div>
+        <p className={styles.mapPickerHint}>마커를 클릭하면 포인트가 선택됩니다</p>
+        {mapStatus === 'loading' && (
+          <div className={styles.mapPickerLoading}><div className={styles.spinner} /></div>
+        )}
+        {mapStatus === 'error' && (
+          <div className={styles.mapPickerLoading}>
+            <p style={{ color: '#E53E3E', fontSize: 14 }}>지도를 불러오지 못했습니다.</p>
+          </div>
+        )}
+        <div ref={mapRef} className={styles.mapPickerMap} />
+      </div>
+    </div>
+  );
 }
 
 /* ── 글쓰기/수정 모달 ──────────────────────────────────────────── */
@@ -69,6 +161,7 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
   const [serverError, setServerError] = useState('');
   const [saving, setSaving] = useState(false);
   const [pointDropOpen, setPointDropOpen] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,15 +185,31 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
     setErrors({});
     setServerError('');
     setPointDropOpen(false);
+    setMapPickerOpen(false);
   }, [open, editTarget, points]);
+
+  const handleMapSelect = (fp: MigratoryFishPointMapMarker) => {
+    setForm(prev => ({
+      ...prev,
+      migratoryPointId: fp.id,
+      selectedPointName: fp.name,
+      selectedProvince: fp.province,
+    }));
+    setErrors(prev => ({ ...prev, migratoryPointId: undefined }));
+    setMapPickerOpen(false);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { if (pointDropOpen) setPointDropOpen(false); else onClose(); }
+      if (e.key === 'Escape') {
+        if (mapPickerOpen) { setMapPickerOpen(false); return; }
+        if (pointDropOpen) { setPointDropOpen(false); return; }
+        onClose();
+      }
     };
     if (open) document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose, pointDropOpen]);
+  }, [open, onClose, pointDropOpen, mapPickerOpen]);
 
   useEffect(() => {
     if (!pointDropOpen) return;
@@ -256,6 +365,13 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
                   </div>
                 )}
               </div>
+              <button
+                type="button"
+                className={styles.mapSelectBtn}
+                onClick={() => setMapPickerOpen(true)}
+              >
+                🗺️ 지도로 선택하기
+              </button>
             </div>
           </div>
 
@@ -268,7 +384,9 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
               onChange={e => set('content', e.target.value)}
               placeholder="조황 내용을 공유해 주세요"
               rows={5}
+              maxLength={1000}
             />
+            <span className={styles.charCount}>{form.content.length}/1000자</span>
             {errors.content && <p className={styles.errorMsg}>{errors.content}</p>}
           </div>
 
@@ -294,13 +412,21 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
           </button>
         </div>
       </div>
+
+      {mapPickerOpen && (
+        <FishingPostMapPicker
+          points={points}
+          onSelect={handleMapSelect}
+          onClose={() => setMapPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
 /* ── 메인 페이지 ─────────────────────────────────────────────────── */
 export default function FishingPostPage() {
-  const { isLoggedIn, isAdmin, userId } = useAuth();
+  const { isLoggedIn, isAdmin, isModerator, userId } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -325,6 +451,7 @@ export default function FishingPostPage() {
   const [commentInput, setCommentInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; nickname: string } | null>(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentReportTarget, setCommentReportTarget] = useState<{ id: string; content: string } | null>(null);
 
   const fetchList = useCallback(async (page: number) => {
     setLoading(true);
@@ -421,21 +548,24 @@ export default function FishingPostPage() {
       <Header />
       <div className={styles.inner}>
 
+        <div className={styles.pageHeader}>
+          <div>
+            <h1 className={styles.pageTitle}>🐟 조황 게시판</h1>
+            <p className={styles.pageDesc}>
+              낚시 조황을 공유하고 정보를 나눠보세요.
+              {view === 'list' && totalElements > 0 && <span className={styles.totalCount}> 총 {totalElements}개</span>}
+            </p>
+          </div>
+          {view === 'list' && isLoggedIn && (
+            <button className={styles.createBtn} onClick={openCreate}>글쓰기</button>
+          )}
+          {view === 'detail' && (
+            <button className={styles.iconActionBtn} onClick={() => setView('list')}>← 목록</button>
+          )}
+        </div>
+
         {view === 'list' && (
           <>
-            <div className={styles.pageHeader}>
-              <div>
-                <h1 className={styles.pageTitle}>🐟 조황 게시판</h1>
-                <p className={styles.pageDesc}>
-                  낚시 조황을 공유하고 정보를 나눠보세요.
-                  {totalElements > 0 && <span className={styles.totalCount}> 총 {totalElements}개</span>}
-                </p>
-              </div>
-              {isLoggedIn && (
-                <button className={styles.createBtn} onClick={openCreate}>글쓰기</button>
-              )}
-            </div>
-
             {error && <p className={styles.error}>{error}</p>}
 
             {loading ? (
@@ -447,14 +577,20 @@ export default function FishingPostPage() {
                 <div className={styles.list}>
                   {items.map((item) => (
                     <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
-                      <span className={styles.listTitle}>{item.title}</span>
-                      <span className={styles.listMeta}>
-                        {item.pointName && <span className={styles.listPoint}>📍 {item.pointName}</span>}
-                        {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷</span>}
-                        {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
-                        <AuthorLabel nickname={item.authorNickname} />
+                      <div className={styles.listTop}>
+                        <span className={styles.listTitle}>{item.title}</span>
                         <span className={styles.listDate}>{formatDate(item.createdAt)}</span>
-                      </span>
+                      </div>
+                      <div className={styles.listBottom}>
+                        {item.pointName
+                          ? <span className={styles.listPoint}>📍 {item.pointName}</span>
+                          : <span className={styles.listNoPoint}>포인트 미지정</span>}
+                        <div className={styles.listMeta}>
+                          {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷</span>}
+                          {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
+                          <AuthorLabel nickname={item.authorNickname} />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -480,77 +616,108 @@ export default function FishingPostPage() {
             {detailLoading || !detail ? (
               <p className={styles.empty}>불러오는 중...</p>
             ) : (
-              <>
+              <div className={styles.detailCard}>
                 <div className={styles.detailHeader}>
-                  <h2 className={styles.detailTitle}>{detail.title}</h2>
+                  <div className={styles.detailTitleRow}>
+                    <h2 className={styles.detailTitle}>{detail.title}</h2>
+                    <div className={styles.detailTopActions}>
+                      {isLoggedIn && (
+                        <>
+                          <button className={styles.iconActionBtn} onClick={openEdit}><span>✏️</span>수정</button>
+                          <button className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`} onClick={handleDelete}><span>🗑️</span>삭제</button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                   <div className={styles.detailMeta}>
-                    <AuthorLabel nickname={detail.authorNickname} />
-                    {detail.caughtAt && <span>🗓 {detail.caughtAt}</span>}
-                    {detail.pointName && <span>📍 {detail.pointName}</span>}
+                    <span className={styles.authorChip}>
+                      <span className={styles.authorAvatar}>{detail.authorNickname.charAt(0)}</span>
+                      {detail.authorNickname}
+                    </span>
+                    {detail.caughtAt && (
+                      <>
+                        <span className={styles.metaDot}>·</span>
+                        <span>🗓 {detail.caughtAt}</span>
+                      </>
+                    )}
+                    {detail.pointName && (
+                      <>
+                        <span className={styles.metaDot}>·</span>
+                        <span className={styles.metaPoint}>📍 {detail.pointName}</span>
+                      </>
+                    )}
+                    <span className={styles.metaDot}>·</span>
                     <span>{formatDate(detail.createdAt)}</span>
                     {detail.updatedAt && detail.updatedAt !== detail.createdAt && (
-                      <span>(수정됨 {formatDate(detail.updatedAt)})</span>
+                      <>
+                        <span className={styles.metaDot}>·</span>
+                        <span>수정됨 {formatDate(detail.updatedAt)}</span>
+                      </>
                     )}
                   </div>
                 </div>
 
+                <h3 className={styles.contentLabel}>📝 게시물 내용</h3>
+                <p className={styles.detailContent}>{detail.content}</p>
+
                 {detail.photoUrls?.length > 0 && (
-                  <div className={styles.photoGrid}>
+                  <div className={`${styles.photoGrid} ${detail.photoUrls.length === 1 ? styles.photoGridSingle : ''}`}>
                     {detail.photoUrls.map((url, i) => (
-                      <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo}
-                        style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
+                      <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.detailPhoto}
+                        onClick={() => setLbIdx(i)} />
                     ))}
                   </div>
                 )}
 
-                <p className={styles.detailContent}>{detail.content}</p>
-
-                <div className={styles.detailActions}>
-                  {isLoggedIn && (
-                    <>
-                      <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
-                      <button className={styles.editBtn} onClick={openEdit}>수정</button>
-                    </>
-                  )}
-                  <button className={styles.backBtn} onClick={() => setView('list')}>목록으로</button>
-                </div>
-
                 {/* 댓글 영역 */}
                 <div className={styles.commentSection}>
-                  <h4 className={styles.commentTitle}>댓글 {comments.length}개</h4>
+                  <h4 className={styles.commentTitle}>댓글 <span className={styles.commentCountNum}>{comments.filter(c => !c.deleted).length}</span></h4>
 
                   {comments.filter(c => !c.parentId).map(c => (
                     <div key={c.id} className={styles.comment}>
-                      <div className={styles.commentHeader}>
-                        <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                        <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
-                        <div className={styles.commentActions}>
-                          {isLoggedIn && (
-                            <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
-                          )}
-                          {(isAdmin || c.authorId === userId) && (
-                            <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
-                          )}
-                        </div>
-                      </div>
-                      <p className={styles.commentContent}>{c.content}</p>
-
-                      {getDescendants(c.id).map(r => (
-                        <div key={r.id} className={styles.reply}>
+                      {c.deleted ? (
+                        <p className={styles.deletedComment}>삭제된 댓글입니다.</p>
+                      ) : (
+                        <>
                           <div className={styles.commentHeader}>
-                            <span className={styles.replyArrow}>↳</span>
-                            <span className={styles.commentAuthor}>{r.authorNickname}</span>
-                            <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                            <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
+                            <span className={styles.commentAuthor}>{c.authorNickname}</span>
+                            <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
                             <div className={styles.commentActions}>
-                              {isLoggedIn && (
-                                <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
-                              )}
-                              {(isAdmin || r.authorId === userId) && (
-                                <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                              {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>}
+                              {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: c.id, content: c.content })}>신고</button>}
+                              {(isAdmin || isModerator || c.authorId === userId) && (
+                                <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
                               )}
                             </div>
                           </div>
-                          <p className={styles.commentContent}>{r.content}</p>
+                          <p className={styles.commentContent}>{c.content}</p>
+                        </>
+                      )}
+
+                      {getDescendants(c.id).map(r => (
+                        <div key={r.id} className={styles.reply}>
+                          {r.deleted ? (
+                            <p className={styles.deletedComment}>삭제된 댓글입니다.</p>
+                          ) : (
+                            <>
+                              <div className={styles.commentHeader}>
+                                <span className={styles.replyArrow}>↳</span>
+                                <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
+                                <span className={styles.commentAuthor}>{r.authorNickname}</span>
+                                <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                                <div className={styles.commentActions}>
+                                  {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>}
+                                  {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: r.id, content: r.content })}>신고</button>}
+                                  {(isAdmin || isModerator || r.authorId === userId) && (
+                                    <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                                  )}
+                                </div>
+                              </div>
+                              <p className={styles.commentContent}>{r.content}</p>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -582,7 +749,7 @@ export default function FishingPostPage() {
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
           </>
         )}
@@ -603,6 +770,15 @@ export default function FishingPostPage() {
           onClose={() => setLbIdx(null)}
           onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
           onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
+        />
+      )}
+      {commentReportTarget && detail && (
+        <ReportModal
+          postId={commentReportTarget.id}
+          postType="FISHING_COMMENT"
+          postTitle={commentReportTarget.content.slice(0, 100)}
+          parentPostId={detail.id}
+          onClose={() => setCommentReportTarget(null)}
         />
       )}
     </div>
