@@ -17,10 +17,11 @@ import {
   type MigratorySpecies, type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
+import ReportModal from '../components/common/ReportModal';
 import styles from './MigratoryPostPage.module.css';
 
 type View = 'list' | 'detail';
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -150,6 +151,9 @@ interface FormState {
   migratoryPointId: string;
   selectedPointName: string;
   photoUrls: string[];
+  lure: string;
+  fishSize: string;
+  action: string;
 }
 
 interface PostFormModalProps {
@@ -164,6 +168,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
   const [form, setForm] = useState<FormState>({
     title: '', content: '', species: [], caughtAt: todayStr(),
     selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [],
+    lure: '', fishSize: '', action: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState('');
@@ -185,9 +190,12 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
         migratoryPointId: editTarget.migratoryPointId,
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         photoUrls: editTarget.photoUrls ?? [],
+        lure: editTarget.lure ?? '',
+        fishSize: editTarget.fishSize ?? '',
+        action: editTarget.action ?? '',
       });
     } else {
-      setForm({ title: '', content: '', species: [], caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [] });
+      setForm({ title: '', content: '', species: [], caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [], lure: '', fishSize: '', action: '' });
     }
     setErrors({});
     setServerError('');
@@ -259,6 +267,9 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
       caughtAt: form.caughtAt || undefined,
       migratoryPointId: form.migratoryPointId,
       photoUrls: form.photoUrls.length > 0 ? form.photoUrls : undefined,
+      lure: form.lure.trim() || null,
+      fishSize: form.fishSize.trim() || null,
+      action: form.action.trim() || null,
     };
     try {
       if (editTarget) {
@@ -428,7 +439,9 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                 onChange={e => set('content', e.target.value)}
                 placeholder="조황 내용을 입력하세요"
                 rows={5}
+                maxLength={1000}
               />
+              <span className={styles.charCount}>{form.content.length}/1000자</span>
               {errors.content && <p className={styles.errorMsg}>{errors.content}</p>}
             </div>
 
@@ -442,6 +455,28 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                 maxPhotos={3}
                 disabled={saving}
               />
+            </div>
+
+            {/* 루어 / 어종 크기 / 사용한 액션 (선택) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div className={styles.field}>
+                <label className={styles.label}>루어 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                <input className={styles.input}
+                  value={form.lure} onChange={e => set('lure', e.target.value)}
+                  placeholder="예: 바이브 20g" maxLength={100} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>어종 크기 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                <input className={styles.input}
+                  value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
+                  placeholder="예: 45cm, 1.2kg" maxLength={50} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>사용한 액션 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                <input className={styles.input}
+                  value={form.action} onChange={e => set('action', e.target.value)}
+                  placeholder="예: 저킹, 슬로우롤" maxLength={100} />
+              </div>
             </div>
 
             {serverError && <p className={styles.serverError}>{serverError}</p>}
@@ -469,7 +504,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
 
 /* ── 메인 페이지 ─────────────────────────────────────────────── */
 export default function MigratoryPostPage() {
-  const { isLoggedIn, userId } = useAuth();
+  const { isLoggedIn, userId, isAdmin, isModerator } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -494,6 +529,8 @@ export default function MigratoryPostPage() {
   const [commentInput, setCommentInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; nickname: string } | null>(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [commentReportTarget, setCommentReportTarget] = useState<{ id: string; content: string } | null>(null);
 
   const fetchList = useCallback(async (page: number) => {
     setLoading(true);
@@ -615,7 +652,7 @@ export default function MigratoryPostPage() {
     }
   };
 
-  const isOwner = detail?.authorId === userId;
+  const isOwner = detail?.authorId === userId || isAdmin || isModerator;
 
   const pageNums = (() => {
     const start = Math.max(0, currentPage - 2);
@@ -661,14 +698,20 @@ export default function MigratoryPostPage() {
               <div className={styles.list}>
                 {items.map(item => (
                   <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
-                    <span className={styles.speciesBadge}>{item.speciesDisplayNames?.join('·') ?? ''}</span>
-                    <span className={styles.listTitle}>{item.title}</span>
-                    <div className={styles.listMeta}>
-                      {item.pointName && <span className={styles.listPoint}>📍 {item.pointName}</span>}
-                      <span className={styles.authorNickname}>{item.authorNickname}</span>
+                    <div className={styles.listTop}>
+                      <span className={styles.speciesBadge}>{item.speciesDisplayNames?.join('·') ?? ''}</span>
+                      <span className={styles.listTitle}>{item.title}</span>
                       <span className={styles.listDate}>{item.caughtAt}</span>
-                      {item.photoUrls?.length > 0 && <span className={styles.photoIcon}>📷 {item.photoUrls.length}</span>}
-                      <span className={styles.commentCount}>💬 {item.commentCount ?? 0}</span>
+                    </div>
+                    <div className={styles.listBottom}>
+                      {item.pointName
+                        ? <span className={styles.listPoint}>📍 {item.pointName}</span>
+                        : <span className={styles.listNoPoint}>포인트 미지정</span>}
+                      <div className={styles.listMeta}>
+                        <span className={styles.authorNickname}>{item.authorNickname}</span>
+                        {item.photoUrls?.length > 0 && <span className={styles.photoIcon}>📷 {item.photoUrls.length}</span>}
+                        <span className={styles.commentCount}>💬 {item.commentCount ?? 0}</span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -702,76 +745,135 @@ export default function MigratoryPostPage() {
             {detailLoading ? (
               <div className={styles.loading}><div className={styles.spinner} /></div>
             ) : detail ? (
-              <>
+              <div className={styles.detailCard}>
                 <div className={styles.detailHeader}>
-                  <div>
-                    <span className={styles.speciesBadge}>{detail.speciesDisplayNames?.join('·') ?? ''}</span>
+                  <div className={styles.detailTitleRow}>
+                    <h2 className={styles.detailTitle}>{detail.title}</h2>
+                    {isLoggedIn && (
+                      <div className={styles.detailTopActions}>
+                        {isOwner && (
+                          <button className={styles.iconActionBtn} onClick={openEdit} title="수정">
+                            <span>✏️</span>수정
+                          </button>
+                        )}
+                        {isOwner && (
+                          <button className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`} onClick={handleDelete} title="삭제">
+                            <span>🗑️</span>삭제
+                          </button>
+                        )}
+                        <button className={styles.iconActionBtn} onClick={() => setReportOpen(true)} title="신고하기">
+                          <span>🚨</span>신고
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <h2 className={styles.detailTitle}>{detail.title}</h2>
+
                   <div className={styles.detailMeta}>
-                    <span>{detail.authorNickname}</span>
-                    <span>·</span>
-                    <span>잡은 날짜: {detail.caughtAt}</span>
-                    {detail.pointName && <><span>·</span><span>📍 {detail.pointName}</span></>}
-                    <span>·</span>
-                    <span>작성: {formatDate(detail.createdAt)}</span>
+                    <span className={styles.authorChip}>
+                      <span className={styles.authorAvatar}>{detail.authorNickname.charAt(0)}</span>
+                      {detail.authorNickname}
+                    </span>
+                    <span className={styles.metaDot}>·</span>
+                    <span>잡은 날짜 {detail.caughtAt}</span>
+                    {detail.pointName && (
+                      <>
+                        <span className={styles.metaDot}>·</span>
+                        <span className={styles.metaPoint}>📍 {detail.pointName}</span>
+                      </>
+                    )}
+                    <span className={styles.metaDot}>·</span>
+                    <span>작성 {formatDate(detail.createdAt)}</span>
                   </div>
+
+                  <span className={styles.speciesBadge}>잡은 어종 {detail.speciesDisplayNames?.join('·') ?? ''}</span>
+
+                  {(detail.lure || detail.fishSize || detail.action) && (
+                    <div className={styles.statGrid}>
+                      {detail.fishSize && (
+                        <div className={styles.statCard}>
+                          <span className={styles.statIcon}>📏</span>
+                          <span className={styles.statLabel}>크기</span>
+                          <span className={styles.statValue}>{detail.fishSize}</span>
+                        </div>
+                      )}
+                      {detail.lure && (
+                        <div className={styles.statCard}>
+                          <span className={styles.statIcon}>🎣</span>
+                          <span className={styles.statLabel}>루어</span>
+                          <span className={styles.statValue}>{detail.lure}</span>
+                        </div>
+                      )}
+                      {detail.action && (
+                        <div className={styles.statCard}>
+                          <span className={styles.statIcon}>💫</span>
+                          <span className={styles.statLabel}>액션</span>
+                          <span className={styles.statValue}>{detail.action}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {detail.photoUrls?.length > 0 && (
-                  <div className={styles.photoGrid}>
-                    {detail.photoUrls.map((url, i) => (
-                      <img key={i} src={url} alt={`조황 사진 ${i + 1}`} className={styles.detailPhoto}
-                        style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
-                    ))}
-                  </div>
-                )}
-
+                <h3 className={styles.contentLabel}>📝 게시물 내용</h3>
                 <p className={styles.detailContent}>{detail.content}</p>
 
-                {isOwner && (
-                  <div className={styles.detailActions}>
-                    <button className={styles.editBtn} onClick={openEdit}>수정</button>
-                    <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
+                {detail.photoUrls?.length > 0 && (
+                  <div className={`${styles.photoGrid} ${detail.photoUrls.length === 1 ? styles.photoGridSingle : ''}`}>
+                    {detail.photoUrls.map((url, i) => (
+                      <img key={i} src={url} alt={`조황 사진 ${i + 1}`} className={styles.detailPhoto}
+                        onClick={() => setLbIdx(i)} />
+                    ))}
                   </div>
                 )}
 
                 {/* ── 댓글 ── */}
                 <div className={styles.commentSection}>
-                  <h4 className={styles.commentTitle}>댓글 {comments.length}개</h4>
+                  <h4 className={styles.commentTitle}>댓글 <span className={styles.commentCountNum}>{comments.filter(c => !c.deleted).length}</span></h4>
 
                   {comments.filter(c => !c.parentId).map(c => (
                     <div key={c.id} className={styles.comment}>
-                      <div className={styles.commentHeader}>
-                        <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                        <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
-                        <div className={styles.commentActions}>
-                          {isLoggedIn && (
-                            <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
-                          )}
-                          {(c.authorId === userId) && (
-                            <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
-                          )}
-                        </div>
-                      </div>
-                      <p className={styles.commentContent}>{c.content}</p>
-
-                      {getDescendants(c.id).map(r => (
-                        <div key={r.id} className={styles.reply}>
+                      {c.deleted ? (
+                        <p className={styles.deletedComment}>삭제된 댓글입니다.</p>
+                      ) : (
+                        <>
                           <div className={styles.commentHeader}>
-                            <span className={styles.replyArrow}>↳</span>
-                            <span className={styles.commentAuthor}>{r.authorNickname}</span>
-                            <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                            <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
+                            <span className={styles.commentAuthor}>{c.authorNickname}</span>
+                            <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
                             <div className={styles.commentActions}>
-                              {isLoggedIn && (
-                                <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
-                              )}
-                              {(r.authorId === userId) && (
-                                <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                              {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>}
+                              {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: c.id, content: c.content })}>신고</button>}
+                              {(isOwner || isAdmin || isModerator || c.authorId === userId) && (
+                                <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
                               )}
                             </div>
                           </div>
-                          <p className={styles.commentContent}>{r.content}</p>
+                          <p className={styles.commentContent}>{c.content}</p>
+                        </>
+                      )}
+
+                      {getDescendants(c.id).map(r => (
+                        <div key={r.id} className={styles.reply}>
+                          {r.deleted ? (
+                            <p className={styles.deletedComment}>삭제된 댓글입니다.</p>
+                          ) : (
+                            <>
+                              <div className={styles.commentHeader}>
+                                <span className={styles.replyArrow}>↳</span>
+                                <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
+                                <span className={styles.commentAuthor}>{r.authorNickname}</span>
+                                <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                                <div className={styles.commentActions}>
+                                  {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>}
+                                  {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: r.id, content: r.content })}>신고</button>}
+                                  {(isAdmin || isModerator || r.authorId === userId) && (
+                                    <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                                  )}
+                                </div>
+                              </div>
+                              <p className={styles.commentContent}>{r.content}</p>
+                            </>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -803,7 +905,7 @@ export default function MigratoryPostPage() {
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             ) : null}
           </>
         )}
@@ -823,6 +925,23 @@ export default function MigratoryPostPage() {
           onClose={() => setLbIdx(null)}
           onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
           onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
+        />
+      )}
+      {reportOpen && detail && (
+        <ReportModal
+          postId={detail.id}
+          postType="MIGRATORY_POST"
+          postTitle={detail.title}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
+      {commentReportTarget && detail && (
+        <ReportModal
+          postId={commentReportTarget.id}
+          postType="MIGRATORY_COMMENT"
+          postTitle={commentReportTarget.content.slice(0, 100)}
+          parentPostId={detail.id}
+          onClose={() => setCommentReportTarget(null)}
         />
       )}
     </div>
