@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/common/PrivateRoute';
 import Footer from './components/common/Footer';
+import ScrollToTop from './components/common/ScrollToTop';
 import HomePage from './pages/HomePage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NicknamePage from './pages/NicknamePage';
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <NicknameGuard>
           <Routes>
             <Route path="/" element={<HomePage />} />
