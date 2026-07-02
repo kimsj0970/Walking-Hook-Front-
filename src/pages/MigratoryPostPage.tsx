@@ -430,6 +430,28 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
               </div>
             </div>
 
+            {/* 루어 / 어종 크기 / 사용한 액션 (선택) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+              <div className={styles.field}>
+                <label className={styles.label}>루어 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                <input className={styles.input}
+                  value={form.lure} onChange={e => set('lure', e.target.value)}
+                  placeholder="예: 바이브 20g" maxLength={100} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>어종 크기 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                <input className={styles.input}
+                  value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
+                  placeholder="예: 45cm, 1.2kg" maxLength={50} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label}>사용한 액션 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
+                <input className={styles.input}
+                  value={form.action} onChange={e => set('action', e.target.value)}
+                  placeholder="예: 저킹, 슬로우롤" maxLength={100} />
+              </div>
+            </div>
+
             {/* 내용 */}
             <div className={styles.field}>
               <label className={styles.label}>내용 <span className={styles.required}>*</span></label>
@@ -455,28 +477,6 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                 maxPhotos={3}
                 disabled={saving}
               />
-            </div>
-
-            {/* 루어 / 어종 크기 / 사용한 액션 (선택) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              <div className={styles.field}>
-                <label className={styles.label}>루어 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                <input className={styles.input}
-                  value={form.lure} onChange={e => set('lure', e.target.value)}
-                  placeholder="예: 바이브 20g" maxLength={100} />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>어종 크기 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                <input className={styles.input}
-                  value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
-                  placeholder="예: 45cm, 1.2kg" maxLength={50} />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label}>사용한 액션 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                <input className={styles.input}
-                  value={form.action} onChange={e => set('action', e.target.value)}
-                  placeholder="예: 저킹, 슬로우롤" maxLength={100} />
-              </div>
             </div>
 
             {serverError && <p className={styles.serverError}>{serverError}</p>}
