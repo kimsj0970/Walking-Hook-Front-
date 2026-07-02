@@ -176,17 +176,24 @@ export default function FishingZoneManagementPage() {
         });
         kakaoMapRef.current = map;
 
-        // 낚시 포인트 마커 (파란색)
-        fishingPoints.forEach((fp: FishingPointMapMarker) => {
+        // 낚시 포인트 마커 (파란색) — 클러스터링 적용
+        const fishingPointMarkers = fishingPoints.map((fp: FishingPointMapMarker) => {
           const marker = new kakao.maps.Marker({
             position: new kakao.maps.LatLng(fp.latitude, fp.longitude),
-            map,
           });
           const iw = new kakao.maps.InfoWindow({
             content: `<div style="padding:8px 12px;font-size:13px;font-weight:700;color:#0B3D91;">${escapeHtml(fp.name)}</div>`,
             removable: true,
           });
           kakao.maps.event.addListener(marker, 'click', () => iw.open(map, marker));
+          return marker;
+        });
+        new kakao.maps.MarkerClusterer({
+          map,
+          markers: fishingPointMarkers,
+          gridSize: 60,
+          averageCenter: true,
+          minLevel: 5,
         });
 
         setZones(initialZones);
