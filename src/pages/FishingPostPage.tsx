@@ -67,11 +67,20 @@ function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
   const onSelectRef = useRef(onSelect);
   useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
 
-  // 모달 열린 동안 배경 스크롤 잠금
+  // iOS Safari 포함 배경 스크롤 완전 차단
   useEffect(() => {
-    const saved = document.body.style.overflow;
+    const scrollY = window.scrollY;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = saved; };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
   }, []);
 
   useEffect(() => {
@@ -145,6 +154,9 @@ interface FishingFormState {
   selectedPointName: string;
   photoUrls: string[];
   caughtAt: string;
+  lure: string;
+  fishSize: string;
+  action: string;
 }
 
 interface FishingPostFormModalProps {
@@ -159,6 +171,7 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
   const [form, setForm] = useState<FishingFormState>({
     title: '', content: '', selectedProvince: '',
     migratoryPointId: '', selectedPointName: '', photoUrls: [], caughtAt: todayStr(),
+    lure: '', fishSize: '', action: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FishingFormState, string>>>({});
   const [serverError, setServerError] = useState('');
@@ -181,9 +194,15 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         photoUrls: editTarget.photoUrls ?? [],
         caughtAt: editTarget.caughtAt ?? todayStr(),
+        lure: editTarget.lure ?? '',
+        fishSize: editTarget.fishSize ?? '',
+        action: editTarget.action ?? '',
       });
     } else {
-      setForm({ title: '', content: '', selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [], caughtAt: todayStr() });
+      setForm({
+        title: '', content: '', selectedProvince: '', migratoryPointId: '', selectedPointName: '',
+        photoUrls: [], caughtAt: todayStr(), lure: '', fishSize: '', action: '',
+      });
     }
     setErrors({});
     setServerError('');
@@ -248,11 +267,14 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
     setServerError('');
     const pointId = form.migratoryPointId || undefined;
     const caughtAt = form.caughtAt || undefined;
+    const lure = form.lure.trim() || undefined;
+    const fishSize = form.fishSize.trim() || undefined;
+    const action = form.action.trim() || undefined;
     try {
       if (editTarget) {
-        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt);
+        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
       } else {
-        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt);
+        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
       }
       onSaved();
     } catch {
@@ -375,6 +397,28 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
               >
                 🗺️ 지도로 선택하기
               </button>
+            </div>
+          </div>
+
+          {/* 루어 / 어종 크기 / 사용한 액션 (선택) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>루어 <span className={styles.fieldHint}>(선택)</span></label>
+              <input className={styles.fieldInput}
+                value={form.lure} onChange={e => set('lure', e.target.value)}
+                placeholder="예: 바이브 20g" maxLength={100} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>어종 크기 <span className={styles.fieldHint}>(선택)</span></label>
+              <input className={styles.fieldInput}
+                value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
+                placeholder="예: 45cm, 1.2kg" maxLength={50} />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.fieldLabel}>사용한 액션 <span className={styles.fieldHint}>(선택)</span></label>
+              <input className={styles.fieldInput}
+                value={form.action} onChange={e => set('action', e.target.value)}
+                placeholder="예: 저킹, 슬로우롤" maxLength={100} />
             </div>
           </div>
 
@@ -665,6 +709,32 @@ export default function FishingPostPage() {
                       </>
                     )}
                   </div>
+
+                  {(detail.lure || detail.fishSize || detail.action) && (
+                    <div className={styles.statGrid}>
+                      {detail.fishSize && (
+                        <div className={styles.statCard}>
+                          <span className={styles.statIcon}>📏</span>
+                          <span className={styles.statLabel}>크기</span>
+                          <span className={styles.statValue}>{detail.fishSize}</span>
+                        </div>
+                      )}
+                      {detail.lure && (
+                        <div className={styles.statCard}>
+                          <span className={styles.statIcon}>🎣</span>
+                          <span className={styles.statLabel}>루어</span>
+                          <span className={styles.statValue}>{detail.lure}</span>
+                        </div>
+                      )}
+                      {detail.action && (
+                        <div className={styles.statCard}>
+                          <span className={styles.statIcon}>💫</span>
+                          <span className={styles.statLabel}>액션</span>
+                          <span className={styles.statValue}>{detail.action}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <h3 className={styles.contentLabel}>📝 게시물 내용</h3>
