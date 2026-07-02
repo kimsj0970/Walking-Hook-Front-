@@ -241,6 +241,13 @@ export default function AdminMapPage() {
             level: 13,
           });
 
+          // 생성 시점에 컨테이너 레이아웃이 아직 확정되지 않으면 지도 타일이
+          // 실제 크기보다 작게 잡혀 아래쪽이 빈 칸으로 보이는 문제가 있어 보정한다.
+          requestAnimationFrame(() => {
+            map.relayout();
+            map.setCenter(map.getCenter());
+          });
+
           const markerSize = new kakao.maps.Size(28, 38);
 
           function addMarker<T extends { latitude: number; longitude: number }>(
