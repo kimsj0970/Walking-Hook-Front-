@@ -13,7 +13,7 @@ import {
 } from '../api/migratoryPostApi';
 import {
   fetchMigratoryFishPointMapMarkers,
-  MIGRATORY_SPECIES_OPTIONS, MIGRATORY_SPECIES_LABELS,
+  MIGRATORY_SPECIES_OPTIONS,
   type MigratorySpecies, type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
@@ -257,14 +257,16 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
   useEffect(() => {
     if (!open) return;
     if (editTarget) {
-      const pt = points.find(p => p.id === editTarget.migratoryPointId);
+      const pt = editTarget.migratoryPointId
+        ? points.find(p => p.id === editTarget.migratoryPointId)
+        : undefined;
       setForm({
         title: editTarget.title,
         content: editTarget.content,
         species: editTarget.species,
         caughtAt: editTarget.caughtAt,
         selectedProvince: pt?.province ?? '',
-        migratoryPointId: editTarget.migratoryPointId,
+        migratoryPointId: editTarget.migratoryPointId ?? '',
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         photoUrls: editTarget.photoUrls ?? [],
         lure: editTarget.lure ?? '',
@@ -328,7 +330,6 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
     if (!form.title.trim()) e.title = '제목을 입력하세요.';
     if (!form.content.trim()) e.content = '내용을 입력하세요.';
     if (form.species.length === 0) e.species = '어종을 1개 이상 선택하세요.';
-    if (!form.migratoryPointId) e.migratoryPointId = '포인트를 선택하세요.';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -342,7 +343,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
       content: form.content.trim(),
       species: form.species,
       caughtAt: form.caughtAt || undefined,
-      migratoryPointId: form.migratoryPointId,
+      migratoryPointId: form.migratoryPointId || undefined,
       photoUrls: form.photoUrls.length > 0 ? form.photoUrls : undefined,
       lure: form.lure.trim() || null,
       fishSize: form.fishSize.trim() || null,
@@ -428,7 +429,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
             {/* 시/도 선택 → 낚시 포인트 선택 */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
               <div className={styles.field}>
-                <label className={styles.label}>시/도 <span className={styles.required}>*</span></label>
+                <label className={styles.label}>시/도</label>
                 <select
                   className={styles.select}
                   value={form.selectedProvince}
@@ -440,7 +441,6 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                       migratoryPointId: '',
                       selectedPointName: '',
                     }));
-                    setErrors(prev => ({ ...prev, migratoryPointId: undefined }));
                     setPointDropOpen(false);
                   }}
                 >
@@ -452,11 +452,11 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
               </div>
 
               <div className={styles.field}>
-                <label className={styles.label}>낚시 포인트 <span className={styles.required}>*</span></label>
+                <label className={styles.label}>낚시 포인트 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
                 <div className={styles.pointDropdown} ref={dropRef}>
                   <button
                     type="button"
-                    className={`${styles.pointSelectBtn} ${errors.migratoryPointId ? styles.pointSelectBtnError : ''}`}
+                    className={styles.pointSelectBtn}
                     onClick={() => { if (form.selectedProvince) setPointDropOpen(v => !v); }}
                     disabled={!form.selectedProvince}
                     style={!form.selectedProvince ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
@@ -470,6 +470,16 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                   </button>
                   {pointDropOpen && form.selectedProvince && (
                     <div className={styles.pointList}>
+                      <div
+                        className={`${styles.pointListItem} ${!form.migratoryPointId ? styles.pointListItemSelected : ''}`}
+                        onClick={() => {
+                          set('migratoryPointId', '');
+                          set('selectedPointName', '');
+                          setPointDropOpen(false);
+                        }}
+                      >
+                        <span style={{ color: 'var(--color-text-muted)' }}>포인트 없음</span>
+                      </div>
                       {filteredPoints.length === 0 ? (
                         <div className={styles.pointListItem} style={{ cursor: 'default', color: 'var(--color-text-muted)' }}>
                           {PROVINCE_LABELS[form.selectedProvince as Province]}에 등록된 포인트가 없습니다
@@ -481,20 +491,15 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                           onClick={() => {
                             set('migratoryPointId', p.id);
                             set('selectedPointName', p.name);
-                            setErrors(prev => ({ ...prev, migratoryPointId: undefined }));
                             setPointDropOpen(false);
                           }}
                         >
                           <span>{p.name}</span>
-                          <span className={styles.pointListItemRegion}>
-                            {p.targetSpecies.map(s => MIGRATORY_SPECIES_LABELS[s]).join('·')}
-                          </span>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-                {errors.migratoryPointId && <p className={styles.errorMsg}>{errors.migratoryPointId}</p>}
 
                 {/* 지도로 선택 버튼 */}
                 <button
