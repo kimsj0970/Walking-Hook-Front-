@@ -1,5 +1,6 @@
 import api from './authApi';
 import type { Province, TerrainType } from './fishingPointApi';
+import type { PageResult } from './noticeApi';
 
 export type MigratorySpecies = 'SAMCHI' | 'BANGEO' | 'BUSSIRI' | 'JATBANGEO' | 'MACKEREL' | 'TUNA';
 
@@ -70,9 +71,21 @@ export type MigratoryFishPointUpdateRequest = Partial<MigratoryFishPointCreateRe
 
 // ── Admin API ──────────────────────────────────────────────────────────────
 
-export async function fetchMigratoryFishPoints(): Promise<MigratoryFishPointSummary[]> {
-  const { data } = await api.get('/admin/migratory-fish-points');
-  return (data.data ?? []) as MigratoryFishPointSummary[];
+export async function fetchMigratoryFishPoints(
+  page: number, size = 15, name?: string
+): Promise<PageResult<MigratoryFishPointSummary>> {
+  const { data } = await api.get('/admin/migratory-fish-points', {
+    params: { page, size, name: name || undefined },
+  });
+  return data.data as PageResult<MigratoryFishPointSummary>;
+}
+
+/** 등록된 전체 포인트 조회 — 지도에 참고 핀으로 모두 표시할 때 사용 (페이지네이션 없이 전체) */
+export async function fetchAllMigratoryFishPoints(): Promise<MigratoryFishPointSummary[]> {
+  const { data } = await api.get('/admin/migratory-fish-points', {
+    params: { page: 0, size: 1000 },
+  });
+  return ((data.data as PageResult<MigratoryFishPointSummary>)?.content ?? []);
 }
 
 export async function getMigratoryFishPoint(id: string): Promise<MigratoryFishPointDetail> {
