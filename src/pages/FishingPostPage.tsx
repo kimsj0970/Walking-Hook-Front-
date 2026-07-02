@@ -11,7 +11,6 @@ import {
 } from '../api/fishingPostApi';
 import {
   fetchMigratoryFishPointMapMarkers,
-  MIGRATORY_SPECIES_LABELS,
   type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
@@ -455,9 +454,6 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
                         }}
                       >
                         <span>{p.name}</span>
-                        <span className={styles.pointListItemRegion}>
-                          {p.targetSpecies.map(s => MIGRATORY_SPECIES_LABELS[s]).join('·')}
-                        </span>
                       </div>
                     ))}
                   </div>
