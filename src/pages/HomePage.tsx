@@ -1374,6 +1374,13 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           level: 12,
         });
 
+        // 모달이 막 열리는 시점엔 컨테이너 레이아웃이 아직 확정되지 않아
+        // 지도 타일이 실제 크기보다 작게 잡히는 문제가 있어 보정한다.
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(map.getCenter());
+        });
+
         // ── 낚시 금지·제한구역 폴리곤 ──────────────────────────────
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (fishingZones as any[]).forEach((zone: any) => {
