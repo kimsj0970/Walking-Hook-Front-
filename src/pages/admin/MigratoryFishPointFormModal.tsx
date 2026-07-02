@@ -6,6 +6,7 @@ import {
   MIGRATORY_SPECIES_OPTIONS,
   createMigratoryFishPoint,
   updateMigratoryFishPoint,
+  fetchMigratoryFishPoints,
 } from '../../api/migratoryFishPointApi';
 import {
   type Province,
@@ -83,6 +84,14 @@ function loadKakaoSDK(appKey: string): Promise<void> {
     script.onerror = () => reject(new Error('카카오맵 로드 실패'));
     document.head.appendChild(script);
   });
+}
+
+function makePinUrl(color: string, stroke: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 28 38">
+    <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 24 14 24S28 24.5 28 14C28 6.268 21.732 0 14 0z" fill="${color}" stroke="${stroke}" stroke-width="1.5"/>
+    <circle cx="14" cy="14" r="5" fill="white"/>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
 export default function MigratoryFishPointFormModal({ open, editTarget, onClose, onSaved }: Props) {
@@ -163,6 +172,36 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
               // GeoJSON 파싱 실패 시 무시
             }
           });
+        }).catch(() => {});
+
+        // 이미 등록된 회유성 포인트 — 참고용 핀 표시 (축소 시 클러스터 숫자로 표시)
+        fetchMigratoryFishPoints().then(points => {
+          const pinUrl = makePinUrl('#0891B2', '#164E63');
+          const pinSize = new kakao.maps.Size(24, 32);
+          const clusterer = new kakao.maps.MarkerClusterer({
+            map,
+            averageCenter: true,
+            minLevel: 10,
+          });
+          const markers = points
+            .filter(p => !editTarget || p.id !== editTarget.id)
+            .map(p => {
+              const position = new kakao.maps.LatLng(p.latitude, p.longitude);
+              const marker = new kakao.maps.Marker({
+                position,
+                image: new kakao.maps.MarkerImage(pinUrl, pinSize),
+              });
+              const infoWindow = new kakao.maps.InfoWindow({
+                content: `<div style="padding:8px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;">
+                  <strong style="font-size:12px;color:#0891B2;">${escapeHtml(p.name)}</strong>
+                  <div style="font-size:11px;color:#94A3B8;margin-top:2px;">${escapeHtml(p.region)}</div>
+                </div>`,
+                removable: true,
+              });
+              kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
+              return marker;
+            });
+          clusterer.addMarkers(markers);
         }).catch(() => {});
 
         // 기존 좌표가 있으면 마커 표시
@@ -374,7 +413,9 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
             {showMap && (
               <div className={styles.mapArea}>
                 <div ref={mapContainerRef} className={styles.mapCanvas} />
-                <p className={styles.mapHint}>지도를 클릭하면 위도·경도가 자동으로 입력됩니다</p>
+                <p className={styles.mapHint}>
+                  지도를 클릭하면 위도·경도가 자동으로 입력됩니다 · 🔵 등록된 회유성 포인트 (축소 시 숫자로 표시)
+                </p>
               </div>
             )}
 
