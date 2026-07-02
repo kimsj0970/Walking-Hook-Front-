@@ -105,6 +105,20 @@
   justify-content: center;
 }
 
+/* 구역 수정 모드: 지도의 핀을 계속 드래그할 수 있도록 배경을 투명하게 하고
+   패널을 우측 상단으로 옮겨, 패널 바깥 영역은 지도 클릭/드래그가 통과되게 함 */
+.formOverlayEdit {
+  background: transparent;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 90px 20px 0 0;
+  pointer-events: none;
+}
+
+.formOverlayEdit .formPanel {
+  pointer-events: auto;
+}
+
 .formPanel {
   background: #fff;
   border-radius: 16px;
