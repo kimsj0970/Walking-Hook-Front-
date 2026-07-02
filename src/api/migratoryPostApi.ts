@@ -23,7 +23,7 @@ export interface MigratoryPostDetail {
   species: MigratorySpecies[];
   speciesDisplayNames: string[];
   caughtAt: string;
-  migratoryPointId: string;
+  migratoryPointId: string | null;
   pointName: string | null;
   pointLatitude: number | null;
   pointLongitude: number | null;
@@ -66,7 +66,7 @@ export interface MigratoryPostCreateRequest {
   content: string;
   species: MigratorySpecies[];
   caughtAt?: string;
-  migratoryPointId: string;
+  migratoryPointId?: string;
   photoUrls?: string[];
   lure?: string | null;
   fishSize?: string | null;
