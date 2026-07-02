@@ -126,10 +126,9 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
 
         const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
 
-        points.forEach((fp) => {
+        const markers = points.map((fp) => {
           const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
           const marker = new kakao.maps.Marker({ position });
-          marker.setMap(map);
 
           kakao.maps.event.addListener(marker, 'mouseover', () => {
             hoverInfoWindow.setContent(
@@ -159,6 +158,16 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
               if (btn) btn.onclick = () => { pickInfoWindow.close(); onSelect(fp); };
             }, 0);
           });
+
+          return marker;
+        });
+
+        new kakao.maps.MarkerClusterer({
+          map,
+          markers,
+          gridSize: 60,
+          averageCenter: true,
+          minLevel: 5,
         });
 
         setMapStatus('ready');
