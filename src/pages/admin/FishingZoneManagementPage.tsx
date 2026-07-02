@@ -176,6 +176,13 @@ export default function FishingZoneManagementPage() {
         });
         kakaoMapRef.current = map;
 
+        // 생성 시점에 컨테이너 레이아웃이 아직 확정되지 않으면 지도 타일이
+        // 실제 크기보다 작게 잡혀 아래쪽이 빈 칸으로 보이는 문제가 있어 보정한다.
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(map.getCenter());
+        });
+
         // 낚시 포인트 마커 (파란색) — 클러스터링 적용
         const fishingPointMarkers = fishingPoints.map((fp: FishingPointMapMarker) => {
           const marker = new kakao.maps.Marker({
