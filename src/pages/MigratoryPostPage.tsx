@@ -122,6 +122,13 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
           level: 13,
         });
 
+        // 모달이 막 열리는 시점엔 flex 레이아웃(.mapPickerMap { flex: 1 })이
+        // 아직 확정되지 않아 지도 타일이 실제 크기보다 작게 잡히는 문제가 있어 보정한다.
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(map.getCenter());
+        });
+
         renderFishingZones(kakao, map, zones);
 
         const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
