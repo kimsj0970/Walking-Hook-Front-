@@ -100,6 +100,8 @@ interface MapPickerProps {
 function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
 
   useEffect(() => {
     const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
@@ -162,7 +164,7 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
             pickInfoWindow.open(map, marker);
             setTimeout(() => {
               const btn = document.getElementById(`pick-${fp.id}`);
-              if (btn) btn.onclick = () => { pickInfoWindow.close(); onSelect(fp); };
+              if (btn) btn.onclick = () => { pickInfoWindow.close(); onSelectRef.current(fp); };
             }, 0);
           });
 
@@ -182,7 +184,7 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
     }).catch(() => setMapStatus('error'));
 
     return () => { cancelled = true; };
-  }, [points, onSelect]);
+  }, [points]); // onSelect는 ref로 안정화 — deps에서 제외
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
