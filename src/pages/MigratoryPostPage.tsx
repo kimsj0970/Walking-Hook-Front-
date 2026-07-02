@@ -17,6 +17,7 @@ import {
   type MigratorySpecies, type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
+import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import ReportModal from '../components/common/ReportModal';
 import styles from './MigratoryPostPage.module.css';
 
@@ -37,6 +38,44 @@ function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function renderFishingZones(kakao: any, map: any, zones: FishingZone[]) {
+  zones.forEach((zone) => {
+    try {
+      const parsed = JSON.parse(zone.geoJson);
+      const ring: [number, number][] = parsed.coordinates[0];
+      const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
+        new kakao.maps.LatLng(lat, lng)
+      );
+      const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+      const poly = new kakao.maps.Polygon({
+        map,
+        path,
+        strokeWeight: 2,
+        strokeColor: color,
+        strokeOpacity: 0.9,
+        fillColor: color,
+        fillOpacity: 0.2,
+      });
+      const infoWindow = new kakao.maps.InfoWindow({
+        content: `
+          <div style="padding:12px 16px;width:220px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
+            <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
+            <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
+            ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
+          </div>`,
+        removable: true,
+      });
+      kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
+        infoWindow.setPosition(e.latLng);
+        infoWindow.open(map);
+      });
+    } catch {
+      // GeoJSON 파싱 실패 시 무시
+    }
+  });
 }
 
 function loadKakaoSDK(appKey: string): Promise<void> {
@@ -68,7 +107,10 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
 
     let cancelled = false;
 
-    loadKakaoSDK(appKey).then(() => {
+    Promise.all([
+      loadKakaoSDK(appKey),
+      fetchFishingZones().catch(() => [] as FishingZone[]),
+    ]).then(([, zones]) => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
@@ -79,6 +121,8 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 13,
         });
+
+        renderFishingZones(kakao, map, zones);
 
         const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
 
@@ -98,9 +142,22 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
             hoverInfoWindow.close();
           });
 
+          const pickInfoWindow = new kakao.maps.InfoWindow({
+            content: `
+              <div style="padding:10px 14px;font-family:'Pretendard','Noto Sans KR',sans-serif;text-align:center;white-space:nowrap;">
+                <strong style="font-size:13px;color:#0B3D91;display:block;margin-bottom:8px;">📍 ${escapeHtml(fp.name)}</strong>
+                <button id="pick-${fp.id}" style="padding:6px 16px;background:#0B3D91;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">이 포인트 선택</button>
+              </div>`,
+            removable: true,
+          });
+
           kakao.maps.event.addListener(marker, 'click', () => {
             hoverInfoWindow.close();
-            onSelect(fp);
+            pickInfoWindow.open(map, marker);
+            setTimeout(() => {
+              const btn = document.getElementById(`pick-${fp.id}`);
+              if (btn) btn.onclick = () => { pickInfoWindow.close(); onSelect(fp); };
+            }, 0);
           });
         });
 
@@ -124,7 +181,9 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
           <span>지도에서 포인트 선택</span>
           <button className={styles.mapPickerClose} onClick={onClose}>✕</button>
         </div>
-        <p className={styles.mapPickerHint}>마커를 클릭하면 포인트가 선택됩니다</p>
+        <p className={styles.mapPickerHint}>
+          마커를 탭하면 이름이 뜨고, "이 포인트 선택"을 누르면 선택됩니다 · <span style={{ color: '#DC2626' }}>■</span> 낚시금지구역 <span style={{ color: '#EA580C' }}>■</span> 낚시제한구역
+        </p>
         {mapStatus === 'loading' && (
           <div className={styles.mapPickerLoading}>
             <div className={styles.spinner} />
@@ -525,6 +584,13 @@ export default function MigratoryPostPage() {
   const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
 
+  const [browseMapOpen, setBrowseMapOpen] = useState(false);
+  const [pointFilter, setPointFilter] = useState<MigratoryFishPointMapMarker | null>(null);
+
+  const [regionDropOpen, setRegionDropOpen] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<Province | null>(null);
+  const regionDropRef = useRef<HTMLDivElement>(null);
+
   const [comments, setComments] = useState<MigratoryPostComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; nickname: string } | null>(null);
@@ -536,7 +602,7 @@ export default function MigratoryPostPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await getMigratoryPostsPage(page, PAGE_SIZE);
+      const result = await getMigratoryPostsPage(page, PAGE_SIZE, pointFilter?.id, regionFilter ?? undefined);
       setItems(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -546,10 +612,46 @@ export default function MigratoryPostPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pointFilter, regionFilter]);
 
   useEffect(() => { fetchList(0); }, [fetchList]);
   useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
+
+  const openBrowseMap = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
+    setBrowseMapOpen(true);
+  };
+
+  const toggleRegionDrop = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
+    setRegionDropOpen(v => !v);
+  };
+
+  const handleBrowseSelect = (point: MigratoryFishPointMapMarker) => {
+    setRegionFilter(null);
+    setPointFilter(point);
+    setBrowseMapOpen(false);
+  };
+
+  const handleRegionSelect = (province: Province) => {
+    setPointFilter(null);
+    setRegionFilter(province);
+    setRegionDropOpen(false);
+  };
+
+  const clearFilter = () => {
+    setPointFilter(null);
+    setRegionFilter(null);
+  };
+
+  useEffect(() => {
+    if (!regionDropOpen) return;
+    const onClickOut = (e: MouseEvent) => {
+      if (regionDropRef.current && !regionDropRef.current.contains(e.target as Node)) setRegionDropOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [regionDropOpen]);
 
   useEffect(() => {
     const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
@@ -677,8 +779,29 @@ export default function MigratoryPostPage() {
               )}
             </p>
           </div>
-          {view === 'list' && isLoggedIn && (
-            <button className={styles.createBtn} onClick={openCreate}>글쓰기</button>
+          {view === 'list' && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button className={styles.iconActionBtn} onClick={openBrowseMap}>🗺️ 지도로 보기</button>
+              <div className={styles.pointDropdown} ref={regionDropRef}>
+                <button className={styles.iconActionBtn} onClick={toggleRegionDrop}>📍 지역으로 보기</button>
+                {regionDropOpen && (
+                  <div className={styles.pointList}>
+                    {PROVINCE_OPTIONS.map(([code, label]) => (
+                      <div
+                        key={code}
+                        className={`${styles.pointListItem} ${regionFilter === code ? styles.pointListItemSelected : ''}`}
+                        onClick={() => handleRegionSelect(code)}
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {isLoggedIn && (
+                <button className={styles.createBtn} onClick={openCreate}>글쓰기</button>
+              )}
+            </div>
           )}
           {view === 'detail' && (
             <button className={styles.backBtn} onClick={() => setView('list')}>← 목록</button>
@@ -690,10 +813,27 @@ export default function MigratoryPostPage() {
         {/* ── 목록 ── */}
         {view === 'list' && (
           <>
+            {(pointFilter || regionFilter) && (
+              <div className={styles.pointFilterBar}>
+                <span>
+                  {pointFilter
+                    ? <>📍 <strong>{pointFilter.name}</strong>에서 잡힌 게시물</>
+                    : <>🗺️ <strong>{PROVINCE_LABELS[regionFilter as Province]}</strong> 지역 게시물</>}
+                </span>
+                <button onClick={clearFilter}>필터 해제 ✕</button>
+              </div>
+            )}
+
             {loading ? (
               <div className={styles.loading}><div className={styles.spinner} /></div>
             ) : items.length === 0 ? (
-              <p className={styles.empty}>아직 등록된 게시글이 없습니다.</p>
+              <p className={styles.empty}>
+                {pointFilter
+                  ? `"${pointFilter.name}"에서 잡힌 게시글이 아직 없습니다.`
+                  : regionFilter
+                  ? `"${PROVINCE_LABELS[regionFilter]}"에 잡힌 게시글이 아직 없습니다.`
+                  : '아직 등록된 게시글이 없습니다.'}
+              </p>
             ) : (
               <div className={styles.list}>
                 {items.map(item => (
@@ -918,6 +1058,13 @@ export default function MigratoryPostPage() {
         onClose={() => setModalOpen(false)}
         onSaved={handleSaved}
       />
+      {browseMapOpen && (
+        <MigratoryPointMapPicker
+          points={points}
+          onSelect={handleBrowseSelect}
+          onClose={() => setBrowseMapOpen(false)}
+        />
+      )}
       {lbIdx !== null && detail?.photoUrls && (
         <ImageLightbox
           images={detail.photoUrls}
