@@ -1265,11 +1265,20 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
   const [markerCount, setMarkerCount] = useState(0);
   const navigate = useNavigate();
 
-  // 모달 열린 동안 배경 스크롤 잠금
+  // iOS Safari 포함 배경 스크롤 완전 차단
   useEffect(() => {
-    const saved = document.body.style.overflow;
+    const scrollY = window.scrollY;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = saved; };
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
   }, []);
 
   useEffect(() => {
@@ -1406,8 +1415,14 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         setMarkerCount(validMarkers.length);
 
         if (validMarkers.length > 0) {
+          const clusterer = new kakao.maps.MarkerClusterer({
+            map,
+            averageCenter: true,
+            minLevel: 10,
+          });
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          validMarkers.forEach((m: any) => {
+          const fishMarkers = validMarkers.map((m: any) => {
             const pos = new kakao.maps.LatLng(Number(m.latitude), Number(m.longitude));
 
             // 물고기 이모지 마커 (어종 색상 무관하게 통일)
@@ -1419,7 +1434,6 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
                 { offset: new kakao.maps.Point(16, 42) },
               ),
             });
-            marker.setMap(map);
 
             // 어종 뱃지 목록
             const speciesBadges = (m.species as string[]).map((s: string) => {
@@ -1440,8 +1454,10 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
               page: 0, totalPages, pointName: m.pointName, speciesBadges, iw,
             });
             kakao.maps.event.addListener(marker, 'click', () => iw.open(map, marker));
+            return marker;
           });
 
+          clusterer.addMarkers(fishMarkers);
         }
 
         setStatus('ready');
@@ -1468,6 +1484,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
       style={{
         position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)',
         zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        touchAction: 'none', overscrollBehavior: 'contain',
       }}
       onClick={onClose}
     >
@@ -1477,6 +1494,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
           width: '100%', maxWidth: 860, height: '80vh', maxHeight: 640,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          touchAction: 'auto', overscrollBehavior: 'contain',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -1537,7 +1555,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+          <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
         </div>
 
         {/* 안내 문구 */}
