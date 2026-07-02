@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchAdminFishingZones, createFishingZone, deleteFishingZone,
+  fetchAdminFishingZones, createFishingZone, updateFishingZone, deleteFishingZone,
   type FishingZone, type ZoneType,
 } from '../../api/fishingZoneApi';
 import { fetchPublicFishingPointsForMap, type FishingPointMapMarker } from '../../api/fishingPointApi';
@@ -61,6 +61,9 @@ export default function FishingZoneManagementPage() {
   const vertexMarkersRef = useRef<KakaoMap[]>([]);
   const clickListenerRef = useRef<KakaoMap>(null);
   const moveListenerRef = useRef<KakaoMap>(null);
+  const editVertexMarkersRef = useRef<KakaoMap[]>([]);
+  const editPolyRef = useRef<KakaoMap>(null);
+  const editDraggingRef = useRef(false);
 
   const drawModeRef = useRef<DrawMode>('none');
   const rectFirstRef = useRef<Coord | null>(null);
@@ -76,6 +79,8 @@ export default function FishingZoneManagementPage() {
   const [formType, setFormType] = useState<ZoneType>('PROHIBITED');
   const [formDesc, setFormDesc] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingZone, setEditingZone] = useState<FishingZone | null>(null);
+  const [editVertices, setEditVertices] = useState<Coord[]>([]);
 
   const loadZones = useCallback(async () => {
     const list = await fetchAdminFishingZones().catch(() => []);
@@ -93,6 +98,7 @@ export default function FishingZoneManagementPage() {
 
     zones.forEach(zone => {
       if (!zone.active) return;
+      if (editingZone?.id === zone.id) return; // 수정 중인 구역은 편집 오버레이로 별도 렌더링
       const coords = geoJsonToCoords(zone.geoJson);
       if (coords.length < 3) return;
       const color = zoneColor(zone.zoneType);
@@ -111,15 +117,25 @@ export default function FishingZoneManagementPage() {
             <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
             <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '낚시금지구역' : '낚시제한구역'}</div>
             ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0 0 10px;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
-            <button id="del-${zone.id}" style="padding:5px 12px;background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">삭제</button>
+            <div style="display:flex;gap:6px;">
+              <button id="edit-${zone.id}" style="padding:5px 12px;background:#DBEAFE;color:#1D4ED8;border:1px solid #93C5FD;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">수정</button>
+              <button id="del-${zone.id}" style="padding:5px 12px;background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">삭제</button>
+            </div>
           </div>`,
         removable: true,
       });
       kakao.maps.event.addListener(poly, 'click', (e: KakaoMap) => {
         infoWindow.setPosition(e.latLng);
         infoWindow.open(kakaoMapRef.current);
-        // 삭제 버튼 이벤트 (InfoWindow DOM이 삽입된 후)
+        // 버튼 이벤트 (InfoWindow DOM이 삽입된 후)
         setTimeout(() => {
+          const editBtn = document.getElementById(`edit-${zone.id}`);
+          if (editBtn) {
+            editBtn.onclick = () => {
+              infoWindow.close();
+              startEditZone(zone);
+            };
+          }
           const btn = document.getElementById(`del-${zone.id}`);
           if (btn) {
             btn.onclick = async () => {
@@ -133,7 +149,8 @@ export default function FishingZoneManagementPage() {
       });
       zonePolysRef.current.push(poly);
     });
-  }, [zones, loadZones]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zones, loadZones, editingZone]);
 
   // ── 지도 초기화 ────────────────────────────────────────────────────
   useEffect(() => {
@@ -223,8 +240,13 @@ export default function FishingZoneManagementPage() {
           }
         });
 
-        // ── 마우스무브 (사각형 미리보기) ───────────────────────────
+        // ── 마우스무브 (사각형 미리보기 + 구역 수정 중 핀 드래그 실시간 반영) ─
         moveListenerRef.current = kakao.maps.event.addListener(map, 'mousemove', (e: KakaoMap) => {
+          // 카카오맵 Marker는 'drag' 이벤트를 지원하지 않아(dragstart/dragend만 지원)
+          // 드래그 중인 동안은 지도의 mousemove로 매 순간 핀 위치를 다시 읽어 폴리곤을 갱신한다.
+          if (editDraggingRef.current) {
+            updateEditPolygon(kakao, readEditVertexCoords());
+          }
           if (drawModeRef.current !== 'rect' || !rectFirstRef.current) return;
           const first = rectFirstRef.current;
           const lat = e.latLng.getLat();
@@ -272,10 +294,83 @@ export default function FishingZoneManagementPage() {
     }
   }
 
+  // ── 기존 구역 수정(꼭짓점 드래그) 헬퍼 ───────────────────────────────
+  function clearEditState() {
+    editVertexMarkersRef.current.forEach(m => m.setMap(null));
+    editVertexMarkersRef.current = [];
+    if (editPolyRef.current) { editPolyRef.current.setMap(null); editPolyRef.current = null; }
+    editDraggingRef.current = false;
+    setEditingZone(null);
+    setEditVertices([]);
+  }
+
+  function updateEditPolygon(kakao: KakaoMap, coords: Coord[]) {
+    if (editPolyRef.current) editPolyRef.current.setMap(null);
+    editPolyRef.current = new kakao.maps.Polygon({
+      map: kakaoMapRef.current,
+      path: coordsToKakaoPath(kakao, coords),
+      strokeWeight: 2,
+      strokeColor: '#0B3D91',
+      strokeOpacity: 0.9,
+      fillColor: '#0B3D91',
+      fillOpacity: 0.15,
+    });
+  }
+
+  function readEditVertexCoords(): Coord[] {
+    return editVertexMarkersRef.current.map(m => {
+      const pos = m.getPosition();
+      return { lat: pos.getLat(), lng: pos.getLng() };
+    });
+  }
+
+  function startEditZone(zone: FishingZone) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const kakao = (window as any).kakao;
+    if (!kakao?.maps || !kakaoMapRef.current) return;
+    cancelDraw();
+    clearEditState();
+
+    const coords = geoJsonToCoords(zone.geoJson);
+    if (coords.length < 3) return;
+
+    setEditingZone(zone);
+    setEditVertices(coords);
+    setFormName(zone.name);
+    setFormType(zone.zoneType);
+    setFormDesc(zone.description ?? '');
+    setShowForm(true);
+
+    updateEditPolygon(kakao, coords);
+
+    coords.forEach(c => {
+      const marker = new kakao.maps.Marker({
+        position: new kakao.maps.LatLng(c.lat, c.lng),
+        map: kakaoMapRef.current,
+        draggable: true,
+        zIndex: 10,
+      });
+      kakao.maps.event.addListener(marker, 'dragstart', () => {
+        editDraggingRef.current = true;
+      });
+      // 카카오맵 Marker는 'drag'(진행 중) 이벤트가 없어 mousemove 핸들러에서 실시간 갱신을 처리하고,
+      // 여기서는 드래그 종료 시 최종 위치로 폴리곤과 상태를 확정한다.
+      kakao.maps.event.addListener(marker, 'dragend', () => {
+        editDraggingRef.current = false;
+        const coords = readEditVertexCoords();
+        updateEditPolygon(kakao, coords);
+        setEditVertices(coords);
+      });
+      editVertexMarkersRef.current.push(marker);
+    });
+  }
+
   // ── 드로잉 모드 전환 ──────────────────────────────────────────────
   function startDraw(mode: DrawMode) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     clearDrawing((window as any).kakao);
+    clearEditState();
+    setShowForm(false);
     drawModeRef.current = mode;
     setDrawMode(mode);
     if (mapRef.current) mapRef.current.style.cursor = 'crosshair';
@@ -304,15 +399,25 @@ export default function FishingZoneManagementPage() {
     if (!formName.trim()) return;
     setSaving(true);
     try {
-      await createFishingZone({
-        name: formName.trim(),
-        zoneType: formType,
-        geoJson: coordsToGeoJson(drawnCoords),
-        description: formDesc.trim(),
-      });
+      if (editingZone) {
+        await updateFishingZone(editingZone.id, {
+          name: formName.trim(),
+          zoneType: formType,
+          geoJson: coordsToGeoJson(editVertices),
+          description: formDesc.trim(),
+        });
+      } else {
+        await createFishingZone({
+          name: formName.trim(),
+          zoneType: formType,
+          geoJson: coordsToGeoJson(drawnCoords),
+          description: formDesc.trim(),
+        });
+      }
       setShowForm(false);
       setFormName(''); setFormDesc(''); setFormType('PROHIBITED');
       setDrawnCoords([]);
+      clearEditState();
       await loadZones();
     } finally {
       setSaving(false);
@@ -323,16 +428,18 @@ export default function FishingZoneManagementPage() {
     setShowForm(false);
     setFormName(''); setFormDesc(''); setFormType('PROHIBITED');
     setDrawnCoords([]);
+    clearEditState();
   }
 
-  const hintText =
-    drawMode === 'rect'
+  const hintText = editingZone
+    ? '핀을 드래그해 위치를 옮기고, 아래 폼에서 이름·설명도 함께 수정하세요'
+    : drawMode === 'rect'
       ? rectFirstRef.current
         ? '두 번째 꼭짓점을 클릭하면 사각형이 완성됩니다'
         : '지도를 클릭해 첫 번째 꼭짓점을 선택하세요'
       : drawMode === 'polygon'
       ? '클릭으로 꼭짓점 추가, 3개 이상 찍은 후 "완료" 버튼을 누르세요'
-      : '그리기 버튼을 눌러 구역을 지정하세요';
+      : '기존 구역을 클릭하면 수정할 수 있어요. 그리기 버튼을 눌러 새 구역을 지정하세요';
 
   return (
     <div className={styles.wrap}>
@@ -385,9 +492,9 @@ export default function FishingZoneManagementPage() {
 
       {/* 저장 폼 */}
       {showForm && (
-        <div className={styles.formOverlay}>
+        <div className={`${styles.formOverlay} ${editingZone ? styles.formOverlayEdit : ''}`}>
           <div className={styles.formPanel}>
-            <h2 className={styles.formTitle}>구역 정보 입력</h2>
+            <h2 className={styles.formTitle}>{editingZone ? '구역 수정' : '구역 정보 입력'}</h2>
 
             <div className={styles.formField}>
               <label className={styles.formLabel}>구역 이름 *</label>
@@ -426,7 +533,7 @@ export default function FishingZoneManagementPage() {
             <div className={styles.formActions}>
               <button className={styles.btnFormCancel} onClick={handleFormCancel}>취소</button>
               <button className={styles.btnSave} onClick={handleSave} disabled={!formName.trim() || saving}>
-                {saving ? '저장 중...' : '저장'}
+                {saving ? '저장 중...' : editingZone ? '수정 완료' : '저장'}
               </button>
             </div>
           </div>
