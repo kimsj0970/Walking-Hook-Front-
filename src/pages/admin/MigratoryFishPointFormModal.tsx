@@ -6,7 +6,7 @@ import {
   MIGRATORY_SPECIES_OPTIONS,
   createMigratoryFishPoint,
   updateMigratoryFishPoint,
-  fetchMigratoryFishPoints,
+  fetchAllMigratoryFishPoints,
 } from '../../api/migratoryFishPointApi';
 import {
   type Province,
@@ -175,7 +175,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
         }).catch(() => {});
 
         // 이미 등록된 회유성 포인트 — 참고용 핀 표시 (축소 시 클러스터 숫자로 표시)
-        fetchMigratoryFishPoints().then(points => {
+        fetchAllMigratoryFishPoints().then(points => {
           const pinUrl = makePinUrl('#0891B2', '#164E63');
           const pinSize = new kakao.maps.Size(24, 32);
           const clusterer = new kakao.maps.MarkerClusterer({
