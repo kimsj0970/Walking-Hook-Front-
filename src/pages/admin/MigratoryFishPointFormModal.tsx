@@ -138,6 +138,13 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
         });
         kakaoMapRef.current = map;
 
+        // 토글로 접혀 있다가 펼쳐지는 영역이라 생성 시점에 컨테이너 크기가
+        // 아직 확정되지 않아 지도 타일이 잘려 보이는 문제가 있어 보정한다.
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(center);
+        });
+
         // 낚시 금지·제한구역 폴리곤 — 포인트 좌표 선택 시 참고용
         fetchFishingZones().then(zones => {
           zones.forEach(zone => {
