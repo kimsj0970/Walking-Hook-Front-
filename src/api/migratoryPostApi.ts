@@ -84,8 +84,10 @@ export interface MigratoryPostUpdateRequest {
   action?: string | null;
 }
 
-export async function getMigratoryPostsPage(page = 0, size = 20): Promise<PageResult<MigratoryPostListItem>> {
-  const { data } = await api.get('/migratory-catch-posts', { params: { page, size } });
+export async function getMigratoryPostsPage(
+  page = 0, size = 20, migratoryPointId?: string, province?: string
+): Promise<PageResult<MigratoryPostListItem>> {
+  const { data } = await api.get('/migratory-catch-posts', { params: { page, size, migratoryPointId, province } });
   return data.data as PageResult<MigratoryPostListItem>;
 }
 
