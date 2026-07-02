@@ -39,8 +39,10 @@ export async function getFishingPosts(): Promise<FishingPostListItem[]> {
   return getFishingPostsPreview();
 }
 
-export async function getFishingPostsPage(page: number, size = 20): Promise<PageResult<FishingPostListItem>> {
-  const { data } = await api.get('/fishing-posts', { params: { page, size } });
+export async function getFishingPostsPage(
+  page: number, size = 20, migratoryPointId?: string, province?: string
+): Promise<PageResult<FishingPostListItem>> {
+  const { data } = await api.get('/fishing-posts', { params: { page, size, migratoryPointId, province } });
   return data.data as PageResult<FishingPostListItem>;
 }
 
