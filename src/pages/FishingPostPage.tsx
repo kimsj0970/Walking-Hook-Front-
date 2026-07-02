@@ -145,6 +145,14 @@ function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 13,
         });
+
+        // 모달이 막 열리는 시점엔 flex 레이아웃(.mapPickerMap { flex: 1 })이
+        // 아직 확정되지 않아 지도 타일이 실제 크기보다 작게 잡히는 문제가 있어 보정한다.
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(map.getCenter());
+        });
+
         renderFishingZones(kakao, map, zones);
         const markers = points.map((fp) => {
           const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
