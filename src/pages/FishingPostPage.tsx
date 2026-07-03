@@ -6,7 +6,7 @@ import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import {
   getFishingPostsPage, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
-  getFishingPostComments, addFishingPostComment, deleteFishingPostComment,
+  getFishingPostComments, addFishingPostComment, deleteFishingPostComment, getFishingPostMapPoints,
   type FishingPostListItem, type FishingPostDetail, type FishingPostComment,
 } from '../api/fishingPostApi';
 import {
@@ -16,6 +16,7 @@ import {
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
 import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import ReportModal from '../components/common/ReportModal';
+import MonthYearPicker from '../components/common/MonthYearPicker';
 import styles from './FishingPostPage.module.css';
 
 type View = 'list' | 'detail';
@@ -35,6 +36,11 @@ function AuthorLabel({ nickname }: { nickname: string }) {
 function formatDate(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  return `${formatDate(iso)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 function todayStr() {
@@ -103,9 +109,10 @@ interface MapPickerProps {
   points: MigratoryFishPointMapMarker[];
   onSelect: (point: MigratoryFishPointMapMarker) => void;
   onClose: () => void;
+  emptyMessage?: string;
 }
 
-function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
+function FishingPostMapPicker({ points, onSelect, onClose, emptyMessage }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const onSelectRef = useRef(onSelect);
@@ -210,6 +217,11 @@ function FishingPostMapPicker({ points, onSelect, onClose }: MapPickerProps) {
           <div className={styles.mapPickerLoading}>
             <p style={{ color: '#E53E3E', fontSize: 14 }}>지도를 불러오지 못했습니다.</p>
           </div>
+        )}
+        {mapStatus === 'ready' && points.length === 0 && emptyMessage && (
+          <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13, margin: '8px 0 0' }}>
+            {emptyMessage}
+          </p>
         )}
         <div ref={mapRef} className={styles.mapPickerMap} />
       </div>
@@ -565,11 +577,16 @@ export default function FishingPostPage() {
   const [reportOpen, setReportOpen] = useState(false);
 
   const [browseMapOpen, setBrowseMapOpen] = useState(false);
+  const [browseMapPoints, setBrowseMapPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [pointFilter, setPointFilter] = useState<MigratoryFishPointMapMarker | null>(null);
 
   const [regionDropOpen, setRegionDropOpen] = useState(false);
   const [regionFilter, setRegionFilter] = useState<Province | null>(null);
   const regionDropRef = useRef<HTMLDivElement>(null);
+
+  const [dateDropOpen, setDateDropOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<{ year: number; month: number } | null>(null);
+  const dateDropRef = useRef<HTMLDivElement>(null);
 
   const [comments, setComments] = useState<FishingPostComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
@@ -581,7 +598,10 @@ export default function FishingPostPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await getFishingPostsPage(page, PAGE_SIZE, pointFilter?.id, regionFilter ?? undefined);
+      const result = await getFishingPostsPage(
+        page, PAGE_SIZE, pointFilter?.id, regionFilter ?? undefined,
+        dateFilter?.year, dateFilter?.month
+      );
       setItems(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -591,7 +611,7 @@ export default function FishingPostPage() {
     } finally {
       setLoading(false);
     }
-  }, [pointFilter, regionFilter]);
+  }, [pointFilter, regionFilter, dateFilter]);
 
   useEffect(() => { fetchList(0); }, [fetchList]);
 
@@ -605,24 +625,53 @@ export default function FishingPostPage() {
     setRegionDropOpen(v => !v);
   };
 
+  const toggleDateDrop = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
+    setDateDropOpen(v => !v);
+  };
+
   const handleBrowseSelect = (point: MigratoryFishPointMapMarker) => {
     setRegionFilter(null);
+    setDateFilter(null);
     setPointFilter(point);
     setBrowseMapOpen(false);
   };
 
   const handleRegionSelect = (province: Province) => {
     setPointFilter(null);
+    setDateFilter(null);
     setRegionFilter(province);
     setRegionDropOpen(false);
+  };
+
+  const handleDateSelect = (year: number, month: number) => {
+    setPointFilter(null);
+    setRegionFilter(null);
+    setDateFilter({ year, month });
+    setDateDropOpen(false);
   };
 
   const clearFilter = () => {
     setPointFilter(null);
     setRegionFilter(null);
+    setDateFilter(null);
   };
 
   useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
+
+  /** "지도로 보기"는 전체 포인트가 아니라 조황 게시물이 실제로 존재하는 포인트만 표시한다 */
+  useEffect(() => {
+    if (!browseMapOpen) return;
+    let cancelled = false;
+    getFishingPostMapPoints().then((pts) => {
+      if (cancelled) return;
+      setBrowseMapPoints(pts.map((p) => ({
+        id: p.pointId, name: p.name, province: p.province, region: p.region,
+        latitude: p.latitude, longitude: p.longitude, targetSpecies: [],
+      })));
+    }).catch(() => setBrowseMapPoints([]));
+    return () => { cancelled = true; };
+  }, [browseMapOpen]);
 
   useEffect(() => {
     if (!regionDropOpen) return;
@@ -632,6 +681,15 @@ export default function FishingPostPage() {
     document.addEventListener('mousedown', onClickOut);
     return () => document.removeEventListener('mousedown', onClickOut);
   }, [regionDropOpen]);
+
+  useEffect(() => {
+    if (!dateDropOpen) return;
+    const onClickOut = (e: MouseEvent) => {
+      if (dateDropRef.current && !dateDropRef.current.contains(e.target as Node)) setDateDropOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [dateDropOpen]);
 
   useEffect(() => {
     const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
@@ -736,6 +794,12 @@ export default function FishingPostPage() {
                   </div>
                 )}
               </div>
+              <div className={styles.pointDropdown} ref={dateDropRef}>
+                <button className={styles.iconActionBtn} onClick={toggleDateDrop}>📅 날짜로 보기</button>
+                {dateDropOpen && (
+                  <MonthYearPicker value={dateFilter} onSelect={handleDateSelect} />
+                )}
+              </div>
               {isLoggedIn && (
                 <button className={styles.createBtn} onClick={openCreate}>글쓰기</button>
               )}
@@ -750,12 +814,14 @@ export default function FishingPostPage() {
           <>
             {error && <p className={styles.error}>{error}</p>}
 
-            {(pointFilter || regionFilter) && (
+            {(pointFilter || regionFilter || dateFilter) && (
               <div className={styles.pointFilterBar}>
                 <span>
                   {pointFilter
                     ? <>📍 <strong>{pointFilter.name}</strong>에서 잡힌 게시물</>
-                    : <>🗺️ <strong>{PROVINCE_LABELS[regionFilter as Province]}</strong> 지역 게시물</>}
+                    : regionFilter
+                    ? <>🗺️ <strong>{PROVINCE_LABELS[regionFilter as Province]}</strong> 지역 게시물</>
+                    : <>📅 <strong>{dateFilter!.year}년 {dateFilter!.month}월</strong> 게시물</>}
                 </span>
                 <button onClick={clearFilter}>필터 해제 ✕</button>
               </div>
@@ -769,6 +835,8 @@ export default function FishingPostPage() {
                   ? `"${pointFilter.name}"에서 잡힌 게시글이 아직 없습니다.`
                   : regionFilter
                   ? `"${PROVINCE_LABELS[regionFilter]}"에 잡힌 게시글이 아직 없습니다.`
+                  : dateFilter
+                  ? `${dateFilter.year}년 ${dateFilter.month}월에 잡힌 게시글이 아직 없습니다.`
                   : '아직 게시글이 없습니다. 첫 번째 조황을 공유해 보세요!'}
               </p>
             ) : (
@@ -776,19 +844,24 @@ export default function FishingPostPage() {
                 <div className={styles.list}>
                   {items.map((item) => (
                     <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
-                      <div className={styles.listTop}>
-                        <span className={styles.listTitle}>{item.title}</span>
-                        <span className={styles.listDate}>{formatDate(item.createdAt)}</span>
-                      </div>
-                      <div className={styles.listBottom}>
-                        {item.pointName
-                          ? <span className={styles.listPoint}>📍 {item.pointName}</span>
-                          : <span className={styles.listNoPoint}>포인트 미지정</span>}
-                        <div className={styles.listMeta}>
+                      <div className={styles.listMain}>
+                        <div className={styles.listTop}>
+                          <span className={styles.listTitle}>{item.title}</span>
+                        </div>
+                        <div className={styles.listBottom}>
+                          {item.pointName
+                            ? <span className={styles.listPoint}>📍 {item.pointName}</span>
+                            : <span className={styles.listNoPoint}>포인트 미지정</span>}
+                          <AuthorLabel nickname={item.authorNickname} />
                           {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷</span>}
                           {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
-                          <AuthorLabel nickname={item.authorNickname} />
                         </div>
+                      </div>
+                      <div className={styles.listDates}>
+                        <span className={styles.listDate}>작성일 {formatDateTime(item.createdAt)}</span>
+                        <span className={styles.listWriteDate}>
+                          {item.caughtAt ? `잡은 날짜 ${item.caughtAt}` : '잡은 날짜 미지정'}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -842,7 +915,7 @@ export default function FishingPostPage() {
                     {detail.caughtAt && (
                       <>
                         <span className={styles.metaDot}>·</span>
-                        <span>🗓 {detail.caughtAt}</span>
+                        <span>🗓 잡은 날짜: {detail.caughtAt}</span>
                       </>
                     )}
                     {detail.pointName && (
@@ -852,7 +925,7 @@ export default function FishingPostPage() {
                       </>
                     )}
                     <span className={styles.metaDot}>·</span>
-                    <span>{formatDate(detail.createdAt)}</span>
+                    <span>작성 날짜: {formatDate(detail.createdAt)}</span>
                     {detail.updatedAt && detail.updatedAt !== detail.createdAt && (
                       <>
                         <span className={styles.metaDot}>·</span>
@@ -995,9 +1068,10 @@ export default function FishingPostPage() {
       />
       {browseMapOpen && (
         <FishingPostMapPicker
-          points={points}
+          points={browseMapPoints}
           onSelect={handleBrowseSelect}
           onClose={() => setBrowseMapOpen(false)}
+          emptyMessage="아직 조황 게시물이 등록된 포인트가 없습니다."
         />
       )}
       {lbIdx !== null && detail?.photoUrls && (
