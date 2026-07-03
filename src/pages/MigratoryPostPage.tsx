@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
+import MapTypeControl from '../components/map/MapTypeControl';
 import {
   getMigratoryPostsPage, getMigratoryPostDetail, createMigratoryPost,
   updateMigratoryPost, deleteMigratoryPost, getMigratoryPostMapPoints,
@@ -107,6 +108,8 @@ interface MapPickerProps {
 function MigratoryPointMapPicker({ points, onSelect, onClose, emptyMessage }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [mapForControl, setMapForControl] = useState<any>(null);
   const onSelectRef = useRef(onSelect);
   useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
 
@@ -130,6 +133,7 @@ function MigratoryPointMapPicker({ points, onSelect, onClose, emptyMessage }: Ma
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 13,
         });
+        setMapForControl(map);
 
         // 모달이 막 열리는 시점엔 flex 레이아웃(.mapPickerMap { flex: 1 })이
         // 아직 확정되지 않아 지도 타일이 실제 크기보다 작게 잡히는 문제가 있어 보정한다.
@@ -224,7 +228,10 @@ function MigratoryPointMapPicker({ points, onSelect, onClose, emptyMessage }: Ma
             {emptyMessage}
           </p>
         )}
-        <div ref={mapRef} className={styles.mapPickerMap} />
+        <div className={styles.mapPickerMap}>
+          <div ref={mapRef} className={styles.mapPickerMapCanvas} />
+          <MapTypeControl map={mapForControl} />
+        </div>
       </div>
     </div>
   );
