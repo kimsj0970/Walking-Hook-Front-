@@ -21,7 +21,7 @@ export default function ImageLightbox({ images, index, onClose, onPrev, onNext }
   }, [onClose, onPrev, onNext]);
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
+    <div className={styles.overlay}>
       <button className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
 
       {images.length > 1 && (
