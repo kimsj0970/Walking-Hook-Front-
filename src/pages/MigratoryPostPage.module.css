@@ -73,8 +73,10 @@
 
 .listItem {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 18px 20px;
   background: var(--color-surface);
   border-radius: 14px;
@@ -104,6 +106,14 @@
 .listItem:hover::before { opacity: 1; }
 .listItem:active { transform: translateY(0); box-shadow: none; }
 
+.listMain {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .listTop {
   display: flex;
   align-items: center;
@@ -114,7 +124,7 @@
 .listBottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -143,13 +153,6 @@
   min-width: 0;
 }
 
-.listMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .listPoint {
   display: inline-flex;
   align-items: center;
@@ -170,7 +173,16 @@
 .authorNickname { font-size: 12px; color: var(--color-text-muted); }
 .photoIcon { font-size: 12px; color: var(--color-text-muted); }
 .commentCount { font-size: 12px; color: var(--color-text-muted); }
-.listDate { font-size: 11px; color: var(--color-text-muted); flex-shrink: 0; }
+
+.listDates {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.listDate { font-size: 12px; font-weight: 600; color: var(--color-text); white-space: nowrap; }
+.listWriteDate { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
 
 /* ── 페이지네이션 ── */
 .pagination {
