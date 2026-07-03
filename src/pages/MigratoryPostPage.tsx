@@ -891,7 +891,7 @@ export default function MigratoryPostPage() {
             </p>
           </div>
           {view === 'list' && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className={styles.headerActions}>
               <button className={styles.iconActionBtn} onClick={openBrowseMap}>🗺️ 지도로 보기</button>
               <div className={styles.pointDropdown} ref={regionDropRef}>
                 <button className={styles.iconActionBtn} onClick={toggleRegionDrop}>📍 지역으로 보기</button>
