@@ -915,9 +915,37 @@
   border-color: rgba(52,211,153,0.8);
 }
 
+/* 모바일에서도 세로로 쌓지 않고 가로 2열 유지 — 카드 내부 여백/폰트를 줄여 글자 깨짐 방지 */
 @media (max-width: 560px) {
   .migratoryRow {
-    flex-direction: column;
+    gap: 8px;
+  }
+  .migratoryCard,
+  .allPointsCard {
+    padding: 12px 10px;
+    gap: 8px;
+  }
+  .migratoryCardFish,
+  .allPointsCardIcon {
+    font-size: 22px;
+  }
+  .migratoryCardTop {
+    gap: 5px;
+  }
+  .migratoryCardLive {
+    font-size: 9px;
+  }
+  .migratoryCardTitle,
+  .allPointsCardTitle {
+    font-size: 12.5px;
+  }
+  .migratoryCardDesc,
+  .allPointsCardDesc {
+    font-size: 10.5px;
+  }
+  .migratoryCardCta,
+  .allPointsCardCta {
+    display: none;
   }
 }
 
