@@ -111,8 +111,8 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
   };
 
   return (
-    <div className={styles.modalOverlay} onClick={() => !saving && onClose()}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>{editTarget ? '조황 수정' : '조황 등록'}</h2>
           <button className={styles.modalClose} onClick={onClose} disabled={saving}>✕</button>
