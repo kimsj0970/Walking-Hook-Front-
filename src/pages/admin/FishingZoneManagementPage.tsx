@@ -4,6 +4,7 @@ import {
   type FishingZone, type ZoneType,
 } from '../../api/fishingZoneApi';
 import { fetchPublicFishingPointsForMap, type FishingPointMapMarker } from '../../api/fishingPointApi';
+import MapTypeControl from '../../components/map/MapTypeControl';
 import styles from './FishingZoneManagementPage.module.css';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,6 +71,7 @@ export default function FishingZoneManagementPage() {
   const polyPathRef = useRef<Coord[]>([]);
 
   const [drawMode, setDrawMode] = useState<DrawMode>('none');
+  const [mapForControl, setMapForControl] = useState<KakaoMap>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [zones, setZones] = useState<FishingZone[]>([]);
@@ -175,6 +177,7 @@ export default function FishingZoneManagementPage() {
           level: 13,
         });
         kakaoMapRef.current = map;
+        setMapForControl(map);
 
         // 생성 시점에 컨테이너 레이아웃이 아직 확정되지 않으면 지도 타일이
         // 실제 크기보다 작게 잡혀 아래쪽이 빈 칸으로 보이는 문제가 있어 보정한다.
@@ -555,6 +558,7 @@ export default function FishingZoneManagementPage() {
       )}
 
       <div ref={mapRef} className={styles.map} />
+      <MapTypeControl map={mapForControl} />
     </div>
   );
 }
