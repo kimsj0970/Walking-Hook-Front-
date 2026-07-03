@@ -200,8 +200,8 @@ function MigratoryPointMapPicker({ points, onSelect, onClose, emptyMessage }: Ma
   }, [onClose]);
 
   return (
-    <div className={styles.mapPickerOverlay} onClick={onClose}>
-      <div className={styles.mapPickerModal} onClick={e => e.stopPropagation()}>
+    <div className={styles.mapPickerOverlay}>
+      <div className={styles.mapPickerModal}>
         <div className={styles.mapPickerHeader}>
           <span>지도에서 포인트 선택</span>
           <button className={styles.mapPickerClose} onClick={onClose}>✕</button>
