@@ -1423,7 +1423,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
         const map = new kakao.maps.Map(mapRef.current, {
           center: new kakao.maps.LatLng(36.0, 127.8),
-          level: 12,
+          level: 13,
         });
 
         // 모달이 막 열리는 시점엔 컨테이너 레이아웃이 아직 확정되지 않아
@@ -1673,7 +1673,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
 
         const map = new kakao.maps.Map(mapRef.current, {
           center: new kakao.maps.LatLng(36.0, 127.8),
-          level: 12,
+          level: 13,
         });
 
         requestAnimationFrame(() => {
