@@ -1,4 +1,5 @@
 import api from './authApi';
+import type { Province } from './fishingPointApi';
 import type { MigratorySpecies } from './migratoryFishPointApi';
 
 export interface MigratoryPostListItem {
@@ -85,15 +86,31 @@ export interface MigratoryPostUpdateRequest {
 }
 
 export async function getMigratoryPostsPage(
-  page = 0, size = 20, migratoryPointId?: string, province?: string
+  page = 0, size = 20, migratoryPointId?: string, province?: string, year?: number, month?: number, species?: MigratorySpecies
 ): Promise<PageResult<MigratoryPostListItem>> {
-  const { data } = await api.get('/migratory-catch-posts', { params: { page, size, migratoryPointId, province } });
+  const { data } = await api.get('/migratory-catch-posts', { params: { page, size, migratoryPointId, province, year, month, species } });
   return data.data as PageResult<MigratoryPostListItem>;
 }
 
 export async function getMigratoryPostDetail(id: string): Promise<MigratoryPostDetail> {
   const { data } = await api.get(`/migratory-catch-posts/${id}`);
   return data.data as MigratoryPostDetail;
+}
+
+export interface MigratoryPostMapPoint {
+  pointId: string;
+  name: string;
+  province: Province;
+  region: string;
+  latitude: number;
+  longitude: number;
+  postCount: number;
+}
+
+/** 회유성 게시물이 하나 이상 존재하는 포인트만 지도 마커로 조회 */
+export async function getMigratoryPostMapPoints(): Promise<MigratoryPostMapPoint[]> {
+  const { data } = await api.get('/migratory-catch-posts/map/points');
+  return (data.data ?? []) as MigratoryPostMapPoint[];
 }
 
 export async function getTodayMigratoryMarkers(): Promise<TodayMigratoryMapMarker[]> {
