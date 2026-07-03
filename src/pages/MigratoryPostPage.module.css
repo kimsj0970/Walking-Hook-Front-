@@ -823,8 +823,14 @@
 }
 
 .mapPickerMap {
+  position: relative;
   flex: 1;
   width: 100%;
+}
+
+.mapPickerMapCanvas {
+  width: 100%;
+  height: 100%;
 }
 
 .mapPickerLoading {
