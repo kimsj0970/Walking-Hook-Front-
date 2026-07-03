@@ -1,4 +1,5 @@
 import api from './authApi';
+import type { Province } from './fishingPointApi';
 import type { PageResult } from './noticeApi';
 
 export interface FishingPostListItem {
@@ -40,10 +41,26 @@ export async function getFishingPosts(): Promise<FishingPostListItem[]> {
 }
 
 export async function getFishingPostsPage(
-  page: number, size = 20, migratoryPointId?: string, province?: string
+  page: number, size = 20, migratoryPointId?: string, province?: string, year?: number, month?: number
 ): Promise<PageResult<FishingPostListItem>> {
-  const { data } = await api.get('/fishing-posts', { params: { page, size, migratoryPointId, province } });
+  const { data } = await api.get('/fishing-posts', { params: { page, size, migratoryPointId, province, year, month } });
   return data.data as PageResult<FishingPostListItem>;
+}
+
+export interface FishingPostMapPoint {
+  pointId: string;
+  name: string;
+  province: Province;
+  region: string;
+  latitude: number;
+  longitude: number;
+  postCount: number;
+}
+
+/** 조황 게시물이 하나 이상 존재하는 포인트만 지도 마커로 조회 */
+export async function getFishingPostMapPoints(): Promise<FishingPostMapPoint[]> {
+  const { data } = await api.get('/fishing-posts/map/points');
+  return (data.data ?? []) as FishingPostMapPoint[];
 }
 
 export async function getFishingPostDetail(id: string): Promise<FishingPostDetail> {
