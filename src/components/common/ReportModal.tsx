@@ -51,8 +51,8 @@ export default function ReportModal({ postId, postType, postTitle, parentPostId,
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
         <div className={styles.header}>
           <h3 className={styles.title}>신고하기</h3>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>
