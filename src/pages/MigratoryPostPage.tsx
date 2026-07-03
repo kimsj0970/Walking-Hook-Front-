@@ -6,19 +6,20 @@ import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import {
   getMigratoryPostsPage, getMigratoryPostDetail, createMigratoryPost,
-  updateMigratoryPost, deleteMigratoryPost,
+  updateMigratoryPost, deleteMigratoryPost, getMigratoryPostMapPoints,
   getMigratoryPostComments, addMigratoryPostComment, deleteMigratoryPostComment,
   type MigratoryPostListItem, type MigratoryPostDetail, type MigratoryPostCreateRequest,
   type MigratoryPostComment,
 } from '../api/migratoryPostApi';
 import {
   fetchMigratoryFishPointMapMarkers,
-  MIGRATORY_SPECIES_OPTIONS,
+  MIGRATORY_SPECIES_OPTIONS, MIGRATORY_SPECIES_LABELS,
   type MigratorySpecies, type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
 import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import ReportModal from '../components/common/ReportModal';
+import MonthYearPicker from '../components/common/MonthYearPicker';
 import styles from './MigratoryPostPage.module.css';
 
 type View = 'list' | 'detail';
@@ -27,6 +28,11 @@ const PAGE_SIZE = 10;
 function formatDate(iso: string) {
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  return `${formatDate(iso)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
 function todayStr() {
@@ -95,9 +101,10 @@ interface MapPickerProps {
   points: MigratoryFishPointMapMarker[];
   onSelect: (point: MigratoryFishPointMapMarker) => void;
   onClose: () => void;
+  emptyMessage?: string;
 }
 
-function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) {
+function MigratoryPointMapPicker({ points, onSelect, onClose, emptyMessage }: MapPickerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const onSelectRef = useRef(onSelect);
@@ -211,6 +218,11 @@ function MigratoryPointMapPicker({ points, onSelect, onClose }: MapPickerProps) 
           <div className={styles.mapPickerLoading}>
             <p style={{ color: '#E53E3E', fontSize: 14 }}>지도를 불러오지 못했습니다.</p>
           </div>
+        )}
+        {mapStatus === 'ready' && points.length === 0 && emptyMessage && (
+          <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13, margin: '8px 0 0' }}>
+            {emptyMessage}
+          </p>
         )}
         <div ref={mapRef} className={styles.mapPickerMap} />
       </div>
@@ -608,11 +620,20 @@ export default function MigratoryPostPage() {
   const [lbIdx, setLbIdx] = useState<number | null>(null);
 
   const [browseMapOpen, setBrowseMapOpen] = useState(false);
+  const [browseMapPoints, setBrowseMapPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [pointFilter, setPointFilter] = useState<MigratoryFishPointMapMarker | null>(null);
 
   const [regionDropOpen, setRegionDropOpen] = useState(false);
   const [regionFilter, setRegionFilter] = useState<Province | null>(null);
   const regionDropRef = useRef<HTMLDivElement>(null);
+
+  const [dateDropOpen, setDateDropOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState<{ year: number; month: number } | null>(null);
+  const dateDropRef = useRef<HTMLDivElement>(null);
+
+  const [speciesDropOpen, setSpeciesDropOpen] = useState(false);
+  const [speciesFilter, setSpeciesFilter] = useState<MigratorySpecies | null>(null);
+  const speciesDropRef = useRef<HTMLDivElement>(null);
 
   const [comments, setComments] = useState<MigratoryPostComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
@@ -625,7 +646,10 @@ export default function MigratoryPostPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await getMigratoryPostsPage(page, PAGE_SIZE, pointFilter?.id, regionFilter ?? undefined);
+      const result = await getMigratoryPostsPage(
+        page, PAGE_SIZE, pointFilter?.id, regionFilter ?? undefined,
+        dateFilter?.year, dateFilter?.month, speciesFilter ?? undefined
+      );
       setItems(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -635,10 +659,24 @@ export default function MigratoryPostPage() {
     } finally {
       setLoading(false);
     }
-  }, [pointFilter, regionFilter]);
+  }, [pointFilter, regionFilter, dateFilter, speciesFilter]);
 
   useEffect(() => { fetchList(0); }, [fetchList]);
   useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
+
+  /** "지도로 보기"는 전체 포인트가 아니라 회유성 게시물이 실제로 존재하는 포인트만 표시한다 */
+  useEffect(() => {
+    if (!browseMapOpen) return;
+    let cancelled = false;
+    getMigratoryPostMapPoints().then((pts) => {
+      if (cancelled) return;
+      setBrowseMapPoints(pts.map((p) => ({
+        id: p.pointId, name: p.name, province: p.province, region: p.region,
+        latitude: p.latitude, longitude: p.longitude, targetSpecies: [],
+      })));
+    }).catch(() => setBrowseMapPoints([]));
+    return () => { cancelled = true; };
+  }, [browseMapOpen]);
 
   const openBrowseMap = () => {
     if (!isLoggedIn) { navigate('/login'); return; }
@@ -650,21 +688,53 @@ export default function MigratoryPostPage() {
     setRegionDropOpen(v => !v);
   };
 
+  const toggleDateDrop = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
+    setDateDropOpen(v => !v);
+  };
+
+  const toggleSpeciesDrop = () => {
+    if (!isLoggedIn) { navigate('/login'); return; }
+    setSpeciesDropOpen(v => !v);
+  };
+
   const handleBrowseSelect = (point: MigratoryFishPointMapMarker) => {
     setRegionFilter(null);
+    setDateFilter(null);
+    setSpeciesFilter(null);
     setPointFilter(point);
     setBrowseMapOpen(false);
   };
 
   const handleRegionSelect = (province: Province) => {
     setPointFilter(null);
+    setDateFilter(null);
+    setSpeciesFilter(null);
     setRegionFilter(province);
     setRegionDropOpen(false);
+  };
+
+  const handleDateSelect = (year: number, month: number) => {
+    setPointFilter(null);
+    setRegionFilter(null);
+    setSpeciesFilter(null);
+    setDateFilter({ year, month });
+    setDateDropOpen(false);
+  };
+
+  const handleSpeciesSelect = (species: MigratorySpecies) => {
+    setPointFilter(null);
+    setRegionFilter(null);
+    setDateFilter(null);
+    setSpeciesFilter(species);
+    setSpeciesDropOpen(false);
   };
 
   const clearFilter = () => {
     setPointFilter(null);
     setRegionFilter(null);
+    setDateFilter(null);
+    setSpeciesFilter(null);
   };
 
   useEffect(() => {
@@ -675,6 +745,24 @@ export default function MigratoryPostPage() {
     document.addEventListener('mousedown', onClickOut);
     return () => document.removeEventListener('mousedown', onClickOut);
   }, [regionDropOpen]);
+
+  useEffect(() => {
+    if (!speciesDropOpen) return;
+    const onClickOut = (e: MouseEvent) => {
+      if (speciesDropRef.current && !speciesDropRef.current.contains(e.target as Node)) setSpeciesDropOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [speciesDropOpen]);
+
+  useEffect(() => {
+    if (!dateDropOpen) return;
+    const onClickOut = (e: MouseEvent) => {
+      if (dateDropRef.current && !dateDropRef.current.contains(e.target as Node)) setDateDropOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [dateDropOpen]);
 
   useEffect(() => {
     const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
@@ -821,6 +909,28 @@ export default function MigratoryPostPage() {
                   </div>
                 )}
               </div>
+              <div className={styles.pointDropdown} ref={dateDropRef}>
+                <button className={styles.iconActionBtn} onClick={toggleDateDrop}>📅 날짜로 보기</button>
+                {dateDropOpen && (
+                  <MonthYearPicker value={dateFilter} onSelect={handleDateSelect} />
+                )}
+              </div>
+              <div className={styles.pointDropdown} ref={speciesDropRef}>
+                <button className={styles.iconActionBtn} onClick={toggleSpeciesDrop}>🐟 어종으로 찾기</button>
+                {speciesDropOpen && (
+                  <div className={styles.pointList}>
+                    {MIGRATORY_SPECIES_OPTIONS.map(([code, label]) => (
+                      <div
+                        key={code}
+                        className={styles.pointListItem}
+                        onClick={() => handleSpeciesSelect(code)}
+                      >
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               {isLoggedIn && (
                 <button className={styles.createBtn} onClick={openCreate}>글쓰기</button>
               )}
@@ -836,12 +946,16 @@ export default function MigratoryPostPage() {
         {/* ── 목록 ── */}
         {view === 'list' && (
           <>
-            {(pointFilter || regionFilter) && (
+            {(pointFilter || regionFilter || dateFilter || speciesFilter) && (
               <div className={styles.pointFilterBar}>
                 <span>
                   {pointFilter
                     ? <>📍 <strong>{pointFilter.name}</strong>에서 잡힌 게시물</>
-                    : <>🗺️ <strong>{PROVINCE_LABELS[regionFilter as Province]}</strong> 지역 게시물</>}
+                    : regionFilter
+                    ? <>🗺️ <strong>{PROVINCE_LABELS[regionFilter as Province]}</strong> 지역 게시물</>
+                    : dateFilter
+                    ? <>📅 <strong>{dateFilter.year}년 {dateFilter.month}월</strong> 게시물</>
+                    : <>🐟 <strong>{MIGRATORY_SPECIES_LABELS[speciesFilter as MigratorySpecies]}</strong> 게시물</>}
                 </span>
                 <button onClick={clearFilter}>필터 해제 ✕</button>
               </div>
@@ -855,26 +969,33 @@ export default function MigratoryPostPage() {
                   ? `"${pointFilter.name}"에서 잡힌 게시글이 아직 없습니다.`
                   : regionFilter
                   ? `"${PROVINCE_LABELS[regionFilter]}"에 잡힌 게시글이 아직 없습니다.`
+                  : dateFilter
+                  ? `${dateFilter.year}년 ${dateFilter.month}월에 잡힌 게시글이 아직 없습니다.`
+                  : speciesFilter
+                  ? `"${MIGRATORY_SPECIES_LABELS[speciesFilter]}" 게시글이 아직 없습니다.`
                   : '아직 등록된 게시글이 없습니다.'}
               </p>
             ) : (
               <div className={styles.list}>
                 {items.map(item => (
                   <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
-                    <div className={styles.listTop}>
-                      <span className={styles.speciesBadge}>{item.speciesDisplayNames?.join('·') ?? ''}</span>
-                      <span className={styles.listTitle}>{item.title}</span>
-                      <span className={styles.listDate}>{item.caughtAt}</span>
-                    </div>
-                    <div className={styles.listBottom}>
-                      {item.pointName
-                        ? <span className={styles.listPoint}>📍 {item.pointName}</span>
-                        : <span className={styles.listNoPoint}>포인트 미지정</span>}
-                      <div className={styles.listMeta}>
+                    <div className={styles.listMain}>
+                      <div className={styles.listTop}>
+                        <span className={styles.speciesBadge}>{item.speciesDisplayNames?.join('·') ?? ''}</span>
+                        <span className={styles.listTitle}>{item.title}</span>
+                      </div>
+                      <div className={styles.listBottom}>
+                        {item.pointName
+                          ? <span className={styles.listPoint}>📍 {item.pointName}</span>
+                          : <span className={styles.listNoPoint}>포인트 미지정</span>}
                         <span className={styles.authorNickname}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.photoIcon}>📷 {item.photoUrls.length}</span>}
                         <span className={styles.commentCount}>💬 {item.commentCount ?? 0}</span>
                       </div>
+                    </div>
+                    <div className={styles.listDates}>
+                      <span className={styles.listDate}>작성일 {formatDateTime(item.createdAt)}</span>
+                      <span className={styles.listWriteDate}>잡은 날짜 {item.caughtAt}</span>
                     </div>
                   </div>
                 ))}
@@ -937,7 +1058,7 @@ export default function MigratoryPostPage() {
                       {detail.authorNickname}
                     </span>
                     <span className={styles.metaDot}>·</span>
-                    <span>잡은 날짜 {detail.caughtAt}</span>
+                    <span>잡은 날짜: {detail.caughtAt}</span>
                     {detail.pointName && (
                       <>
                         <span className={styles.metaDot}>·</span>
@@ -945,7 +1066,7 @@ export default function MigratoryPostPage() {
                       </>
                     )}
                     <span className={styles.metaDot}>·</span>
-                    <span>작성 {formatDate(detail.createdAt)}</span>
+                    <span>작성 날짜: {formatDate(detail.createdAt)}</span>
                   </div>
 
                   <span className={styles.speciesBadge}>잡은 어종 {detail.speciesDisplayNames?.join('·') ?? ''}</span>
@@ -1083,9 +1204,10 @@ export default function MigratoryPostPage() {
       />
       {browseMapOpen && (
         <MigratoryPointMapPicker
-          points={points}
+          points={browseMapPoints}
           onSelect={handleBrowseSelect}
           onClose={() => setBrowseMapOpen(false)}
+          emptyMessage="아직 회유성 게시물이 등록된 포인트가 없습니다."
         />
       )}
       {lbIdx !== null && detail?.photoUrls && (
