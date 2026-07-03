@@ -8,6 +8,7 @@ import {
   type NmpntStationMarker,
 } from '../../api/marineStationApi';
 import { searchFishingPoints, type FishingPointSummary } from '../../api/fishingPointApi';
+import MapTypeControl from '../../components/map/MapTypeControl';
 import styles from './AdminMapPage.module.css';
 
 function loadKakaoSDK(appKey: string): Promise<void> {
@@ -207,6 +208,8 @@ export default function AdminMapPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [mapForControl, setMapForControl] = useState<any>(null);
 
   useEffect(() => {
     const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
@@ -240,6 +243,7 @@ export default function AdminMapPage() {
             center: new kakao.maps.LatLng(36.5, 127.8),
             level: 13,
           });
+          setMapForControl(map);
 
           // 생성 시점에 컨테이너 레이아웃이 아직 확정되지 않으면 지도 타일이
           // 실제 크기보다 작게 잡혀 아래쪽이 빈 칸으로 보이는 문제가 있어 보정한다.
@@ -361,6 +365,7 @@ export default function AdminMapPage() {
         <span className={styles.legendBlue}>● 낚시 포인트</span>
       </div>
       <div ref={mapRef} className={styles.map} />
+      <MapTypeControl map={mapForControl} position="top-left" />
     </div>
   );
 }
