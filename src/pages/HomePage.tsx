@@ -15,6 +15,7 @@ import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migrat
 import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPostApi';
 import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
 import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
+import MapTypeControl from '../components/map/MapTypeControl';
 import styles from './HomePage.module.css';
 
 const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
@@ -1304,6 +1305,8 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [markerCount, setMarkerCount] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [mapForControl, setMapForControl] = useState<any>(null);
   const navigate = useNavigate();
 
   // iOS Safari 포함 배경 스크롤 완전 차단
@@ -1425,6 +1428,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 13,
         });
+        setMapForControl(map);
 
         // 모달이 막 열리는 시점엔 컨테이너 레이아웃이 아직 확정되지 않아
         // 지도 타일이 실제 크기보다 작게 잡히는 문제가 있어 보정한다.
@@ -1614,6 +1618,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           )}
 
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
+          <MapTypeControl map={mapForControl} />
         </div>
 
         {/* 안내 문구 */}
@@ -1635,6 +1640,8 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>(hasAppKey ? 'loading' : 'error');
   const [errorMsg, setErrorMsg] = useState(hasAppKey ? '' : '.env 파일에 VITE_KAKAO_MAP_KEY를 설정해주세요.');
   const [pointCount, setPointCount] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [mapForControl, setMapForControl] = useState<any>(null);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -1673,6 +1680,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           center: new kakao.maps.LatLng(36.0, 127.8),
           level: 13,
         });
+        setMapForControl(map);
 
         requestAnimationFrame(() => {
           map.relayout();
@@ -1857,6 +1865,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           )}
 
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
+          <MapTypeControl map={mapForControl} />
         </div>
 
         {/* 안내 문구 */}
