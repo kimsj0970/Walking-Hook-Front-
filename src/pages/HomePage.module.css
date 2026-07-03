@@ -706,13 +706,21 @@
   margin-bottom: 20px;
 }
 
-/* ─── 실시간 회유성 정보(지도) 카드 ─── */
+/* ─── 실시간 회유성 정보(지도) 카드 + 전체 포인트 보기 버튼 ─── */
+.migratoryRow {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+  margin-top: 28px;
+}
+
 .migratoryCard {
   display: flex;
   align-items: center;
   gap: 14px;
-  width: 100%;
-  margin-top: 28px;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 16px 20px;
   background: linear-gradient(135deg, #080E24 0%, #0D1535 60%, #0A1A40 100%);
   border: 1.5px solid rgba(34, 211, 238, 0.5);
@@ -830,6 +838,87 @@
 .migratoryCard:hover .migratoryCardCta {
   background: rgba(34,211,238,0.28);
   border-color: rgba(34,211,238,0.8);
+}
+
+/* ─── 모든 낚시 포인트 보기 버튼 ─── */
+.allPointsCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #062B24 0%, #0B4A3B 60%, #0C5C45 100%);
+  border: 1.5px solid rgba(52, 211, 153, 0.5);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  text-align: left;
+}
+
+.allPointsCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(52, 211, 153, 0.85);
+  box-shadow: 0 8px 36px rgba(0,0,0,0.45), 0 0 20px rgba(52,211,153,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.allPointsCardIcon {
+  font-size: 30px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.allPointsCardBody {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.allPointsCardTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.allPointsCardDesc {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.allPointsCardCta {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: rgba(52,211,153,0.15);
+  border: 1px solid rgba(52,211,153,0.5);
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6EE7B7;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.allPointsCard:hover .allPointsCardCta {
+  background: rgba(52,211,153,0.28);
+  border-color: rgba(52,211,153,0.8);
+}
+
+@media (max-width: 560px) {
+  .migratoryRow {
+    flex-direction: column;
+  }
 }
 
 /* ─── 에러 배너 ─── */
@@ -1261,8 +1350,10 @@
 
 .previewCard {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -1275,16 +1366,26 @@
   box-shadow: 0 2px 8px rgba(11, 61, 145, 0.07);
 }
 
+.previewMain {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
 .previewCardTop {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .previewCardBottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .previewSpeciesBadge {
@@ -1306,13 +1407,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
-.previewDate {
-  font-size: 11px;
-  color: var(--color-text-muted);
+.previewDates {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
   flex-shrink: 0;
 }
+.previewDate { font-size: 12px; font-weight: 600; color: var(--color-text); white-space: nowrap; }
+.previewWriteDate { font-size: 11px; color: var(--color-text-muted); white-space: nowrap; }
 
 .previewPointBadge {
   padding: 2px 9px;
@@ -1335,12 +1441,6 @@
   border: 1px solid var(--color-border);
   flex-shrink: 0;
   white-space: nowrap;
-}
-
-.previewMeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .previewMetaIcon {
