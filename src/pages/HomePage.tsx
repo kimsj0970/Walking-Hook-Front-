@@ -1546,7 +1546,6 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         touchAction: 'none', overscrollBehavior: 'contain',
       }}
-      onClick={onClose}
     >
       <div
         style={{
@@ -1556,7 +1555,6 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           touchAction: 'auto', overscrollBehavior: 'contain',
         }}
-        onClick={e => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div style={{
@@ -1791,7 +1789,6 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
         zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         touchAction: 'none', overscrollBehavior: 'contain',
       }}
-      onClick={onClose}
     >
       <div
         style={{
@@ -1801,7 +1798,6 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           touchAction: 'auto', overscrollBehavior: 'contain',
         }}
-        onClick={e => e.stopPropagation()}
       >
         {/* 헤더 */}
         <div style={{
