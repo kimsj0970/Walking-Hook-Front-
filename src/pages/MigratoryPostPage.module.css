@@ -23,6 +23,22 @@
   border-bottom: 2px solid var(--color-border);
 }
 
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 640px) {
+  .headerActions {
+    width: 100%;
+  }
+  .headerActions .createBtn {
+    margin-left: auto;
+  }
+}
+
 .pageTitle {
   font-size: 24px;
   font-weight: 800;
