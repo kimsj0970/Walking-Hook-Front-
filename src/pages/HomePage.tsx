@@ -13,6 +13,8 @@ import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
 import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migratoryPostApi';
 import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPostApi';
+import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
+import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import styles from './HomePage.module.css';
 
 const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
@@ -42,6 +44,12 @@ function getWaterMoonIcon(waterNumber: string | null | undefined): string {
   if (n <= 4) return '🌓';
   if (n <= 6) return '🌔';
   return '🌕';
+}
+
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  return `${date} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 function getWindDesc(windSpeed: number | null | undefined): string | null {
@@ -184,6 +192,7 @@ export default function HomePage() {
 
   // 회유성 지도 모달
   const [migratoryMapOpen, setMigratoryMapOpen] = useState(false);
+  const [allPointsMapOpen, setAllPointsMapOpen] = useState(false);
   const [migratoryPostsPreview, setMigratoryPostsPreview] = useState<MigratoryPostListItem[]>([]);
   const [fishingPostsPreview, setFishingPostsPreview] = useState<FishingPostListItem[]>([]);
 
@@ -479,32 +488,56 @@ export default function HomePage() {
               />
             </div>
 
-            {/* 실시간 회유성 정보(지도) 카드 */}
-            <button
-              className={styles.migratoryCard}
-              onClick={() => {
-                if (!isLoggedIn) {
-                  setLoginToast(true);
-                  setTimeout(() => setLoginToast(false), 2000);
-                  setLoginModalOpen(true);
-                  return;
-                }
-                setMigratoryMapOpen(true);
-              }}
-            >
-              <span className={styles.migratoryCardShimmer} />
-              <span className={styles.migratoryCardFish}>🐟</span>
-              <div className={styles.migratoryCardBody}>
-                <div className={styles.migratoryCardTop}>
-                  <span className={styles.migratoryCardLive}>● LIVE</span>
-                  <span className={styles.migratoryCardTitle}>실시간 회유성 정보 지도</span>
+            {/* 실시간 회유성 정보(지도) 카드 + 모든 낚시 포인트 보기 */}
+            <div className={styles.migratoryRow}>
+              <button
+                className={styles.migratoryCard}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setLoginToast(true);
+                    setTimeout(() => setLoginToast(false), 2000);
+                    setLoginModalOpen(true);
+                    return;
+                  }
+                  setMigratoryMapOpen(true);
+                }}
+              >
+                <span className={styles.migratoryCardShimmer} />
+                <span className={styles.migratoryCardFish}>🐟</span>
+                <div className={styles.migratoryCardBody}>
+                  <div className={styles.migratoryCardTop}>
+                    <span className={styles.migratoryCardLive}>● LIVE</span>
+                    <span className={styles.migratoryCardTitle}>실시간 회유성 정보</span>
+                  </div>
+                  <p className={styles.migratoryCardDesc}>
+                    {now.getMonth() + 1}월 {now.getDate()}일 회유성 포인트
+                  </p>
                 </div>
-                <p className={styles.migratoryCardDesc}>
-                  {now.getMonth() + 1}월 {now.getDate()}일 잡히는 포인트를 지도에서 확인하세요
-                </p>
-              </div>
-              <span className={styles.migratoryCardCta}>보기 →</span>
-            </button>
+                <span className={styles.migratoryCardCta}>보기 →</span>
+              </button>
+
+              <button
+                className={styles.allPointsCard}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setLoginToast(true);
+                    setTimeout(() => setLoginToast(false), 2000);
+                    setLoginModalOpen(true);
+                    return;
+                  }
+                  setAllPointsMapOpen(true);
+                }}
+              >
+                <span className={styles.allPointsCardIcon}>🗺️</span>
+                <div className={styles.allPointsCardBody}>
+                  <span className={styles.allPointsCardTitle}>모든 어종 포인트</span>
+                  <p className={styles.allPointsCardDesc}>
+                    낚시 포인트 & 낚시 금지 포인트
+                  </p>
+                </div>
+                <span className={styles.allPointsCardCta}>보기 →</span>
+              </button>
+            </div>
 
             {/* 낙뢰 경고 */}
             {conditionsResult?.hasLightning && (
@@ -741,22 +774,25 @@ export default function HomePage() {
                     className={styles.previewCard}
                     onClick={() => navigate('/migratory-posts', { state: { openPostId: item.id } })}
                   >
-                    <div className={styles.previewCardTop}>
-                      <span className={styles.previewSpeciesBadge}>
-                        {item.speciesDisplayNames?.join('·') ?? ''}
-                      </span>
-                      <span className={styles.previewTitle}>{item.title}</span>
-                      <span className={styles.previewDate}>{item.caughtAt}</span>
-                    </div>
-                    <div className={styles.previewCardBottom}>
-                      {item.pointName
-                        ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
-                        : <span />}
-                      <div className={styles.previewMeta}>
+                    <div className={styles.previewMain}>
+                      <div className={styles.previewCardTop}>
+                        <span className={styles.previewSpeciesBadge}>
+                          {item.speciesDisplayNames?.join('·') ?? ''}
+                        </span>
+                        <span className={styles.previewTitle}>{item.title}</span>
+                      </div>
+                      <div className={styles.previewCardBottom}>
+                        {item.pointName
+                          ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
+                          : <span />}
+                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
                         {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
-                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
                       </div>
+                    </div>
+                    <div className={styles.previewDates}>
+                      <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
+                      <span className={styles.previewWriteDate}>잡은 날짜 {item.caughtAt}</span>
                     </div>
                   </div>
                 ))}
@@ -816,19 +852,22 @@ export default function HomePage() {
                     className={styles.previewCard}
                     onClick={() => navigate('/fishing-posts', { state: { openPostId: item.id } })}
                   >
-                    <div className={styles.previewCardTop}>
-                      <span className={styles.previewTitle}>{item.title}</span>
-                      {item.caughtAt && <span className={styles.previewDate}>{item.caughtAt}</span>}
-                    </div>
-                    <div className={styles.previewCardBottom}>
-                      {item.pointName
-                        ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
-                        : <span className={styles.previewNoPointBadge}>포인트 미지정</span>}
-                      <div className={styles.previewMeta}>
+                    <div className={styles.previewMain}>
+                      <div className={styles.previewCardTop}>
+                        <span className={styles.previewTitle}>{item.title}</span>
+                      </div>
+                      <div className={styles.previewCardBottom}>
+                        {item.pointName
+                          ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
+                          : <span className={styles.previewNoPointBadge}>포인트 미지정</span>}
+                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
                         {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
-                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
                       </div>
+                    </div>
+                    <div className={styles.previewDates}>
+                      <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
+                      {item.caughtAt && <span className={styles.previewWriteDate}>잡은 날짜 {item.caughtAt}</span>}
                     </div>
                   </div>
                 ))}
@@ -868,6 +907,7 @@ export default function HomePage() {
       <ConditionInfoSheet infoKey={activeInfoKey} onClose={handleInfoClose} />
       <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
       {migratoryMapOpen && <MigratoryMapModal onClose={() => setMigratoryMapOpen(false)} />}
+      {allPointsMapOpen && <AllMigratoryPointsMapModal onClose={() => setAllPointsMapOpen(false)} />}
     </div>
   );
 }
@@ -1237,16 +1277,17 @@ function escapeHtml(str: string): string {
 }
 
 const MIGRATORY_SPECIES_COLORS: Record<string, string> = {
-  SAMCHI:    '#F59E0B',
-  BANGEO:    '#3B82F6',
-  BUSSIRI:   '#8B5CF6',
-  JATBANGEO: '#6D28D9',
-  MACKEREL:  '#10B981',
-  TUNA:      '#EF4444',
+  SAMCHI:     '#F59E0B',
+  BANGEO:     '#3B82F6',
+  BUSSIRI:    '#8B5CF6',
+  JATBANGEO:  '#6D28D9',
+  MACKEREL:   '#10B981',
+  TUNA:       '#EF4444',
+  JEONGAENGI: '#0EA5E9',
 };
 
 const MIGRATORY_SPECIES_KO: Record<string, string> = {
-  SAMCHI:'삼치', BANGEO:'방어', BUSSIRI:'부시리', JATBANGEO:'잿방어', MACKEREL:'고등어', TUNA:'참치',
+  SAMCHI:'삼치', BANGEO:'방어', BUSSIRI:'부시리', JATBANGEO:'잿방어', MACKEREL:'고등어', TUNA:'참치', JEONGAENGI:'전갱이',
 };
 
 function makeFishPin(color: string): string {
@@ -1331,18 +1372,23 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         </div>`;
       }).join('');
 
-      // 게시글 3개 초과 시 좌우 화살표 페이지네이션
+      // 게시글 3개 초과 시 좌우 화살표 페이지네이션 — 터치하기 쉽도록 버튼을 크게, 흰색 칸 안쪽에 여백을 두고 배치
       const buildPaginationHtml = (pointId: string, page: number, totalPages: number) => {
         if (totalPages <= 1) return '';
-        return `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:8px;border-top:1px solid #F1F5F9;">
-          <button onclick="window.__migratoryMapPage('${pointId}', -1)" ${page === 0 ? 'disabled' : ''} style="border:none;background:none;cursor:pointer;font-size:15px;font-weight:700;color:#0B3D91;padding:2px 8px;opacity:${page === 0 ? 0.3 : 1};">‹</button>
-          <span style="font-size:11px;color:#94A3B8;">${page + 1} / ${totalPages}</span>
-          <button onclick="window.__migratoryMapPage('${pointId}', 1)" ${page >= totalPages - 1 ? 'disabled' : ''} style="border:none;background:none;cursor:pointer;font-size:15px;font-weight:700;color:#0B3D91;padding:2px 8px;opacity:${page >= totalPages - 1 ? 0.3 : 1};">›</button>
+        const btnStyle = (disabled: boolean) =>
+          `border:1px solid #E2E8F0;background:#fff;border-radius:8px;cursor:pointer;font-size:20px;font-weight:800;` +
+          `color:#0B3D91;width:34px;height:34px;line-height:1;display:flex;align-items:center;justify-content:center;` +
+          `opacity:${disabled ? 0.3 : 1};`;
+        return `<div style="display:flex;align-items:center;justify-content:center;gap:18px;margin-top:10px;padding-top:10px;border-top:1px solid #F1F5F9;">
+          <button onclick="window.__migratoryMapPage('${pointId}', -1)" ${page === 0 ? 'disabled' : ''} style="${btnStyle(page === 0)}">‹</button>
+          <span style="font-size:12px;font-weight:600;color:#64748B;">${page + 1} / ${totalPages}</span>
+          <button onclick="window.__migratoryMapPage('${pointId}', 1)" ${page >= totalPages - 1 ? 'disabled' : ''} style="${btnStyle(page >= totalPages - 1)}">›</button>
         </div>`;
       };
 
-      const buildInfoContent = (pointName: string | null, speciesBadges: string, postsHtml: string, paginationHtml: string) => `<div style="padding:12px 14px;min-width:200px;max-width:280px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;line-height:1.5;">
-        ${pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;">📍 ${escapeHtml(pointName)}</div>` : ''}
+      const buildInfoContent = (pointId: string, pointName: string | null, speciesBadges: string, postsHtml: string, paginationHtml: string) => `<div style="position:relative;padding:14px 16px;min-width:220px;max-width:280px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;line-height:1.5;">
+        <button onclick="window.__closeMigratoryInfo('${pointId}')" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border:none;background:#F1F5F9;border-radius:50%;font-size:16px;font-weight:700;color:#64748B;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
+        ${pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;padding-right:26px;">📍 ${escapeHtml(pointName)}</div>` : ''}
         <div style="margin-bottom:6px;">${speciesBadges}</div>
         ${postsHtml}
         ${paginationHtml}
@@ -1359,11 +1405,17 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           state.page = result.page;
           state.totalPages = result.totalPages;
           state.iw.setContent(buildInfoContent(
-            state.pointName, state.speciesBadges,
+            pointId, state.pointName, state.speciesBadges,
             buildPostListHtml(result.content),
             buildPaginationHtml(pointId, state.page, state.totalPages),
           ));
         }).catch(() => { /* 페이지 이동 실패 시 기존 내용 유지 */ });
+      };
+
+      // 커스텀 닫기(✕) 버튼 클릭 시 InfoWindow 닫기 — Kakao 기본 닫기 아이콘이 너무 작아 직접 그려서 크게 표시
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__closeMigratoryInfo = (pointId: string) => {
+        pointPageState.get(pointId)?.iw.close();
       };
 
       kakao.maps.load(() => {
@@ -1451,12 +1503,13 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
             const totalPages = Math.max(1, Math.ceil((m.totalPostCount ?? m.posts.length) / 3));
             const infoContent = buildInfoContent(
-              m.pointName, speciesBadges,
+              m.migratoryPointId, m.pointName, speciesBadges,
               buildPostListHtml(m.posts),
               buildPaginationHtml(m.migratoryPointId, 0, totalPages),
             );
 
-            const iw = new kakao.maps.InfoWindow({ content: infoContent, removable: true });
+            // Kakao 기본 닫기 아이콘 대신 콘텐츠 안에 직접 그린 큰 ✕ 버튼을 사용
+            const iw = new kakao.maps.InfoWindow({ content: infoContent, removable: false });
             pointPageState.set(m.migratoryPointId, {
               page: 0, totalPages, pointName: m.pointName, speciesBadges, iw,
             });
@@ -1571,6 +1624,251 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           flexShrink: 0, background: 'var(--color-bg)',
         }}>
           <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 어종과 조황을 확인할 수 있습니다</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── 모든 낚시(회유성 어종) 포인트 지도 모달 ─── */
+function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const hasAppKey = !!(import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined);
+  const [status, setStatus] = useState<'loading' | 'error' | 'ready'>(hasAppKey ? 'loading' : 'error');
+  const [errorMsg, setErrorMsg] = useState(hasAppKey ? '' : '.env 파일에 VITE_KAKAO_MAP_KEY를 설정해주세요.');
+  const [pointCount, setPointCount] = useState(0);
+
+  useEffect(() => {
+    const scrollY = window.scrollY;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  useEffect(() => {
+    const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
+    if (!appKey) return;
+
+    let cancelled = false;
+
+    Promise.all([
+      loadKakaoSDK(appKey),
+      fetchAllMigratoryFishPointMapMarkers().catch(() => [] as MigratoryFishPointMapMarker[]),
+      fetchFishingZones().catch(() => [] as FishingZone[]),
+    ]).then(([, points, zones]) => {
+      if (cancelled || !mapRef.current) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const kakao = (window as any).kakao;
+
+      kakao.maps.load(() => {
+        if (cancelled || !mapRef.current) return;
+
+        const map = new kakao.maps.Map(mapRef.current, {
+          center: new kakao.maps.LatLng(36.0, 127.8),
+          level: 12,
+        });
+
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(map.getCenter());
+        });
+
+        // 낚시 금지·제한구역 폴리곤
+        zones.forEach((zone) => {
+          try {
+            const parsed = JSON.parse(zone.geoJson);
+            const ring: [number, number][] = parsed.coordinates[0];
+            const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
+              new kakao.maps.LatLng(lat, lng)
+            );
+            const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+            const poly = new kakao.maps.Polygon({
+              map,
+              path,
+              strokeWeight: 2,
+              strokeColor: color,
+              strokeOpacity: 0.9,
+              fillColor: color,
+              fillOpacity: 0.2,
+            });
+            const zoneInfoWindow = new kakao.maps.InfoWindow({
+              content: `<div style="padding:12px 14px;width:220px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
+                <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
+                <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
+                ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
+              </div>`,
+              removable: true,
+            });
+            kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
+              zoneInfoWindow.setPosition(e.latLng);
+              zoneInfoWindow.open(map);
+            });
+          } catch {
+            // GeoJSON 파싱 실패 시 무시
+          }
+        });
+
+        const validPoints = points.filter(p => p.latitude != null && p.longitude != null);
+        setPointCount(validPoints.length);
+
+        if (validPoints.length > 0) {
+          const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pinnedWindows = new Map<string, any>();
+
+          // 커스텀 닫기(✕) 버튼 클릭 시 InfoWindow 닫기 — Kakao 기본 닫기 아이콘이 너무 작아 직접 그려서 크게 표시
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).__closeAllPointsInfo = (pointId: string) => {
+            pinnedWindows.get(pointId)?.close();
+          };
+
+          const markers = validPoints.map((p) => {
+            const position = new kakao.maps.LatLng(p.latitude, p.longitude);
+            const marker = new kakao.maps.Marker({ position });
+
+            // 포인트 이름만 표시 — 회유성 어종 정보는 노출하지 않음
+            const nameContent = `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">📍 ${escapeHtml(p.name)}</div>`;
+
+            // 클릭 시 큰 ✕ 버튼으로 직접 닫기 전까지 이름이 고정되는 InfoWindow
+            const pinnedContent = `<div style="position:relative;padding:7px 34px 7px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">
+              📍 ${escapeHtml(p.name)}
+              <button onclick="window.__closeAllPointsInfo('${p.id}')" style="position:absolute;top:3px;right:3px;width:26px;height:26px;border:none;background:#F1F5F9;border-radius:50%;font-size:14px;font-weight:700;color:#64748B;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>`;
+            const pinnedInfoWindow = new kakao.maps.InfoWindow({ content: pinnedContent, removable: false });
+            pinnedWindows.set(p.id, pinnedInfoWindow);
+
+            kakao.maps.event.addListener(marker, 'mouseover', () => {
+              hoverInfoWindow.setContent(nameContent);
+              hoverInfoWindow.open(map, marker);
+            });
+            kakao.maps.event.addListener(marker, 'mouseout', () => {
+              hoverInfoWindow.close();
+            });
+            kakao.maps.event.addListener(marker, 'click', () => {
+              hoverInfoWindow.close();
+              pinnedInfoWindow.open(map, marker);
+            });
+
+            return marker;
+          });
+
+          new kakao.maps.MarkerClusterer({
+            map,
+            markers,
+            gridSize: 60,
+            averageCenter: true,
+            minLevel: 5,
+          });
+        }
+
+        setStatus('ready');
+      });
+    }).catch((err: Error) => {
+      if (!cancelled) { setErrorMsg(err.message); setStatus('error'); }
+    });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)',
+        zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+        touchAction: 'none', overscrollBehavior: 'contain',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: 'var(--color-surface)', borderRadius: 16,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
+          width: '100%', maxWidth: 860, height: '80vh', maxHeight: 640,
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          touchAction: 'auto', overscrollBehavior: 'contain',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 20px', borderBottom: '1px solid var(--color-border)', flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)' }}>
+              🗺️ 모든 낚시 포인트
+            </span>
+            {status === 'ready' && (
+              <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                총 {pointCount}곳
+              </span>
+            )}
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--color-border)',
+            background: 'var(--color-bg)', cursor: 'pointer', fontSize: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--color-text-muted)',
+          }}>✕</button>
+        </div>
+
+        {/* 지도 영역 */}
+        <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+          {status !== 'ready' && (
+            <div style={{
+              position: 'absolute', inset: 0, background: 'var(--color-bg)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: 12, zIndex: 2,
+            }}>
+              {status === 'loading' ? (
+                <>
+                  <div style={{
+                    width: 36, height: 36, border: '3px solid var(--color-border)',
+                    borderTopColor: 'var(--color-primary)', borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }} />
+                  <p style={{ fontSize: 14, color: 'var(--color-text-muted)', margin: 0 }}>지도를 불러오는 중...</p>
+                </>
+              ) : (
+                <p style={{ fontSize: 14, color: '#EF4444', margin: 0 }}>⚠️ {errorMsg}</p>
+              )}
+            </div>
+          )}
+
+          {status === 'ready' && pointCount === 0 && (
+            <div style={{
+              position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(255,255,255,0.92)', padding: '10px 18px',
+              borderRadius: 10, fontSize: 13, color: '#475569', zIndex: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)', whiteSpace: 'nowrap',
+            }}>
+              등록된 낚시 포인트가 없습니다
+            </div>
+          )}
+
+          <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
+        </div>
+
+        {/* 안내 문구 */}
+        <div style={{
+          padding: '8px 16px', borderTop: '1px solid var(--color-border)',
+          flexShrink: 0, background: 'var(--color-bg)',
+        }}>
+          <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 포인트 이름을 확인할 수 있습니다 · 지도를 축소하면 숫자로 묶여 표시됩니다</span>
         </div>
       </div>
     </div>
