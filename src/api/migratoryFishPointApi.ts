@@ -2,15 +2,16 @@ import api from './authApi';
 import type { Province, TerrainType } from './fishingPointApi';
 import type { PageResult } from './noticeApi';
 
-export type MigratorySpecies = 'SAMCHI' | 'BANGEO' | 'BUSSIRI' | 'JATBANGEO' | 'MACKEREL' | 'TUNA';
+export type MigratorySpecies = 'SAMCHI' | 'BANGEO' | 'BUSSIRI' | 'JATBANGEO' | 'MACKEREL' | 'TUNA' | 'JEONGAENGI';
 
 export const MIGRATORY_SPECIES_LABELS: Record<MigratorySpecies, string> = {
-  SAMCHI:    '삼치',
-  BANGEO:    '방어',
-  BUSSIRI:   '부시리',
-  JATBANGEO: '잿방어',
-  MACKEREL:  '고등어',
-  TUNA:      '참치',
+  SAMCHI:     '삼치',
+  BANGEO:     '방어',
+  BUSSIRI:    '부시리',
+  JATBANGEO:  '잿방어',
+  MACKEREL:   '고등어',
+  TUNA:       '참치',
+  JEONGAENGI: '전갱이',
 };
 
 export const MIGRATORY_SPECIES_OPTIONS = Object.entries(MIGRATORY_SPECIES_LABELS) as [MigratorySpecies, string][];
@@ -110,5 +111,11 @@ export async function deleteMigratoryFishPoint(id: string): Promise<void> {
 
 export async function fetchMigratoryFishPointMapMarkers(): Promise<MigratoryFishPointMapMarker[]> {
   const { data } = await api.get('/migratory-fish-points/map');
+  return (data.data ?? []) as MigratoryFishPointMapMarker[];
+}
+
+/** 활성화된 회유성 포인트 전체 조회 (공개 여부·게시물 존재 여부 무관) — "모든 낚시 포인트 보기" 지도에 사용 */
+export async function fetchAllMigratoryFishPointMapMarkers(): Promise<MigratoryFishPointMapMarker[]> {
+  const { data } = await api.get('/migratory-fish-points/map/all');
   return (data.data ?? []) as MigratoryFishPointMapMarker[];
 }
