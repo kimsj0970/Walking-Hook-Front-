@@ -15,6 +15,7 @@ import {
   TERRAIN_TYPE_OPTIONS,
 } from '../../api/fishingPointApi';
 import { fetchFishingZones } from '../../api/fishingZoneApi';
+import MapTypeControl from '../../components/map/MapTypeControl';
 import styles from './FishingPointFormModal.module.css';
 
 interface FormState {
@@ -104,6 +105,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const kakaoMapRef = useRef<Kakao>(null);
   const markerRef = useRef<Kakao>(null);
+  const [mapForControl, setMapForControl] = useState<Kakao>(null);
 
   useEffect(() => {
     if (open) {
@@ -137,6 +139,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
           level: hasCoord ? 5 : 13,
         });
         kakaoMapRef.current = map;
+        setMapForControl(map);
 
         // 토글로 접혀 있다가 펼쳐지는 영역이라 생성 시점에 컨테이너 크기가
         // 아직 확정되지 않아 지도 타일이 잘려 보이는 문제가 있어 보정한다.
@@ -249,6 +252,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
     } else {
       kakaoMapRef.current = null;
       markerRef.current = null;
+      setMapForControl(null);
     }
   }, [showMap, initMap]);
 
@@ -420,6 +424,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
             {showMap && (
               <div className={styles.mapArea}>
                 <div ref={mapContainerRef} className={styles.mapCanvas} />
+                <MapTypeControl map={mapForControl} />
                 <p className={styles.mapHint}>
                   지도를 클릭하면 위도·경도가 자동으로 입력됩니다 · 🔵 등록된 회유성 포인트 (축소 시 숫자로 표시)
                 </p>
