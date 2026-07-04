@@ -27,7 +27,7 @@ export interface FishingPostDetail {
   pointName: string | null;
   caughtAt: string | null;
   lure: string | null;
-  fishSize: string | null;
+  fishSizeCm: number | null;
   action: string | null;
 }
 
@@ -71,14 +71,14 @@ export async function getFishingPostDetail(id: string): Promise<FishingPostDetai
 export async function createFishingPost(
   title: string, content: string, photoUrls: string[] = [],
   migratoryPointId?: string, caughtAt?: string,
-  lure?: string, fishSize?: string, action?: string
+  lure?: string, fishSizeCm?: number | null, action?: string
 ): Promise<string> {
   const { data } = await api.post('/fishing-posts', {
     title, content, photoUrls,
     migratoryPointId: migratoryPointId ?? null,
     caughtAt: caughtAt ?? null,
     lure: lure || null,
-    fishSize: fishSize || null,
+    fishSizeCm: fishSizeCm ?? null,
     action: action || null,
   });
   return data.data as string;
@@ -87,14 +87,14 @@ export async function createFishingPost(
 export async function updateFishingPost(
   id: string, title: string, content: string, photoUrls: string[] = [],
   migratoryPointId?: string | null, caughtAt?: string | null,
-  lure?: string | null, fishSize?: string | null, action?: string | null
+  lure?: string | null, fishSizeCm?: number | null, action?: string | null
 ): Promise<void> {
   await api.patch(`/fishing-posts/${id}`, {
     title, content, photoUrls,
     migratoryPointId: migratoryPointId ?? null,
     caughtAt: caughtAt ?? null,
     lure: lure || null,
-    fishSize: fishSize || null,
+    fishSizeCm: fishSizeCm ?? null,
     action: action || null,
   });
 }
