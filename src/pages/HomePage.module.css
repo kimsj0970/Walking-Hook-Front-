@@ -56,6 +56,77 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
+/* ─── 이번 달 최대어 배너 ─── */
+.topCatchBanner {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(120, 53, 15, 0.55) 0%, rgba(180, 83, 9, 0.45) 55%, rgba(120, 53, 15, 0.55) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  border-radius: var(--radius-full);
+  padding: 7px 16px 7px 12px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  box-shadow: 0 2px 14px rgba(0,0,0,0.18);
+}
+
+.topCatchBanner:hover {
+  transform: translateY(-1px);
+  border-color: rgba(251, 191, 36, 0.85);
+  box-shadow: 0 4px 20px rgba(251,191,36,0.2);
+}
+
+.topCatchBanner > * { position: relative; z-index: 1; }
+
+.topCatchBannerShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,215,130,0.25) 50%, transparent 62%);
+  background-size: 200% 100%;
+  animation: shimmerSweep 3.2s linear infinite;
+  pointer-events: none;
+}
+
+.topCatchTrophy {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.topCatchLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #FDE68A;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.topCatchDivider {
+  width: 1px;
+  height: 12px;
+  background: rgba(253, 230, 138, 0.35);
+}
+
+.topCatchNickname {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.92);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topCatchSize {
+  font-size: 13px;
+  font-weight: 800;
+  color: #FDE68A;
+  white-space: nowrap;
+}
+
 .heroTitle {
   font-size: clamp(30px, 4.5vw, 48px);
   font-weight: 800;
@@ -852,8 +923,11 @@
   border: 1.5px solid rgba(52, 211, 153, 0.5);
   border-radius: 16px;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
   transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
   box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: allPointsPulseRing 2.8s ease-in-out infinite;
   text-align: left;
 }
 
@@ -862,6 +936,27 @@
   border-color: rgba(52, 211, 153, 0.85);
   box-shadow: 0 8px 36px rgba(0,0,0,0.45), 0 0 20px rgba(52,211,153,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
 }
+
+.allPointsCard:hover .allPointsCardIcon {
+  animation: fishWiggle 0.5s ease-in-out;
+}
+
+@keyframes allPointsPulseRing {
+  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(52,211,153,0.5); }
+  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(52,211,153,0); }
+}
+
+/* 시머 스윕 */
+.allPointsCardShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(52,211,153,0.09) 50%, transparent 62%);
+  background-size: 200% 100%;
+  animation: shimmerSweep 3s linear infinite;
+  pointer-events: none;
+}
+
+.allPointsCard > *:not(.allPointsCardShimmer) { position: relative; z-index: 1; }
 
 .allPointsCardIcon {
   font-size: 30px;
