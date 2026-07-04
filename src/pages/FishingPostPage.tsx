@@ -909,7 +909,7 @@ export default function FishingPostPage() {
                   <div className={styles.detailTitleRow}>
                     <h2 className={styles.detailTitle}>{detail.title}</h2>
                     <div className={styles.detailTopActions}>
-                      {isLoggedIn && (
+                      {isLoggedIn && (detail.authorId === userId || isAdmin || isModerator) && (
                         <>
                           <button className={styles.iconActionBtn} onClick={openEdit}><span>✏️</span>수정</button>
                           <button className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`} onClick={handleDelete}><span>🗑️</span>삭제</button>
