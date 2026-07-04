@@ -32,7 +32,7 @@ export interface MigratoryPostDetail {
   createdAt: string;
   updatedAt: string | null;
   lure: string | null;
-  fishSize: string | null;
+  fishSizeCm: number | null;
   action: string | null;
 }
 
@@ -70,7 +70,7 @@ export interface MigratoryPostCreateRequest {
   migratoryPointId?: string;
   photoUrls?: string[];
   lure?: string | null;
-  fishSize?: string | null;
+  fishSizeCm?: number | null;
   action?: string | null;
 }
 
@@ -81,7 +81,7 @@ export interface MigratoryPostUpdateRequest {
   caughtAt?: string;
   photoUrls?: string[];
   lure?: string | null;
-  fishSize?: string | null;
+  fishSizeCm?: number | null;
   action?: string | null;
 }
 
