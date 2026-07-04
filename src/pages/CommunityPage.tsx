@@ -31,7 +31,7 @@ interface FishingWriteState {
   title: string; content: string; photoUrls: string[];
   selectedProvince: Province | ''; migratoryPointId: string; selectedPointName: string;
   caughtAt: string;
-  lure: string; fishSize: string; action: string;
+  lure: string; fishSizeCm: string; action: string;
 }
 interface FishingWriteModalProps {
   open: boolean; editTarget: FishingPostDetail | null;
@@ -42,7 +42,7 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
   const [form, setForm] = useState<FishingWriteState>({
     title: '', content: '', photoUrls: [],
     selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(),
-    lure: '', fishSize: '', action: '',
+    lure: '', fishSizeCm: '', action: '',
   });
   const [errors, setErrors] = useState<{ title?: string; content?: string }>({});
   const [serverError, setServerError] = useState('');
@@ -60,10 +60,12 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
         migratoryPointId: editTarget.migratoryPointId ?? '',
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         caughtAt: editTarget.caughtAt ?? todayStr(),
-        lure: editTarget.lure ?? '', fishSize: editTarget.fishSize ?? '', action: editTarget.action ?? '',
+        lure: editTarget.lure ?? '',
+        fishSizeCm: editTarget.fishSizeCm != null ? String(editTarget.fishSizeCm) : '',
+        action: editTarget.action ?? '',
       });
     } else {
-      setForm({ title: '', content: '', photoUrls: [], selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(), lure: '', fishSize: '', action: '' });
+      setForm({ title: '', content: '', photoUrls: [], selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(), lure: '', fishSizeCm: '', action: '' });
     }
     setErrors({}); setServerError(''); setDropOpen(false);
   }, [open, editTarget, points]);
@@ -97,13 +99,13 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
     const pointId = form.migratoryPointId || undefined;
     const caughtAt = form.caughtAt || undefined;
     const lure = form.lure.trim() || undefined;
-    const fishSize = form.fishSize.trim() || undefined;
+    const fishSizeCm = form.fishSizeCm.trim() ? Number(form.fishSizeCm.trim()) : undefined;
     const action = form.action.trim() || undefined;
     try {
       if (editTarget) {
-        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
+        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSizeCm, action);
       } else {
-        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
+        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSizeCm, action);
       }
       onSaved();
     } catch { setServerError('저장 중 오류가 발생했습니다.'); }
@@ -198,9 +200,18 @@ function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: Fishi
             </div>
             <div className={styles.field}>
               <label className={styles.fieldLabel}>어종 크기 <span className={styles.fieldHint}>(선택)</span></label>
-              <input className={styles.fieldInput}
-                value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
-                placeholder="예: 45cm, 1.2kg" maxLength={50} />
+              <div style={{ position: 'relative' }}>
+                <input className={styles.fieldInput}
+                  style={{ paddingRight: 36 }}
+                  value={form.fishSizeCm}
+                  onChange={e => set('fishSizeCm', e.target.value.replace(/[^0-9]/g, ''))}
+                  inputMode="numeric"
+                  placeholder="예: 45" maxLength={4} />
+                <span style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 13, color: 'var(--color-text-muted)', pointerEvents: 'none',
+                }}>cm</span>
+              </div>
             </div>
             <div className={styles.field}>
               <label className={styles.fieldLabel}>사용한 액션 <span className={styles.fieldHint}>(선택)</span></label>
@@ -389,10 +400,10 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                 <button className={styles.reportBtn} onClick={() => setReportOpen(true)}>신고하기</button>
               )}
             </div>
-            {(detail.lure || detail.fishSize || detail.action) && (
+            {(detail.lure || detail.fishSizeCm != null || detail.action) && (
               <div className={styles.catchInfoRow}>
                 {detail.lure && <span className={styles.catchInfoTag}>🎣 {detail.lure}</span>}
-                {detail.fishSize && <span className={styles.catchInfoTag}>📏 {detail.fishSize}</span>}
+                {detail.fishSizeCm != null && <span className={styles.catchInfoTag}>📏 {detail.fishSizeCm}cm</span>}
                 {detail.action && <span className={styles.catchInfoTag}>💫 {detail.action}</span>}
               </div>
             )}
