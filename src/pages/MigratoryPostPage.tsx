@@ -248,7 +248,7 @@ interface FormState {
   selectedPointName: string;
   photoUrls: string[];
   lure: string;
-  fishSize: string;
+  fishSizeCm: string;
   action: string;
 }
 
@@ -264,7 +264,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
   const [form, setForm] = useState<FormState>({
     title: '', content: '', species: [], caughtAt: todayStr(),
     selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [],
-    lure: '', fishSize: '', action: '',
+    lure: '', fishSizeCm: '', action: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState('');
@@ -289,11 +289,11 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         photoUrls: editTarget.photoUrls ?? [],
         lure: editTarget.lure ?? '',
-        fishSize: editTarget.fishSize ?? '',
+        fishSizeCm: editTarget.fishSizeCm != null ? String(editTarget.fishSizeCm) : '',
         action: editTarget.action ?? '',
       });
     } else {
-      setForm({ title: '', content: '', species: [], caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [], lure: '', fishSize: '', action: '' });
+      setForm({ title: '', content: '', species: [], caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [], lure: '', fishSizeCm: '', action: '' });
     }
     setErrors({});
     setServerError('');
@@ -365,7 +365,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
       migratoryPointId: form.migratoryPointId || undefined,
       photoUrls: form.photoUrls.length > 0 ? form.photoUrls : undefined,
       lure: form.lure.trim() || null,
-      fishSize: form.fishSize.trim() || null,
+      fishSizeCm: form.fishSizeCm.trim() ? Number(form.fishSizeCm.trim()) : null,
       action: form.action.trim() || null,
     };
     try {
@@ -541,9 +541,18 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
               </div>
               <div className={styles.field}>
                 <label className={styles.label}>어종 크기 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
-                <input className={styles.input}
-                  value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
-                  placeholder="예: 45cm, 1.2kg" maxLength={50} />
+                <div style={{ position: 'relative' }}>
+                  <input className={styles.input}
+                    style={{ paddingRight: 36 }}
+                    value={form.fishSizeCm}
+                    onChange={e => set('fishSizeCm', e.target.value.replace(/[^0-9]/g, ''))}
+                    inputMode="numeric"
+                    placeholder="예: 45" maxLength={4} />
+                  <span style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    fontSize: 13, color: 'var(--color-text-muted)', pointerEvents: 'none',
+                  }}>cm</span>
+                </div>
               </div>
               <div className={styles.field}>
                 <label className={styles.label}>사용한 액션 <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>(선택)</span></label>
@@ -1078,13 +1087,13 @@ export default function MigratoryPostPage() {
 
                   <span className={styles.speciesBadge}>잡은 어종 {detail.speciesDisplayNames?.join('·') ?? ''}</span>
 
-                  {(detail.lure || detail.fishSize || detail.action) && (
+                  {(detail.lure || detail.fishSizeCm != null || detail.action) && (
                     <div className={styles.statGrid}>
-                      {detail.fishSize && (
+                      {detail.fishSizeCm != null && (
                         <div className={styles.statCard}>
                           <span className={styles.statIcon}>📏</span>
                           <span className={styles.statLabel}>크기</span>
-                          <span className={styles.statValue}>{detail.fishSize}</span>
+                          <span className={styles.statValue}>{detail.fishSizeCm}cm</span>
                         </div>
                       )}
                       {detail.lure && (
