@@ -13,6 +13,7 @@ import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
 import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migratoryPostApi';
 import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPostApi';
+import { getThisMonthTopCatch, type TopCatch } from '../api/topCatchApi';
 import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
 import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import MapTypeControl from '../components/map/MapTypeControl';
@@ -196,6 +197,7 @@ export default function HomePage() {
   const [allPointsMapOpen, setAllPointsMapOpen] = useState(false);
   const [migratoryPostsPreview, setMigratoryPostsPreview] = useState<MigratoryPostListItem[]>([]);
   const [fishingPostsPreview, setFishingPostsPreview] = useState<FishingPostListItem[]>([]);
+  const [topCatch, setTopCatch] = useState<TopCatch | null>(null);
 
   // 지도에서 포인트 선택 시 드롭다운 동기화용 refs
   const pendingPointIdRef = useRef<string | null>(null);
@@ -211,6 +213,7 @@ export default function HomePage() {
   useEffect(() => {
     getMigratoryPostsPage(0, 5).then(r => setMigratoryPostsPreview(r.content)).catch(() => {});
     getFishingPostsPage(0, 5).then(r => setFishingPostsPreview(r.content)).catch(() => {});
+    getThisMonthTopCatch().then(setTopCatch).catch(() => {});
   }, []);
 
   // 지도 팝업 → 메인 페이지 포인트 수신 + 드롭다운 동기화
@@ -373,10 +376,32 @@ export default function HomePage() {
         {/* ─── Hero ─── */}
         <section className={styles.hero}>
           <div className={styles.heroInner}>
-            <div className={styles.heroBadge}>
-              <span className={styles.heroBadgeDot} />
-              실시간 조황 분석
-            </div>
+            {topCatch?.hasData && (
+              <button
+                className={styles.topCatchBanner}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setLoginToast(true);
+                    setTimeout(() => {
+                      setLoginToast(false);
+                      navigate('/login');
+                    }, 1500);
+                    return;
+                  }
+                  navigate(
+                    topCatch.postType === 'FISHING' ? '/fishing-posts' : '/migratory-posts',
+                    { state: { openPostId: topCatch.postId } }
+                  );
+                }}
+              >
+                <span className={styles.topCatchBannerShimmer} />
+                <span className={styles.topCatchTrophy}>🏆</span>
+                <span className={styles.topCatchLabel}>이번 달 최대어</span>
+                <span className={styles.topCatchDivider} />
+                <span className={styles.topCatchNickname}>{topCatch.authorNickname}</span>
+                <span className={styles.topCatchSize}>{topCatch.fishSizeCm}cm</span>
+              </button>
+            )}
 
             <h1 className={styles.heroTitle}>
               낚시 포인트
@@ -529,6 +554,7 @@ export default function HomePage() {
                   setAllPointsMapOpen(true);
                 }}
               >
+                <span className={styles.allPointsCardShimmer} />
                 <span className={styles.allPointsCardIcon}>🗺️</span>
                 <div className={styles.allPointsCardBody}>
                   <span className={styles.allPointsCardTitle}>모든 어종 포인트</span>
