@@ -246,7 +246,7 @@ interface FishingFormState {
   photoUrls: string[];
   caughtAt: string;
   lure: string;
-  fishSize: string;
+  fishSizeCm: string;
   action: string;
 }
 
@@ -262,7 +262,7 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
   const [form, setForm] = useState<FishingFormState>({
     title: '', content: '', selectedProvince: '',
     migratoryPointId: '', selectedPointName: '', photoUrls: [], caughtAt: todayStr(),
-    lure: '', fishSize: '', action: '',
+    lure: '', fishSizeCm: '', action: '',
   });
   const [errors, setErrors] = useState<Partial<Record<keyof FishingFormState, string>>>({});
   const [serverError, setServerError] = useState('');
@@ -286,13 +286,13 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
         photoUrls: editTarget.photoUrls ?? [],
         caughtAt: editTarget.caughtAt ?? todayStr(),
         lure: editTarget.lure ?? '',
-        fishSize: editTarget.fishSize ?? '',
+        fishSizeCm: editTarget.fishSizeCm != null ? String(editTarget.fishSizeCm) : '',
         action: editTarget.action ?? '',
       });
     } else {
       setForm({
         title: '', content: '', selectedProvince: '', migratoryPointId: '', selectedPointName: '',
-        photoUrls: [], caughtAt: todayStr(), lure: '', fishSize: '', action: '',
+        photoUrls: [], caughtAt: todayStr(), lure: '', fishSizeCm: '', action: '',
       });
     }
     setErrors({});
@@ -359,13 +359,13 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
     const pointId = form.migratoryPointId || undefined;
     const caughtAt = form.caughtAt || undefined;
     const lure = form.lure.trim() || undefined;
-    const fishSize = form.fishSize.trim() || undefined;
+    const fishSizeCm = form.fishSizeCm.trim() ? Number(form.fishSizeCm.trim()) : undefined;
     const action = form.action.trim() || undefined;
     try {
       if (editTarget) {
-        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
+        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSizeCm, action);
       } else {
-        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSize, action);
+        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSizeCm, action);
       }
       onSaved();
     } catch {
@@ -498,9 +498,18 @@ function FishingPostFormModal({ open, editTarget, points, onClose, onSaved }: Fi
             </div>
             <div className={styles.field}>
               <label className={styles.fieldLabel}>어종 크기 <span className={styles.fieldHint}>(선택)</span></label>
-              <input className={styles.fieldInput}
-                value={form.fishSize} onChange={e => set('fishSize', e.target.value)}
-                placeholder="예: 45cm, 1.2kg" maxLength={50} />
+              <div style={{ position: 'relative' }}>
+                <input className={styles.fieldInput}
+                  style={{ paddingRight: 36 }}
+                  value={form.fishSizeCm}
+                  onChange={e => set('fishSizeCm', e.target.value.replace(/[^0-9]/g, ''))}
+                  inputMode="numeric"
+                  placeholder="예: 45" maxLength={4} />
+                <span style={{
+                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                  fontSize: 13, color: 'var(--color-text-muted)', pointerEvents: 'none',
+                }}>cm</span>
+              </div>
             </div>
             <div className={styles.field}>
               <label className={styles.fieldLabel}>사용한 액션 <span className={styles.fieldHint}>(선택)</span></label>
@@ -941,13 +950,13 @@ export default function FishingPostPage() {
                     )}
                   </div>
 
-                  {(detail.lure || detail.fishSize || detail.action) && (
+                  {(detail.lure || detail.fishSizeCm != null || detail.action) && (
                     <div className={styles.statGrid}>
-                      {detail.fishSize && (
+                      {detail.fishSizeCm != null && (
                         <div className={styles.statCard}>
                           <span className={styles.statIcon}>📏</span>
                           <span className={styles.statLabel}>크기</span>
-                          <span className={styles.statValue}>{detail.fishSize}</span>
+                          <span className={styles.statValue}>{detail.fishSizeCm}cm</span>
                         </div>
                       )}
                       {detail.lure && (
