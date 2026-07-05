@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchAdminUsersPage, setSuspended, setRole, deleteUser, updateNickname,
-  fetchActiveUserCount, fetchRegisteredUserCount,
+  fetchActiveUserCount, fetchRegisteredUserCount, fetchUserVisitStats,
   fetchReRegistrationRequests, approveReRegistration, rejectReRegistration,
-  type UserSummary, type ReRegistrationRequest,
+  type UserSummary, type ReRegistrationRequest, type UserVisitStats,
 } from '../../api/adminUserApi';
 import styles from './UserManagementPage.module.css';
 
@@ -50,6 +50,9 @@ export default function UserManagementPage() {
   const [activeCountLoading, setActiveCountLoading] = useState(false);
   const [registeredCount, setRegisteredCount]       = useState<number | null>(null);
 
+  const [visitStats, setVisitStats]               = useState<UserVisitStats | null>(null);
+  const [visitStatsLoading, setVisitStatsLoading] = useState(false);
+
   // 재가입 대기자 모달
   const [showReRegModal, setShowReRegModal]     = useState(false);
   const [reRegRequests, setReRegRequests]       = useState<ReRegistrationRequest[]>([]);
@@ -82,6 +85,17 @@ export default function UserManagementPage() {
       // ignore
     } finally {
       setActiveCountLoading(false);
+    }
+  }, []);
+
+  const loadVisitStats = useCallback(async () => {
+    setVisitStatsLoading(true);
+    try {
+      setVisitStats(await fetchUserVisitStats());
+    } catch {
+      // ignore
+    } finally {
+      setVisitStatsLoading(false);
     }
   }, []);
 
@@ -141,6 +155,7 @@ export default function UserManagementPage() {
 
   useEffect(() => { load(0); }, [load]);
   useEffect(() => { loadActiveCount(); }, [loadActiveCount]);
+  useEffect(() => { loadVisitStats(); }, [loadVisitStats]);
 
   // 선택된 사용자 바뀌면 draft 초기화
   useEffect(() => {
@@ -277,6 +292,32 @@ export default function UserManagementPage() {
               {activeCountLoading ? '...' : `${registeredCount ?? '-'}명`}
             </span>
           </div>
+          <div className={styles.activeCountBox}>
+            <span className={styles.activeCountLabel}>일일 사용자(DAU)</span>
+            <span className={styles.activeCountValue}>
+              {visitStatsLoading ? '...' : `${visitStats?.dailyActiveUsers ?? '-'}명`}
+            </span>
+          </div>
+          <div className={styles.activeCountBox}>
+            <span className={styles.activeCountLabel}>월간 사용자(MAU)</span>
+            <span className={styles.activeCountValue}>
+              {visitStatsLoading ? '...' : `${visitStats?.monthlyActiveUsers ?? '-'}명`}
+            </span>
+          </div>
+          <div className={styles.activeCountBox}>
+            <span className={styles.activeCountLabel}>이번 달 재방문율</span>
+            <span className={styles.activeCountValue}>
+              {visitStatsLoading ? '...' : `${visitStats?.retentionRate.toFixed(1) ?? '-'}%`}
+            </span>
+            <button
+              className={styles.refreshBtn}
+              onClick={loadVisitStats}
+              disabled={visitStatsLoading}
+              title="새로고침"
+            >
+              ↺
+            </button>
+          </div>
         </div>
       </div>
 
@@ -375,6 +416,8 @@ export default function UserManagementPage() {
                       </span>
                     </td>
                   </tr>
+                  <tr><th>이번 달 접속일수</th><td>{selected.monthlyVisitCount.toLocaleString()}일</td></tr>
+                  <tr><th>누적 접속일수</th><td>{selected.totalVisitCount.toLocaleString()}일</td></tr>
                 </tbody>
               </table>
 

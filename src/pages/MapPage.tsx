@@ -158,11 +158,21 @@ export default function MapPage() {
     return () => { cancelled = true; };
   }, [navigate]);
 
+  const handleClose = () => {
+    // window.open으로 띄운 창(팝업/모바일 새 탭)이면 그대로 닫고,
+    // SPA 내부 이동으로 들어온 경우에만 이전 화면으로 돌아간다.
+    if (window.opener && !window.opener.closed) {
+      window.close();
+      return;
+    }
+    navigate(-1);
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.topBar}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-          ← 돌아가기
+        <button className={styles.backBtn} onClick={handleClose}>
+          ✕ 닫기
         </button>
         <h1 className={styles.title}>낚시 포인트 지도</h1>
         <span className={styles.spacer} />
@@ -184,8 +194,8 @@ export default function MapPage() {
           ) : (
             <>
               <p className={styles.errorText}>⚠️ {errorMsg}</p>
-              <button className={styles.retryBtn} onClick={() => window.close()}>
-                창 닫기
+              <button className={styles.retryBtn} onClick={handleClose}>
+                닫기
               </button>
             </>
           )}

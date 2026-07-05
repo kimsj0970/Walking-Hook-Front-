@@ -959,7 +959,10 @@ function ConditionInfoSheet({ infoKey, onClose }: {
     <div className={styles.infoOverlay} onClick={onClose}>
       <div className={styles.infoSheet} onClick={e => e.stopPropagation()}>
         <div className={styles.infoSheetHandle} />
-        <h3 className={styles.infoSheetTitle}>{info.title}</h3>
+        <div className={styles.infoSheetHeader}>
+          <h3 className={styles.infoSheetTitle}>{info.title}</h3>
+          <button className={styles.infoSheetCloseIcon} onClick={onClose} aria-label="닫기">✕</button>
+        </div>
         <p className={styles.infoSheetSubtitle}>{info.subtitle}</p>
         <div className={styles.infoRowList}>
           {info.rows.map((row) => (

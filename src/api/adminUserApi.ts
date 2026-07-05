@@ -12,6 +12,8 @@ export interface UserSummary {
   isSuspended: boolean;
   createdAt: string;
   deletedAt: string | null;
+  monthlyVisitCount: number;
+  totalVisitCount: number;
 }
 
 export interface ReRegistrationRequest {
@@ -66,4 +68,15 @@ export async function fetchActiveUserCount(): Promise<number> {
 export async function fetchRegisteredUserCount(): Promise<number> {
   const { data } = await api.get('/admin/users/registered-count');
   return data.data as number;
+}
+
+export interface UserVisitStats {
+  dailyActiveUsers: number;
+  monthlyActiveUsers: number;
+  retentionRate: number;
+}
+
+export async function fetchUserVisitStats(): Promise<UserVisitStats> {
+  const { data } = await api.get('/admin/users/visit-stats');
+  return data.data as UserVisitStats;
 }
