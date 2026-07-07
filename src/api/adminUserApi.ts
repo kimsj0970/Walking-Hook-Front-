@@ -43,6 +43,11 @@ export async function deleteUser(id: string): Promise<void> {
   await api.delete(`/admin/users/${id}`);
 }
 
+/** 탈퇴 사용자 즉시 활성(복구) 처리 */
+export async function activateUser(id: string): Promise<void> {
+  await api.patch(`/admin/users/${id}/activate`);
+}
+
 export async function updateNickname(id: string, nickname: string): Promise<void> {
   await api.patch(`/admin/users/${id}/nickname`, { nickname });
 }
