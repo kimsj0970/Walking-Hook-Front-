@@ -7,7 +7,7 @@ import styles from './NicknamePage.module.css';
 type Step = 'terms' | 'nickname';
 
 export default function NicknamePage() {
-  const { needsNickname, setInitialNickname } = useAuth();
+  const { needsNickname, setInitialNickname, markAgeConsented } = useAuth();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>('terms');
@@ -46,7 +46,8 @@ export default function NicknamePage() {
     setTermsError('');
     setTermsLoading(true);
     try {
-      await agreeToTermsApi({ termsAgreed, privacyAgreed, marketingAgreed });
+      await agreeToTermsApi({ ageAgreed, termsAgreed, privacyAgreed, marketingAgreed });
+      markAgeConsented();
       setStep('nickname');
     } catch {
       setTermsError('약관 동의에 실패했습니다. 다시 시도해 주세요.');
