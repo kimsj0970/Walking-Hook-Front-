@@ -11,6 +11,7 @@ import {
   deleteUserApi,
   updateNicknameApi,
   setInitialNicknameApi,
+  agreeToAgeApi,
   silentRefresh,
   setInMemoryToken,
   parseJwtUserId,
@@ -25,12 +26,15 @@ interface AuthContextType {
   isModerator: boolean;
   role: string;
   needsNickname: boolean;
+  needsAgeConsent: boolean;
   isInitializing: boolean;
-  login: (token: string, nickname: string | null, role?: string) => void;
+  login: (token: string, nickname: string | null, role?: string, needsAgeAgreement?: boolean) => void;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   setInitialNickname: (nickname: string) => Promise<void>;
   setNickname: (nickname: string) => Promise<void>;
+  confirmAgeConsent: () => Promise<void>;
+  markAgeConsented: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -47,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => localStorage.getItem('role') ?? 'USER'
   );
   const [isInitializing, setIsInitializing] = useState(true);
+  const [needsAgeConsent, setNeedsAgeConsent] = useState(false);
 
   // 앱 시작 시 httpOnly 쿠키로 조용히 토큰 복원
   useEffect(() => {
@@ -66,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('userId', result.userId);
           setUserIdState(result.userId);
         }
+        setNeedsAgeConsent(result.needsAgeAgreement);
       }
     }).finally(() => {
       setIsInitializing(false);
@@ -94,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setNicknameState(null);
       setUserIdState(null);
       setRoleState('USER');
+      setNeedsAgeConsent(false);
       localStorage.removeItem('nickname');
       localStorage.removeItem('role');
       localStorage.removeItem('userId');
@@ -109,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback((token: string, nick: string | null, r?: string) => {
+  const login = useCallback((token: string, nick: string | null, r?: string, needsAgeAgreement?: boolean) => {
     setInMemoryToken(token);
     setAccessToken(token);
     if (nick) {
@@ -124,6 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoleState(newRole);
     const uid = parseJwtUserId(token);
     if (uid) { localStorage.setItem('userId', uid); setUserIdState(uid); }
+    setNeedsAgeConsent(needsAgeAgreement ?? false);
   }, []);
 
   const logout = useCallback(async () => {
@@ -137,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setNicknameState(null);
       setUserIdState(null);
       setRoleState('USER');
+      setNeedsAgeConsent(false);
       localStorage.removeItem('nickname');
       localStorage.removeItem('role');
       localStorage.removeItem('userId');
@@ -150,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNicknameState(null);
     setUserIdState(null);
     setRoleState('USER');
+    setNeedsAgeConsent(false);
     localStorage.removeItem('nickname');
     localStorage.removeItem('role');
     localStorage.removeItem('userId');
@@ -165,6 +175,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await updateNicknameApi(nick);
     localStorage.setItem('nickname', nick);
     setNicknameState(nick);
+  }, []);
+
+  // 기존 가입자용: 만 14세 이상 확인 동의를 서버에 기록
+  const confirmAgeConsent = useCallback(async () => {
+    await agreeToAgeApi();
+    setNeedsAgeConsent(false);
+  }, []);
+
+  // 신규 가입 약관 동의(ageAgreed 포함) 완료 시 로컬 플래그만 해제
+  const markAgeConsented = useCallback(() => {
+    setNeedsAgeConsent(false);
   }, []);
 
   const isLoggedIn = !!accessToken;
@@ -183,12 +204,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isModerator,
         role,
         needsNickname,
+        needsAgeConsent,
         isInitializing,
         login,
         logout,
         deleteAccount,
         setInitialNickname,
         setNickname,
+        confirmAgeConsent,
+        markAgeConsented,
       }}
     >
       {children}
