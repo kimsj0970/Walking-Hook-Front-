@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
-  fetchAdminUsersPage, setSuspended, setRole, deleteUser, updateNickname,
+  fetchAdminUsersPage, setSuspended, setRole, deleteUser, activateUser, updateNickname,
   fetchActiveUserCount, fetchRegisteredUserCount, fetchUserVisitStats,
   fetchReRegistrationRequests, approveReRegistration, rejectReRegistration,
   type UserSummary, type ReRegistrationRequest, type UserVisitStats,
@@ -66,6 +66,7 @@ export default function UserManagementPage() {
   const [saving, setSaving]                       = useState(false);
   const [deleting, setDeleting]                   = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [activating, setActivating]               = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -232,6 +233,25 @@ export default function UserManagementPage() {
       showToast(msg ?? '처리 중 오류가 발생했습니다.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // 탈퇴 사용자 활성(복구) 처리
+  const handleActivate = async () => {
+    if (!selected) return;
+    if (!window.confirm('해당 사용자를 다시 활성 상태로 전환하시겠습니까?')) return;
+    setActivating(true);
+    try {
+      await activateUser(selected.id);
+      const updated = { ...selected, deletedAt: null };
+      setSelected(updated);
+      setUsers(prev => prev.map(u => u.id === selected.id ? updated : u));
+      showToast('활성 처리가 완료되었습니다.');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      showToast(msg ?? '처리 중 오류가 발생했습니다.');
+    } finally {
+      setActivating(false);
     }
   };
 
@@ -421,6 +441,23 @@ export default function UserManagementPage() {
                 </tbody>
               </table>
 
+              {/* ── 탈퇴 사용자 활성(복구) 처리 (ADMIN 전용) ── */}
+              {isAdmin && selected.deletedAt && selected.id !== myId && (
+                <div className={styles.adminSection}>
+                  <p className={styles.adminSectionTitle}>관리자 조치</p>
+                  <button
+                    className={styles.applyBtn}
+                    onClick={handleActivate}
+                    disabled={activating}
+                  >
+                    {activating ? '처리 중...' : '활성 처리'}
+                  </button>
+                  <p className={styles.suspendHint}>
+                    탈퇴 상태를 해제하고 즉시 로그인 가능한 활성 상태로 전환합니다.
+                  </p>
+                </div>
+              )}
+
               {/* ── 조치 섹션 (정지·닉네임·역할·탈퇴) ── */}
               {showActionSection(selected) && (
                 <div className={styles.adminSection}>
@@ -496,7 +533,7 @@ export default function UserManagementPage() {
                         <div className={styles.deleteConfirm}>
                           <p className={styles.deleteConfirmText}>
                             정말 탈퇴 처리하시겠습니까?<br />
-                            <span>이 작업은 되돌릴 수 없습니다.</span>
+                            <span>필요 시 '활성 처리'로 다시 되돌릴 수 있습니다.</span>
                           </p>
                           <div className={styles.deleteConfirmBtns}>
                             <button
