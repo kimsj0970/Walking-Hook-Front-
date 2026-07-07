@@ -13,6 +13,7 @@ import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
 import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migratoryPostApi';
 import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPostApi';
+import { getFreePostsPage, type FreePostListItem } from '../api/freePostApi';
 import { getThisMonthTopCatch, type TopCatch } from '../api/topCatchApi';
 import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
 import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
@@ -197,6 +198,7 @@ export default function HomePage() {
   const [allPointsMapOpen, setAllPointsMapOpen] = useState(false);
   const [migratoryPostsPreview, setMigratoryPostsPreview] = useState<MigratoryPostListItem[]>([]);
   const [fishingPostsPreview, setFishingPostsPreview] = useState<FishingPostListItem[]>([]);
+  const [freePostsPreview, setFreePostsPreview] = useState<FreePostListItem[]>([]);
   const [topCatch, setTopCatch] = useState<TopCatch | null>(null);
 
   // 지도에서 포인트 선택 시 드롭다운 동기화용 refs
@@ -213,6 +215,7 @@ export default function HomePage() {
   useEffect(() => {
     getMigratoryPostsPage(0, 5).then(r => setMigratoryPostsPreview(r.content)).catch(() => {});
     getFishingPostsPage(0, 5).then(r => setFishingPostsPreview(r.content)).catch(() => {});
+    getFreePostsPage(0, 5).then(r => setFreePostsPreview(r.content)).catch(() => {});
     getThisMonthTopCatch().then(setTopCatch).catch(() => {});
   }, []);
 
@@ -903,6 +906,77 @@ export default function HomePage() {
             <div style={{ textAlign: 'center', marginTop: 14 }}>
               <button
                 onClick={() => navigate('/fishing-posts')}
+                style={{
+                  padding: '8px 24px', background: 'transparent',
+                  border: '1px solid var(--color-border)', borderRadius: 999,
+                  fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                }}
+              >
+                더보기
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* ─── 자유게시판 미리보기 ─── */}
+        <section className={styles.section}>
+          <div className={styles.sectionInner}>
+            <div className={styles.sectionHeader}>
+              <h2
+                className={styles.sectionTitle}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={() => navigate('/free-posts')}
+                title="전체 자유게시판 보기"
+              >
+                💬 자유게시판
+                <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
+              </h2>
+              {isLoggedIn && (
+                <button
+                  onClick={() => navigate('/free-posts')}
+                  style={{
+                    padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
+                    border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  글쓰기
+                </button>
+              )}
+            </div>
+            {freePostsPreview.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
+                아직 등록된 게시글이 없습니다.
+              </p>
+            ) : (
+              <div className={styles.previewList}>
+                {freePostsPreview.map(item => (
+                  <div
+                    key={item.id}
+                    className={styles.previewCard}
+                    onClick={() => navigate('/free-posts', { state: { openPostId: item.id } })}
+                  >
+                    <div className={styles.previewMain}>
+                      <div className={styles.previewCardTop}>
+                        <span className={styles.previewTitle}>{item.title}</span>
+                      </div>
+                      <div className={styles.previewCardBottom}>
+                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
+                        {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
+                        {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
+                      </div>
+                    </div>
+                    <div className={styles.previewDates}>
+                      <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ textAlign: 'center', marginTop: 14 }}>
+              <button
+                onClick={() => navigate('/free-posts')}
                 style={{
                   padding: '8px 24px', background: 'transparent',
                   border: '1px solid var(--color-border)', borderRadius: 999,
