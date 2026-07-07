@@ -17,11 +17,24 @@ export default function PrivacyPage() {
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>1. 수집하는 개인정보 항목</h2>
-            <p>서비스는 카카오 소셜 로그인을 통해 다음 정보를 수집합니다.</p>
+            <p>서비스는 소셜 로그인(카카오·네이버)을 통해 다음 정보를 수집합니다.</p>
             <ul className={styles.list}>
-              <li>이름 (카카오 계정 제공)</li>
-              <li>이메일 주소 (카카오 계정 제공, 선택)</li>
-              <li>카카오 고유 식별자 (provider ID)</li>
+              <li>카카오 로그인 시
+                <ul className={styles.subList}>
+                  <li>카카오 고유 식별자 (provider ID)</li>
+                  <li>닉네임 (카카오 프로필 제공)</li>
+                  <li>이메일 주소 (카카오 계정 제공, 선택)</li>
+                </ul>
+              </li>
+              <li>네이버 로그인 시
+                <ul className={styles.subList}>
+                  <li>네이버 고유 식별자 (provider ID)</li>
+                  <li>이름 (네이버 계정 제공)</li>
+                  <li>이메일 주소 (네이버 계정 제공, 선택)</li>
+                  <li>성별, 연령대, 생년월일 및 출생연도 (네이버 계정 제공, 선택)</li>
+                  <li>휴대전화번호 (네이버 계정 제공, 선택)</li>
+                </ul>
+              </li>
               <li>닉네임 (서비스 내 직접 입력)</li>
             </ul>
             <p className={styles.sub}>자동 수집 항목: 접속 일시, 서비스 이용 기록</p>
@@ -71,6 +84,10 @@ export default function PrivacyPage() {
                 </tr>
                 <tr>
                   <td>카카오 (Kakao Corp.)</td>
+                  <td>소셜 로그인 인증 처리</td>
+                </tr>
+                <tr>
+                  <td>네이버 (Naver Corp.)</td>
                   <td>소셜 로그인 인증 처리</td>
                 </tr>
                 <tr>
