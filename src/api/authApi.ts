@@ -45,6 +45,7 @@ interface ReissueData {
   accessToken: string;
   csrfToken: string;
   userNickName: string | null;
+  needsAgeAgreement: boolean;
 }
 
 // silentRefresh와 401 인터셉터가 공유하는 단일 reissue 요청 — race condition 방지
@@ -65,6 +66,7 @@ function callReissue(): Promise<ReissueData> {
         accessToken: data.data.accessToken as string,
         csrfToken: data.data.csrfToken as string,
         userNickName: (data.data.userNickName as string | null) ?? null,
+        needsAgeAgreement: (data.data.needsAgeAgreement as boolean) ?? false,
       }))
       .finally(() => {
         reissuePromise = null;
@@ -140,13 +142,39 @@ export interface AuthResult {
   nickName: string | null;
   role: string;
   userId: string | null;
+  needsAgeAgreement: boolean;
+}
+
+/** 탈퇴 후 3개월 이내 계정 — 로그인 대신 복구 여부 확인이 필요한 상태 */
+export interface RecoveryAvailableResult {
+  recoveryAvailable: true;
+  recoveryToken: string;
+}
+
+export function isRecoveryAvailable(
+  result: AuthResult | RecoveryAvailableResult
+): result is RecoveryAvailableResult {
+  return 'recoveryAvailable' in result && result.recoveryAvailable === true;
 }
 
 // ─── API 함수 ─────────────────────────────────────────────────────────────────
 
 /** OAuth 로그인 */
-export async function oauthLogin(provider: string, code: string, state?: string): Promise<AuthResult> {
+export async function oauthLogin(
+  provider: string,
+  code: string,
+  state?: string
+): Promise<AuthResult | RecoveryAvailableResult> {
   const { data } = await api.post(`/oauth/${provider}`, { code, state });
+
+  // 탈퇴 3개월 이내 계정: 토큰 대신 복구 확인용 recoveryToken이 내려온다
+  if (data.data.recoveryAvailable) {
+    return {
+      recoveryAvailable: true,
+      recoveryToken: data.data.recoveryToken as string,
+    };
+  }
+
   const accessToken: string = data.data.accessToken;
   setCsrfToken(data.data.csrfToken);
   return {
@@ -154,13 +182,19 @@ export async function oauthLogin(provider: string, code: string, state?: string)
     nickName: data.data.userNickName ?? null,
     role: parseJwtRole(accessToken),
     userId: parseJwtUserId(accessToken),
+    needsAgeAgreement: (data.data.needsAgeAgreement as boolean) ?? false,
   };
+}
+
+/** 탈퇴 계정 복구 신청 — 로그인 응답으로 받은 recoveryToken으로 관리자 승인 대기 상태를 만든다 */
+export async function requestAccountRecoveryApi(recoveryToken: string): Promise<void> {
+  await api.post('/oauth/recovery', { recoveryToken });
 }
 
 /** 앱 시작 시 silent refresh (httpOnly 쿠키 → 메모리 토큰 복원) */
 export async function silentRefresh(): Promise<AuthResult | null> {
   try {
-    const { accessToken, csrfToken, userNickName } = await callReissue();
+    const { accessToken, csrfToken, userNickName, needsAgeAgreement } = await callReissue();
     setInMemoryToken(accessToken);
     setCsrfToken(csrfToken);
     return {
@@ -168,6 +202,7 @@ export async function silentRefresh(): Promise<AuthResult | null> {
       nickName: userNickName,
       role: parseJwtRole(accessToken),
       userId: parseJwtUserId(accessToken),
+      needsAgeAgreement,
     };
   } catch {
     return null;
@@ -186,11 +221,17 @@ export async function updateNicknameApi(nickName: string): Promise<void> {
 
 /** 약관 동의 */
 export async function agreeToTermsApi(params: {
+  ageAgreed: boolean;
   termsAgreed: boolean;
   privacyAgreed: boolean;
   marketingAgreed: boolean;
 }): Promise<void> {
   await api.post('/user/terms', params);
+}
+
+/** 만 14세 이상 확인 동의 (연령 확인 기록이 없는 기존 가입자용) */
+export async function agreeToAgeApi(): Promise<void> {
+  await api.post('/user/terms/age');
 }
 
 /** 로그아웃 */
