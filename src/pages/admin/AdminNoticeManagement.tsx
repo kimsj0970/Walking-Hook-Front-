@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import PostFormModal from '../../components/common/PostFormModal';
+import Pagination from '../../components/common/Pagination';
 import {
   getNoticesPage, getNoticeDetail, createNotice, updateNotice, deleteNotice,
   type NoticeListItem, type NoticeDetail,
@@ -85,14 +86,11 @@ export default function AdminNoticeManagement() {
                   </tbody>
                 </table>
               </div>
-              {totalPages > 1 && (
-                <div className={styles.pagination}>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button key={i} className={`${styles.pageBtn} ${i === currentPage ? styles.active : ''}`}
-                      onClick={() => fetchList(i)}>{i + 1}</button>
-                  ))}
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={fetchList}
+              />
             </>
           )}
         </>
