@@ -504,15 +504,13 @@ export default function HomePage() {
               />
               <ConditionCard
                 icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌂'}
-                label="강수확률·강수량"
+                label="강수량"
                 loading={isConditionsLoading}
-                value={conditionsResult == null ? null : (() => {
-                  const prob = `${conditionsResult.precipitationProbability ?? 0}%`;
-                  const amt = hasPrecip
+                value={conditionsResult == null ? null : (
+                  hasPrecip
                     ? `${conditionsResult.precipitationType} ${conditionsResult.precipitationAmount != null ? `${conditionsResult.precipitationAmount}mm` : '0mm'}`
-                    : `${conditionsResult.precipitationAmount ?? 0}mm`;
-                  return `${prob} · ${amt}`;
-                })()}
+                    : `${conditionsResult.precipitationAmount ?? 0}mm`
+                )}
                 source={conditionsResult?.precipitationSourceLabel}
               />
             </div>
