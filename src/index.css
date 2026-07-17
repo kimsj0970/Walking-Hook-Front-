@@ -74,6 +74,11 @@ button {
 img {
   max-width: 100%;
   display: block;
+  /* 모바일에서 사진 꾹 누르기(롱프레스) 저장/드래그 방지 — 확대·스와이프 기능은 그대로 동작 */
+  -webkit-touch-callout: none; /* iOS Safari: "이미지 저장" 콜아웃 차단 */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Scrollbar */
