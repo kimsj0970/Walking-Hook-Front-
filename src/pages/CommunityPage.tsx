@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
@@ -19,8 +20,8 @@ import {
   type NoticeListItem, type NoticeDetail,
 } from '../api/noticeApi';
 import {
-  getFreePostsPreview, getFreePostsPage, getFreePostDetail, createFreePost, updateFreePost, deleteFreePost,
-  type FreePostListItem, type FreePostDetail,
+  getFreePostsPreview,
+  type FreePostListItem,
 } from '../api/freePostApi';
 import ReportModal from '../components/common/ReportModal';
 import styles from './CommunityPage.module.css';
@@ -379,11 +380,11 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
             {navigateOnClick ? (
               <button className={styles.moreBtn} onClick={() => navigate('/fishing-posts')}>더보기</button>
             ) : totalPages > 1 && (
-              <div className={styles.pagination}>
-                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => fetchList(currentPage - 1)}>‹ 이전</button>
-                <span className={styles.pageInfo}>{currentPage + 1} / {totalPages}</span>
-                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => fetchList(currentPage + 1)}>다음 ›</button>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={fetchList}
+              />
             )}
           </>
       )}
@@ -568,11 +569,11 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
             {navigateOnClick ? (
               <button className={styles.moreBtn} onClick={() => navigate('/notices')}>더보기</button>
             ) : totalPages > 1 && (
-              <div className={styles.pagination}>
-                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => fetchList(currentPage - 1)}>‹ 이전</button>
-                <span className={styles.pageInfo}>{currentPage + 1} / {totalPages}</span>
-                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => fetchList(currentPage + 1)}>다음 ›</button>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={fetchList}
+              />
             )}
           </>
       )}
@@ -637,65 +638,33 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
 /* ─────────────────────────────────────────────────────────── */
 /* 자유게시판                                                   */
 /* ─────────────────────────────────────────────────────────── */
-export function FreeBoard({ isLoggedIn, navigateOnClick }: { isLoggedIn: boolean; navigateOnClick?: boolean }) {
+// 커뮤니티 페이지의 자유게시판은 최신 글 미리보기 전용이다.
+// 상세/작성/댓글/신고는 모두 전용 페이지(/free-posts)에서 처리해 한 벌만 유지한다.
+export function FreeBoard({ isLoggedIn }: { isLoggedIn: boolean }) {
   const navigate = useNavigate();
-  const { userId, isAdmin, isModerator } = useAuth();
-  const [view, setView]     = useState<BoardView>('list');
-  const [items, setItems]   = useState<FreePostListItem[]>([]);
-  const [detail, setDetail] = useState<FreePostDetail | null>(null);
-  const [loading, setLoading]       = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [error, setError]   = useState('');
-  const [modalOpen, setModalOpen]   = useState(false);
-  const [editingPost, setEditingPost] = useState<FreePostDetail | null>(null);
-  const [lbIdx, setLbIdx] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [items, setItems] = useState<FreePostListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const fetchList = useCallback(async (page = 0) => {
-    setLoading(true);
-    try {
-      if (navigateOnClick) {
-        setItems((await getFreePostsPreview()).slice(0, 5));
-      } else {
-        const result = await getFreePostsPage(page, 10);
-        setItems(result.content);
-        setTotalPages(result.totalPages);
-        setCurrentPage(result.page);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      setLoading(true);
+      try {
+        const preview = (await getFreePostsPreview()).slice(0, 5);
+        if (alive) setItems(preview);
+      } catch {
+        if (alive) setError('목록을 불러오지 못했습니다.');
+      } finally {
+        if (alive) setLoading(false);
       }
-    }
-    catch { setError('목록을 불러오지 못했습니다.'); }
-    finally { setLoading(false); }
-  }, [navigateOnClick]);
+    })();
+    return () => { alive = false; };
+  }, []);
 
-  useEffect(() => { fetchList(); }, [fetchList]);
-
-  const openDetail = async (id: string) => {
+  const openPost = (id: string) => {
     if (!isLoggedIn) { navigate('/login'); return; }
-    setDetailLoading(true); setDetail(null); setView('detail');
-    try { setDetail(await getFreePostDetail(id)); }
-    catch { setError('게시글을 불러오지 못했습니다.'); setView('list'); }
-    finally { setDetailLoading(false); }
-  };
-
-  const openCreate = () => { setEditingPost(null); setModalOpen(true); };
-  const openEdit   = () => { if (!detail) return; setEditingPost(detail); setModalOpen(true); };
-
-  const handleSubmit = async (title: string, content: string, photoUrls: string[]) => {
-    if (editingPost) {
-      await updateFreePost(editingPost.id, title, content, photoUrls);
-      setDetail(await getFreePostDetail(editingPost.id));
-    } else {
-      await createFreePost(title, content, photoUrls);
-      setView('list');
-    }
-    await fetchList(currentPage);
-  };
-
-  const handleDelete = async () => {
-    if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
-    try { await deleteFreePost(detail.id); await fetchList(currentPage); setView('list'); }
-    catch { setError('삭제에 실패했습니다.'); }
+    navigate('/free-posts', { state: { openPostId: id } });
   };
 
   return (
@@ -703,34 +672,25 @@ export function FreeBoard({ isLoggedIn, navigateOnClick }: { isLoggedIn: boolean
       <div className={styles.sectionHeader}>
         <h2
           className={`${styles.sectionTitle} ${styles.sectionTitleLink}`}
-          onClick={() => view === 'list' && navigate('/free-posts')}
+          onClick={() => navigate('/free-posts')}
           title="전체 자유게시판 보기"
         >
           💬 자유게시판
           <span className={styles.moreArrow}>›</span>
         </h2>
-        {view === 'list' && isLoggedIn && (
-          <button className={styles.writeBtn} onClick={openCreate}>글쓰기</button>
-        )}
-        {view === 'detail' && (
-          <button className={styles.backBtn} onClick={() => setView('list')}>← 목록</button>
+        {isLoggedIn && (
+          <button className={styles.writeBtn} onClick={() => navigate('/free-posts')}>글쓰기</button>
         )}
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
 
-      {view === 'list' && (
-        loading ? <p className={styles.empty}>불러오는 중...</p>
+      {loading ? <p className={styles.empty}>불러오는 중...</p>
         : items.length === 0 ? <p className={styles.empty}>아직 게시글이 없습니다. 첫 번째 글을 작성해 보세요!</p>
         : <>
             <div className={styles.board}>
               {items.map(item => (
-                <div key={item.id} className={styles.boardItem}
-                  onClick={() => {
-                    if (!isLoggedIn) { navigate('/login'); return; }
-                    if (navigateOnClick) navigate('/free-posts', { state: { openPostId: item.id } });
-                    else openDetail(item.id);
-                  }}>
+                <div key={item.id} className={styles.boardItem} onClick={() => openPost(item.id)}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
                     {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷 {item.photoUrls.length}</span>}
@@ -741,72 +701,9 @@ export function FreeBoard({ isLoggedIn, navigateOnClick }: { isLoggedIn: boolean
                 </div>
               ))}
             </div>
-            {navigateOnClick ? (
-              <button className={styles.moreBtn} onClick={() => navigate('/free-posts')}>더보기</button>
-            ) : totalPages > 1 && (
-              <div className={styles.pagination}>
-                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => fetchList(currentPage - 1)}>‹ 이전</button>
-                <span className={styles.pageInfo}>{currentPage + 1} / {totalPages}</span>
-                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => fetchList(currentPage + 1)}>다음 ›</button>
-              </div>
-            )}
+            <button className={styles.moreBtn} onClick={() => navigate('/free-posts')}>더보기</button>
           </>
-      )}
-
-      {view === 'detail' && (
-        detailLoading || !detail ? <p className={styles.empty}>불러오는 중...</p>
-        : <div className={styles.detailWrap}>
-            <div className={styles.detailHeader}>
-              <h3 className={styles.detailTitle}>{detail.title}</h3>
-              <div className={styles.detailMeta}>
-                <AuthorLabel nickname={detail.authorNickname} />
-                <span>{formatDate(detail.createdAt)}</span>
-                {detail.updatedAt && detail.updatedAt !== detail.createdAt && (
-                  <span>(수정됨 {formatDate(detail.updatedAt)})</span>
-                )}
-              </div>
-            </div>
-            <p className={styles.detailContent}>{detail.content}</p>
-            {detail.photoUrls?.length > 0 && (
-              <div className={styles.photoGrid}>
-                {detail.photoUrls.map((url, i) => (
-                  <img key={i} src={url} alt={`사진 ${i + 1}`} className={styles.photo}
-                    style={{ cursor: 'pointer' }} onClick={() => setLbIdx(i)} />
-                ))}
-              </div>
-            )}
-            {(detail.authorId === userId || isAdmin || isModerator) && (
-              <div className={styles.detailActions}>
-                <button className={styles.deleteBtn} onClick={handleDelete}>삭제</button>
-                <button className={styles.editBtn} onClick={openEdit}>수정</button>
-              </div>
-            )}
-          </div>
-      )}
-
-      <PostFormModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleSubmit}
-        modalTitle={editingPost ? '글 수정' : '글쓰기'}
-        titlePlaceholder="제목을 입력하세요"
-        contentPlaceholder="자유롭게 내용을 작성해 주세요"
-        initialTitle={editingPost?.title ?? ''}
-        initialContent={editingPost?.content ?? ''}
-        maxPhotos={5}
-        boardType="FREE_POST"
-        initialPhotoUrls={editingPost?.photoUrls ?? []}
-        maxContentLength={1000}
-      />
-      {lbIdx !== null && detail?.photoUrls && (
-        <ImageLightbox
-          images={detail.photoUrls}
-          index={lbIdx}
-          onClose={() => setLbIdx(null)}
-          onPrev={() => setLbIdx(j => Math.max(0, (j ?? 0) - 1))}
-          onNext={() => setLbIdx(j => Math.min(detail.photoUrls.length - 1, (j ?? 0) + 1))}
-        />
-      )}
+      }
     </div>
   );
 }
