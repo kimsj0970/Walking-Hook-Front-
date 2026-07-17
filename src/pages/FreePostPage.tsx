@@ -1,9 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
 import ImageLightbox from '../components/common/ImageLightbox';
+import ReportModal from '../components/common/ReportModal';
+import type { PostType } from '../api/reportApi';
 import {
   getFreePostsPage, getFreePostDetail, createFreePost, updateFreePost, deleteFreePost,
   getFreePostComments, addFreePostComment, deleteFreePostComment,
@@ -31,8 +34,31 @@ function formatDate(iso: string) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function ListSkeleton() {
+  return (
+    <div className={styles.skeletonList}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className={styles.skeletonRow}>
+          <div className={`${styles.skeletonBar} ${styles.skelTitle}`} />
+          <div className={`${styles.skeletonBar} ${styles.skelMeta}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <div className={styles.detailCard}>
+      <div className={`${styles.skeletonBar} ${styles.skelTitle}`} style={{ marginBottom: 14 }} />
+      <div className={`${styles.skeletonBar} ${styles.skelMeta}`} style={{ marginBottom: 24 }} />
+      <div className={`${styles.skeletonBar} ${styles.skelBlock}`} />
+    </div>
+  );
+}
+
 export default function FreePostPage() {
-  const { isAdmin, isLoggedIn, userId } = useAuth();
+  const { isAdmin, isModerator, isLoggedIn, userId } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -47,6 +73,19 @@ export default function FreePostPage() {
   const [totalPages, setTotalPages]   = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
+  // 월별 필터: 'YYYY-MM' 문자열, null이면 전체보기
+  const [filterMonth, setFilterMonth] = useState<string | null>(null);
+  const monthOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [];
+    const now = new Date();
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      opts.push({ value, label: `${d.getFullYear()}년 ${d.getMonth() + 1}월` });
+    }
+    return opts;
+  }, []);
+
   const [modalOpen, setModalOpen]     = useState(false);
   const [editingPost, setEditingPost] = useState<FreePostDetail | null>(null);
 
@@ -55,14 +94,21 @@ export default function FreePostPage() {
   const [replyTo, setReplyTo] = useState<{ id: string; nickname: string } | null>(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
+  const [reportTarget, setReportTarget] = useState<
+    { postType: PostType; postId: string; postTitle: string; parentPostId?: string | null } | null
+  >(null);
 
-  const canManage = detail != null && (isAdmin || detail.authorId === userId);
+  const canManage = detail != null && (isAdmin || isModerator || detail.authorId === userId);
+  const canModerate = isAdmin || isModerator;
 
-  const fetchList = useCallback(async (page: number) => {
+  const fetchList = useCallback(async (page: number, month: string | null) => {
     setLoading(true);
     setError('');
     try {
-      const result = await getFreePostsPage(page, PAGE_SIZE);
+      let year: number | undefined;
+      let mon: number | undefined;
+      if (month) { const [y, m] = month.split('-').map(Number); year = y; mon = m; }
+      const result = await getFreePostsPage(page, PAGE_SIZE, year, mon);
       setItems(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -74,7 +120,13 @@ export default function FreePostPage() {
     }
   }, []);
 
-  useEffect(() => { fetchList(0); }, [fetchList]);
+  useEffect(() => { fetchList(0, null); }, [fetchList]);
+
+  const handleMonthChange = (month: string | null) => {
+    setFilterMonth(month);
+    fetchList(0, month);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
@@ -86,7 +138,7 @@ export default function FreePostPage() {
   }, []);
 
   const goToPage = (page: number) => {
-    fetchList(page);
+    fetchList(page, filterMonth);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -133,16 +185,15 @@ export default function FreePostPage() {
     } else {
       await createFreePost(title, content, photoUrls);
     }
-    await fetchList(currentPage);
+    await fetchList(currentPage, filterMonth);
   };
 
   const handleDelete = async () => {
     if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
-    try { await deleteFreePost(detail.id); await fetchList(currentPage); setView('list'); }
+    try { await deleteFreePost(detail.id); await fetchList(currentPage, filterMonth); setView('list'); }
     catch { setError('삭제에 실패했습니다.'); }
   };
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
 
   return (
     <div className={styles.container}>
@@ -167,12 +218,38 @@ export default function FreePostPage() {
 
         {view === 'list' && (
           <>
+            <div className={styles.filterBar}>
+              <div className={styles.filterChips}>
+                <button
+                  className={`${styles.filterChip} ${filterMonth === null ? styles.filterChipActive : ''}`}
+                  onClick={() => handleMonthChange(null)}
+                >
+                  전체
+                </button>
+                <select
+                  className={styles.monthSelect}
+                  value={filterMonth ?? ''}
+                  onChange={(e) => handleMonthChange(e.target.value || null)}
+                  aria-label="월별 보기"
+                >
+                  <option value="">월 선택</option>
+                  {monthOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {error && <p className={styles.error}>{error}</p>}
 
             {loading ? (
-              <p className={styles.empty}>불러오는 중...</p>
+              <ListSkeleton />
             ) : items.length === 0 ? (
-              <p className={styles.empty}>아직 게시글이 없습니다. 첫 번째 글을 작성해 보세요!</p>
+              <p className={styles.empty}>
+                {filterMonth
+                  ? '선택한 달에는 게시글이 없습니다.'
+                  : '아직 게시글이 없습니다. 첫 번째 글을 작성해 보세요!'}
+              </p>
             ) : (
               <>
                 <div className={styles.list}>
@@ -195,17 +272,11 @@ export default function FreePostPage() {
                   ))}
                 </div>
 
-                {totalPages > 1 && (
-                  <div className={styles.pagination}>
-                    <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>‹</button>
-                    {pageNumbers.map((p) => (
-                      <button key={p} className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`} onClick={() => goToPage(p)}>
-                        {p + 1}
-                      </button>
-                    ))}
-                    <button className={styles.pageBtn} disabled={currentPage === totalPages - 1} onClick={() => goToPage(currentPage + 1)}>›</button>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                />
               </>
             )}
           </>
@@ -214,7 +285,7 @@ export default function FreePostPage() {
         {view === 'detail' && (
           <>
             {detailLoading || !detail ? (
-              <p className={styles.empty}>불러오는 중...</p>
+              <DetailSkeleton />
             ) : (
               <div className={styles.detailCard}>
                 <div className={styles.detailHeader}>
@@ -226,6 +297,14 @@ export default function FreePostPage() {
                           <button className={styles.iconActionBtn} onClick={openEdit}><span>✏️</span>수정</button>
                           <button className={`${styles.iconActionBtn} ${styles.iconActionBtnDanger}`} onClick={handleDelete}><span>🗑️</span>삭제</button>
                         </>
+                      )}
+                      {isLoggedIn && detail.authorId !== userId && (
+                        <button
+                          className={styles.iconActionBtn}
+                          onClick={() => setReportTarget({ postType: 'FREE_POST', postId: detail.id, postTitle: detail.title })}
+                        >
+                          <span>🚩</span>신고
+                        </button>
                       )}
                     </div>
                   </div>
@@ -259,41 +338,64 @@ export default function FreePostPage() {
 
                 {/* 댓글 영역 */}
                 <div className={styles.commentSection}>
-                  <h4 className={styles.commentTitle}>댓글 <span className={styles.commentCountNum}>{comments.length}</span></h4>
+                  <h4 className={styles.commentTitle}>댓글 <span className={styles.commentCountNum}>{comments.filter(c => !c.deleted).length}</span></h4>
 
-                  {comments.filter(c => !c.parentId).map(c => (
+                  {comments.filter(c => !c.parentId).map(c => {
+                    const replies = comments.filter(r => r.parentId === c.id && !r.deleted);
+                    // 삭제된 원댓글은 남은 답글이 있을 때만 자리표시자로 유지한다.
+                    if (c.deleted && replies.length === 0) return null;
+                    return (
                     <div key={c.id} className={styles.comment}>
-                      <div className={styles.commentHeader}>
-                        <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
-                        <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                        <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
-                        <div className={styles.commentActions}>
-                          {isLoggedIn && (
-                            <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
-                          )}
-                          {(isAdmin || c.authorId === userId) && (
-                            <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
-                          )}
-                        </div>
-                      </div>
-                      <p className={styles.commentContent}>{c.content}</p>
+                      {c.deleted ? (
+                        <p className={styles.deletedComment}>삭제된 댓글입니다.</p>
+                      ) : (
+                        <>
+                          <div className={styles.commentHeader}>
+                            <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
+                            <span className={styles.commentAuthor}>{c.authorNickname}</span>
+                            <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
+                            <div className={styles.commentActions}>
+                              {isLoggedIn && (
+                                <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
+                              )}
+                              {(canModerate || c.authorId === userId) && (
+                                <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
+                              )}
+                              {isLoggedIn && c.authorId !== userId && (
+                                <button
+                                  className={styles.reportCommentBtn}
+                                  onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: c.id, postTitle: c.content.slice(0, 30), parentPostId: detail.id })}
+                                >신고</button>
+                              )}
+                            </div>
+                          </div>
+                          <p className={styles.commentContent}>{c.content}</p>
+                        </>
+                      )}
 
-                      {comments.filter(r => r.parentId === c.id).map(r => (
+                      {replies.map(r => (
                         <div key={r.id} className={styles.reply}>
                           <div className={styles.commentHeader}>
                             <span className={styles.replyArrow}>↳</span>
                             <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
                             <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
-                            {(isAdmin || r.authorId === userId) && (
+                            {(canModerate || r.authorId === userId) && (
                               <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                            )}
+                            {isLoggedIn && r.authorId !== userId && (
+                              <button
+                                className={styles.reportCommentBtn}
+                                onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: r.id, postTitle: r.content.slice(0, 30), parentPostId: detail.id })}
+                              >신고</button>
                             )}
                           </div>
                           <p className={styles.commentContent}>{r.content}</p>
                         </div>
                       ))}
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {isLoggedIn && (
                     <div className={styles.commentForm}>
@@ -342,6 +444,15 @@ export default function FreePostPage() {
         initialPhotoUrls={editingPost?.photoUrls ?? []}
         maxContentLength={1000}
       />
+      {reportTarget && (
+        <ReportModal
+          postId={reportTarget.postId}
+          postType={reportTarget.postType}
+          postTitle={reportTarget.postTitle}
+          parentPostId={reportTarget.parentPostId}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
       {lbIdx !== null && detail?.photoUrls && (
         <ImageLightbox
           images={detail.photoUrls}
