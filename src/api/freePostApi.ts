@@ -26,8 +26,12 @@ export async function getFreePostsPreview(): Promise<FreePostListItem[]> {
   return data.data as FreePostListItem[];
 }
 
-export async function getFreePostsPage(page: number, size = 20): Promise<PageResult<FreePostListItem>> {
-  const { data } = await api.get('/free-posts', { params: { page, size } });
+export async function getFreePostsPage(
+  page: number, size = 20, year?: number, month?: number,
+): Promise<PageResult<FreePostListItem>> {
+  const params: Record<string, number> = { page, size };
+  if (year != null && month != null) { params.year = year; params.month = month; }
+  const { data } = await api.get('/free-posts', { params });
   return data.data as PageResult<FreePostListItem>;
 }
 
