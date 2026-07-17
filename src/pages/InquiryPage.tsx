@@ -228,11 +228,11 @@ export default function InquiryPage() {
                       <tr
                         key={item.id}
                         className={styles.tr}
-                        onClick={() => handleViewDetail(item.id)}
+                        onClick={() => item.title !== null && handleViewDetail(item.id)}
                       >
                         <td className={styles.tdTitle}>
-                          {item.title}
-                          {item.photoUrls?.length > 0 && <span className={styles.tdPhotoIcon}>📷</span>}
+                          {item.title !== null ? item.title : <span className={styles.tdPrivate}>****</span>}
+                          {item.photoCount > 0 && <span className={styles.tdPhotoIcon}>📷</span>}
                           {(item.commentCount ?? 0) > 0 && <span className={styles.tdCommentCount}>💬 {item.commentCount}</span>}
                         </td>
                         <td className={styles.tdAuthor}>{item.authorNickname}</td>
