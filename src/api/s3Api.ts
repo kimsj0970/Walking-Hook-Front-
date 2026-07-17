@@ -31,8 +31,12 @@ interface PresignedUrlResult {
   publicUrl: string;
 }
 
-async function requestPresignedUrl(boardType: BoardType, contentType: string): Promise<PresignedUrlResult> {
-  const { data } = await api.post('/s3/presigned-url', { boardType, contentType });
+async function requestPresignedUrl(
+  boardType: BoardType,
+  contentType: string,
+  contentLength: number,
+): Promise<PresignedUrlResult> {
+  const { data } = await api.post('/s3/presigned-url', { boardType, contentType, contentLength });
   return data.data as PresignedUrlResult;
 }
 
@@ -49,7 +53,7 @@ async function putToS3(presignedUrl: string, file: File, contentType: string): P
 // ── Public helper: validate → presign → upload → return public URL ────────
 export async function uploadImage(file: File, boardType: BoardType): Promise<string> {
   const contentType = await detectImageMime(file);
-  const { presignedUrl, publicUrl } = await requestPresignedUrl(boardType, contentType);
+  const { presignedUrl, publicUrl } = await requestPresignedUrl(boardType, contentType, file.size);
   await putToS3(presignedUrl, file, contentType);
   return publicUrl;
 }
