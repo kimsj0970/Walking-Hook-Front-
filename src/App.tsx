@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/common/PrivateRoute';
 import Footer from './components/common/Footer';
 import AgeConsentModal from './components/common/AgeConsentModal';
+import TermsReconsentModal from './components/common/TermsReconsentModal';
 import ScrollToTop from './components/common/ScrollToTop';
 import HomePage from './pages/HomePage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
           <Footer />
+          <TermsReconsentModal />
           <AgeConsentModal />
         </NicknameGuard>
       </BrowserRouter>
