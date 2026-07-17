@@ -66,8 +66,8 @@ export default function OAuthCallbackPage() {
           return;
         }
 
-        const { accessToken, nickName, role, needsAgeAgreement } = result;
-        login(accessToken, nickName, role, needsAgeAgreement);
+        const { accessToken, nickName, role, needsAgeAgreement, needsTermsAgreement } = result;
+        login(accessToken, nickName, role, needsAgeAgreement, needsTermsAgreement);
         // 닉네임 없으면 닉네임 설정 페이지로
         if (!nickName) {
           navigate('/nickname', { replace: true });
