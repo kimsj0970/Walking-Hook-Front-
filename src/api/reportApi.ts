@@ -1,8 +1,11 @@
 import api from './authApi';
 import { deleteFishingPost } from './fishingPostApi';
 import { deleteMigratoryPost } from './migratoryPostApi';
+import { deleteFreePost } from './freePostApi';
 
-export type PostType = 'FISHING_POST' | 'MIGRATORY_POST' | 'FISHING_COMMENT' | 'MIGRATORY_COMMENT';
+export type PostType =
+  | 'FISHING_POST' | 'MIGRATORY_POST' | 'FREE_POST'
+  | 'FISHING_COMMENT' | 'MIGRATORY_COMMENT' | 'FREE_COMMENT';
 
 export const REPORT_REASON_LABELS: Record<string, string> = {
   HATE_SPEECH:        '혐오/차별적/생명경시/욕설 표현입니다.',
@@ -18,8 +21,10 @@ export const REPORT_REASON_KEYS = Object.keys(REPORT_REASON_LABELS);
 export const POST_TYPE_LABELS: Record<PostType, string> = {
   FISHING_POST:      '조황 게시판',
   MIGRATORY_POST:    '회유성 조황',
+  FREE_POST:         '자유게시판',
   FISHING_COMMENT:   '조황 댓글',
   MIGRATORY_COMMENT: '회유성 댓글',
+  FREE_COMMENT:      '자유게시판 댓글',
 };
 
 export interface ReportedPostSummary {
@@ -70,6 +75,11 @@ export async function fetchReportsByContent(contentId: string): Promise<ReportIt
   return data.data as ReportItem[];
 }
 
+/** 신고 제외 — 해당 콘텐츠의 신고를 모두 지워 목록에서 제거(본문은 유지) */
+export async function dismissReports(contentId: string): Promise<void> {
+  await api.delete(`/admin/reports/${contentId}`);
+}
+
 export async function adminDeleteFishingPost(id: string): Promise<void> {
   await deleteFishingPost(id);
 }
@@ -86,5 +96,79 @@ export async function adminDeleteMigratoryComment(commentId: string): Promise<vo
   await api.delete(`/admin/migratory-post-comments/${commentId}`);
 }
 
+export async function adminDeleteFreePost(id: string): Promise<void> {
+  await deleteFreePost(id);
+}
+
+export async function adminDeleteFreeComment(commentId: string): Promise<void> {
+  await api.delete(`/admin/free-post-comments/${commentId}`);
+}
+
 /** @deprecated use fetchReportsByContent */
 export const fetchReportsByPost = fetchReportsByContent;
+
+// ─────────────────────────────────────────────────────────────
+// 신고된 후 삭제(soft delete)된 콘텐츠 관리 (관리자)
+// ─────────────────────────────────────────────────────────────
+
+/** 목록 항목 — deletedBySelf=false면 관리자/탈퇴 등에 의한 삭제 */
+export interface DeletedContentSummary {
+  postType: PostType;
+  contentId: string;
+  title: string | null;      // 댓글은 null
+  preview: string | null;    // 본문 요약(최대 120자)
+  parentPostId: string | null;
+  authorNickname: string;
+  reportCount: number;
+  latestReportedAt: string;
+  deletedAt: string;
+  deletedBy: string | null;
+  deletedBySelf: boolean;
+}
+
+export interface DeletedReportInfo {
+  reporterNickname: string;
+  reasons: string[];
+  customReason: string | null;
+  reportedAt: string;
+}
+
+export interface DeletedContentDetail {
+  postType: PostType;
+  contentId: string;
+  title: string | null;
+  content: string;
+  authorId: string;
+  authorNickname: string;
+  parentPostId: string | null;
+  createdAt: string;
+  deletedAt: string;
+  deletedBy: string | null;
+  deletedBySelf: boolean;
+  reports: DeletedReportInfo[];
+}
+
+/** 신고된 후 삭제된 콘텐츠 목록 */
+export async function fetchDeletedReportedContents(): Promise<DeletedContentSummary[]> {
+  const { data } = await api.get('/admin/deleted-contents');
+  return data.data as DeletedContentSummary[];
+}
+
+/** 상세(본문 전문 + 신고 내역) — 열람 */
+export async function fetchDeletedContentDetail(
+  postType: PostType,
+  contentId: string,
+): Promise<DeletedContentDetail> {
+  const { data } = await api.get(`/admin/deleted-contents/${postType}/${contentId}`);
+  return data.data as DeletedContentDetail;
+}
+
+/** 복구(soft delete 취소) */
+export async function restoreDeletedContent(postType: PostType, contentId: string): Promise<void> {
+  await api.post(`/admin/deleted-contents/${postType}/${contentId}/restore`);
+}
+
+/** 영구삭제(hard delete) — ADMIN 전용 */
+export async function hardDeleteContent(postType: PostType, contentId: string): Promise<void> {
+  await api.delete(`/admin/deleted-contents/${postType}/${contentId}`);
+}
