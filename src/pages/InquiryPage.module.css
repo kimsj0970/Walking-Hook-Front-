@@ -178,6 +178,7 @@
 
 .tdPhotoIcon { font-size: 12px; color: var(--color-text-muted); margin-left: 6px; }
 .tdCommentCount { font-size: 12px; color: var(--color-text-muted); margin-left: 6px; }
+.tdPrivate { color: var(--color-text-light); letter-spacing: 2px; }
 
 .tdAuthor {
   padding: 16px 16px;
