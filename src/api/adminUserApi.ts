@@ -26,8 +26,15 @@ export interface ReRegistrationRequest {
   requestedAt: string;
 }
 
-export async function fetchAdminUsersPage(page: number, size = 20): Promise<PageResult<UserSummary>> {
-  const { data } = await api.get('/admin/users', { params: { page, size } });
+export type UserSort = 'DATE' | 'VISITS' | 'ACTIVE' | 'RECENT';
+
+export async function fetchAdminUsersPage(
+  page: number, size = 20, search = '', sort: UserSort = 'DATE',
+): Promise<PageResult<UserSummary>> {
+  const params: Record<string, string | number> = { page, size, sort };
+  const q = search.trim();
+  if (q) params.search = q;
+  const { data } = await api.get('/admin/users', { params });
   return data.data as PageResult<UserSummary>;
 }
 
