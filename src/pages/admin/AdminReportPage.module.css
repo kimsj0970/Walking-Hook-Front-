@@ -72,6 +72,20 @@
 .deleteContentBtn:hover:not(:disabled) { background: #fff5f5; }
 .deleteContentBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.dismissBtn {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid #10B981;
+  border-radius: var(--radius-full, 99px);
+  font-size: 12px;
+  font-weight: 600;
+  color: #10B981;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.dismissBtn:hover:not(:disabled) { background: #ecfdf5; }
+.dismissBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .error {
   font-size: 13px;
   color: #E53E3E;
