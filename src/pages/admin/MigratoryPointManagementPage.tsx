@@ -9,6 +9,7 @@ import {
 } from '../../api/migratoryFishPointApi';
 import { TERRAIN_TYPE_LABELS } from '../../api/fishingPointApi';
 import MigratoryFishPointFormModal from './MigratoryFishPointFormModal';
+import Pagination from '../../components/common/Pagination';
 import styles from './PointManagementPage.module.css';
 
 const PAGE_SIZE = 15;
@@ -61,7 +62,6 @@ export default function MigratoryPointManagementPage() {
     setSearchQuery('');
   };
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -209,21 +209,11 @@ export default function MigratoryPointManagementPage() {
           </table>
         )}
 
-        {totalPages > 1 && (
-          <div className={styles.pagination}>
-            <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>‹</button>
-            {pageNumbers.map(p => (
-              <button
-                key={p}
-                className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`}
-                onClick={() => goToPage(p)}
-              >
-                {p + 1}
-              </button>
-            ))}
-            <button className={styles.pageBtn} disabled={currentPage === totalPages - 1} onClick={() => goToPage(currentPage + 1)}>›</button>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+        />
       </div>
 
       <MigratoryFishPointFormModal
