@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import Pagination from '../components/common/Pagination';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import MapTypeControl from '../components/map/MapTypeControl';
@@ -883,14 +884,6 @@ export default function MigratoryPostPage() {
 
   const isOwner = detail?.authorId === userId || isAdmin || isModerator;
 
-  const pageNums = (() => {
-    const start = Math.max(0, currentPage - 2);
-    const end = Math.min(totalPages - 1, currentPage + 2);
-    const arr: number[] = [];
-    for (let i = start; i <= end; i++) arr.push(i);
-    return arr;
-  })();
-
   return (
     <div className={styles.container}>
       <Header />
@@ -1019,23 +1012,11 @@ export default function MigratoryPostPage() {
             )}
 
             {/* 페이지네이션 */}
-            {totalPages > 1 && (
-              <div className={styles.pagination}>
-                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(0)}>«</button>
-                <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>‹</button>
-                {pageNums.map(n => (
-                  <button
-                    key={n}
-                    className={`${styles.pageBtn} ${n === currentPage ? styles.pageBtnActive : ''}`}
-                    onClick={() => goToPage(n)}
-                  >
-                    {n + 1}
-                  </button>
-                ))}
-                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => goToPage(currentPage + 1)}>›</button>
-                <button className={styles.pageBtn} disabled={currentPage >= totalPages - 1} onClick={() => goToPage(totalPages - 1)}>»</button>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+            />
           </>
         )}
 
