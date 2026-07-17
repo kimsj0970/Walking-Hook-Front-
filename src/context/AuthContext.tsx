@@ -12,6 +12,7 @@ import {
   updateNicknameApi,
   setInitialNicknameApi,
   agreeToAgeApi,
+  agreeToTermsApi,
   silentRefresh,
   setInMemoryToken,
   parseJwtUserId,
@@ -27,13 +28,15 @@ interface AuthContextType {
   role: string;
   needsNickname: boolean;
   needsAgeConsent: boolean;
+  needsTermsConsent: boolean;
   isInitializing: boolean;
-  login: (token: string, nickname: string | null, role?: string, needsAgeAgreement?: boolean) => void;
+  login: (token: string, nickname: string | null, role?: string, needsAgeAgreement?: boolean, needsTermsAgreement?: boolean) => void;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   setInitialNickname: (nickname: string) => Promise<void>;
   setNickname: (nickname: string) => Promise<void>;
   confirmAgeConsent: () => Promise<void>;
+  confirmTermsReconsent: (marketingAgreed: boolean) => Promise<void>;
   markAgeConsented: () => void;
 }
 
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [isInitializing, setIsInitializing] = useState(true);
   const [needsAgeConsent, setNeedsAgeConsent] = useState(false);
+  const [needsTermsConsent, setNeedsTermsConsent] = useState(false);
 
   // 앱 시작 시 httpOnly 쿠키로 조용히 토큰 복원
   useEffect(() => {
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserIdState(result.userId);
         }
         setNeedsAgeConsent(result.needsAgeAgreement);
+        setNeedsTermsConsent(result.needsTermsAgreement);
       }
     }).finally(() => {
       setIsInitializing(false);
@@ -101,6 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserIdState(null);
       setRoleState('USER');
       setNeedsAgeConsent(false);
+      setNeedsTermsConsent(false);
       localStorage.removeItem('nickname');
       localStorage.removeItem('role');
       localStorage.removeItem('userId');
@@ -116,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback((token: string, nick: string | null, r?: string, needsAgeAgreement?: boolean) => {
+  const login = useCallback((token: string, nick: string | null, r?: string, needsAgeAgreement?: boolean, needsTermsAgreement?: boolean) => {
     setInMemoryToken(token);
     setAccessToken(token);
     if (nick) {
@@ -132,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const uid = parseJwtUserId(token);
     if (uid) { localStorage.setItem('userId', uid); setUserIdState(uid); }
     setNeedsAgeConsent(needsAgeAgreement ?? false);
+    setNeedsTermsConsent(needsTermsAgreement ?? false);
   }, []);
 
   const logout = useCallback(async () => {
@@ -146,6 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserIdState(null);
       setRoleState('USER');
       setNeedsAgeConsent(false);
+      setNeedsTermsConsent(false);
       localStorage.removeItem('nickname');
       localStorage.removeItem('role');
       localStorage.removeItem('userId');
@@ -160,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserIdState(null);
     setRoleState('USER');
     setNeedsAgeConsent(false);
+    setNeedsTermsConsent(false);
     localStorage.removeItem('nickname');
     localStorage.removeItem('role');
     localStorage.removeItem('userId');
@@ -180,6 +189,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 기존 가입자용: 만 14세 이상 확인 동의를 서버에 기록
   const confirmAgeConsent = useCallback(async () => {
     await agreeToAgeApi();
+    setNeedsAgeConsent(false);
+  }, []);
+
+  // 탈퇴 후 복구(재가입) 사용자용: 약관 전체 재동의 — 만 14세 확인·연령 동의까지 함께 기록됨
+  const confirmTermsReconsent = useCallback(async (marketingAgreed: boolean) => {
+    await agreeToTermsApi({ ageAgreed: true, termsAgreed: true, privacyAgreed: true, marketingAgreed });
+    setNeedsTermsConsent(false);
     setNeedsAgeConsent(false);
   }, []);
 
@@ -205,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         needsNickname,
         needsAgeConsent,
+        needsTermsConsent,
         isInitializing,
         login,
         logout,
@@ -212,6 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setInitialNickname,
         setNickname,
         confirmAgeConsent,
+        confirmTermsReconsent,
         markAgeConsented,
       }}
     >
