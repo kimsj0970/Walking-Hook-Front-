@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   fetchReportedPosts, fetchReportedComments, fetchReportsByContent,
-  adminDeleteFishingPost, adminDeleteMigratoryPost,
-  adminDeleteFishingComment, adminDeleteMigratoryComment,
+  adminDeleteFishingPost, adminDeleteMigratoryPost, adminDeleteFreePost,
+  adminDeleteFishingComment, adminDeleteMigratoryComment, adminDeleteFreeComment,
+  dismissReports,
   REPORT_REASON_LABELS, POST_TYPE_LABELS,
   type ReportedPostSummary, type ReportItem,
 } from '../../api/reportApi';
@@ -27,6 +28,7 @@ export default function AdminReportPage() {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
 
   const fetchList = useCallback(async (t: AdminTab) => {
     setLoading(true);
@@ -61,13 +63,30 @@ export default function AdminReportPage() {
     try {
       if (selectedItem.postType === 'FISHING_POST') await adminDeleteFishingPost(selectedItem.postId);
       else if (selectedItem.postType === 'MIGRATORY_POST') await adminDeleteMigratoryPost(selectedItem.postId);
+      else if (selectedItem.postType === 'FREE_POST') await adminDeleteFreePost(selectedItem.postId);
       else if (selectedItem.postType === 'FISHING_COMMENT') await adminDeleteFishingComment(selectedItem.postId);
       else if (selectedItem.postType === 'MIGRATORY_COMMENT') await adminDeleteMigratoryComment(selectedItem.postId);
+      else if (selectedItem.postType === 'FREE_COMMENT') await adminDeleteFreeComment(selectedItem.postId);
       await fetchList(tab);
     } catch {
       setError('삭제에 실패했습니다.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleDismissReports = async () => {
+    if (!selectedItem) return;
+    const typeLabel = POST_TYPE_LABELS[selectedItem.postType] ?? '콘텐츠';
+    if (!window.confirm(`이 ${typeLabel}의 신고를 제외하시겠습니까?\n신고 내역만 삭제되고 ${isPost ? '게시물' : '댓글'}은 그대로 유지됩니다.`)) return;
+    setDismissing(true);
+    try {
+      await dismissReports(selectedItem.postId);
+      await fetchList(tab);
+    } catch {
+      setError('신고 제외에 실패했습니다.');
+    } finally {
+      setDismissing(false);
     }
   };
 
@@ -81,6 +100,10 @@ export default function AdminReportPage() {
       navigate('/fishing-posts', { state: { openPostId: selectedItem.parentPostId } });
     } else if (selectedItem.postType === 'MIGRATORY_COMMENT' && selectedItem.parentPostId) {
       navigate('/migratory-posts', { state: { openPostId: selectedItem.parentPostId } });
+    } else if (selectedItem.postType === 'FREE_POST') {
+      navigate('/free-posts', { state: { openPostId: selectedItem.postId } });
+    } else if (selectedItem.postType === 'FREE_COMMENT' && selectedItem.parentPostId) {
+      navigate('/free-posts', { state: { openPostId: selectedItem.parentPostId } });
     }
   };
 
@@ -157,9 +180,17 @@ export default function AdminReportPage() {
                       {isPost ? '게시물 보기' : '원문 보기'}
                     </button>
                     <button
+                      className={styles.dismissBtn}
+                      onClick={handleDismissReports}
+                      disabled={dismissing || deleting}
+                      title="본문은 유지하고 신고 내역만 제거합니다"
+                    >
+                      {dismissing ? '처리 중...' : '신고 제외'}
+                    </button>
+                    <button
                       className={styles.deleteContentBtn}
                       onClick={handleDeleteContent}
-                      disabled={deleting}
+                      disabled={deleting || dismissing}
                     >
                       {deleting ? '삭제 중...' : isPost ? '게시물 삭제' : '댓글 삭제'}
                     </button>
