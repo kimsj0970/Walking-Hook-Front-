@@ -8,14 +8,15 @@ import styles from './AgeConsentModal.module.css';
  * 동의 전까지 닫을 수 없다. 신규 가입자는 약관 동의 단계에서 함께 처리된다.
  */
 export default function AgeConsentModal() {
-  const { isLoggedIn, needsNickname, needsAgeConsent, isInitializing, confirmAgeConsent } = useAuth();
+  const { isLoggedIn, needsNickname, needsAgeConsent, needsTermsConsent, isInitializing, confirmAgeConsent } = useAuth();
 
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // 신규 가입자(닉네임 미설정)는 NicknamePage 약관 단계에서 함께 동의하므로 제외
-  const open = !isInitializing && isLoggedIn && needsAgeConsent && !needsNickname;
+  // 신규 가입자(닉네임 미설정)는 NicknamePage 약관 단계에서,
+  // 약관 재동의 대상(탈퇴 후 복구)은 TermsReconsentModal에서 연령 확인까지 함께 처리하므로 제외
+  const open = !isInitializing && isLoggedIn && needsAgeConsent && !needsNickname && !needsTermsConsent;
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
