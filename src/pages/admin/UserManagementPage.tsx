@@ -4,11 +4,19 @@ import {
   fetchAdminUsersPage, setSuspended, setRole, deleteUser, activateUser, updateNickname,
   fetchActiveUserCount, fetchRegisteredUserCount, fetchUserVisitStats,
   fetchReRegistrationRequests, approveReRegistration, rejectReRegistration,
-  type UserSummary, type ReRegistrationRequest, type UserVisitStats,
+  type UserSummary, type ReRegistrationRequest, type UserVisitStats, type UserSort,
 } from '../../api/adminUserApi';
+import Pagination from '../../components/common/Pagination';
 import styles from './UserManagementPage.module.css';
 
 const PAGE_SIZE = 20;
+
+const SORT_OPTIONS: { value: UserSort; label: string }[] = [
+  { value: 'DATE',   label: '날짜순' },
+  { value: 'VISITS', label: '많이 방문한 순' },
+  { value: 'ACTIVE', label: '현재 방문중' },
+  { value: 'RECENT', label: '최근 방문한 사용자' },
+];
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -39,6 +47,7 @@ export default function UserManagementPage() {
   const [users, setUsers]               = useState<UserSummary[]>([]);
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
+  const [sort, setSort]                 = useState<UserSort>('DATE');
   const [selected, setSelected]         = useState<UserSummary | null>(null);
   const [toast, setToast]               = useState('');
 
@@ -100,10 +109,10 @@ export default function UserManagementPage() {
     }
   }, []);
 
-  const load = useCallback(async (page: number) => {
+  const load = useCallback(async (page: number, searchArg: string, sortArg: UserSort) => {
     setLoading(true);
     try {
-      const result = await fetchAdminUsersPage(page, PAGE_SIZE);
+      const result = await fetchAdminUsersPage(page, PAGE_SIZE, searchArg, sortArg);
       setUsers(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -154,7 +163,11 @@ export default function UserManagementPage() {
     }
   };
 
-  useEffect(() => { load(0); }, [load]);
+  // 검색어(디바운스 300ms) 또는 정렬 변경 시 0페이지부터 서버 재조회
+  useEffect(() => {
+    const t = setTimeout(() => { load(0, search, sort); }, 300);
+    return () => clearTimeout(t);
+  }, [search, sort, load]);
   useEffect(() => { loadActiveCount(); }, [loadActiveCount]);
   useEffect(() => { loadVisitStats(); }, [loadVisitStats]);
 
@@ -168,16 +181,7 @@ export default function UserManagementPage() {
     }
   }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const goToPage = (page: number) => load(page);
-
-  const filtered = users.filter(u => {
-    const q = search.toLowerCase();
-    return (
-      (u.name ?? '').toLowerCase().includes(q) ||
-      (u.nickName ?? '').toLowerCase().includes(q) ||
-      (u.email ?? '').toLowerCase().includes(q)
-    );
-  });
+  const goToPage = (page: number) => load(page, search, sort);
 
   // 자기 자신은 정지 불가, 중간관리자는 USER만 정지 가능
   const canSuspend = (target: UserSummary): boolean => {
@@ -274,8 +278,6 @@ export default function UserManagementPage() {
     }
   };
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
-
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
@@ -344,10 +346,20 @@ export default function UserManagementPage() {
       <div className={styles.searchRow}>
         <input
           className={styles.searchInput}
-          placeholder="이름·닉네임·이메일 검색"
+          placeholder="전체 사용자 이름·닉네임 검색"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        <select
+          className={styles.sortSelect}
+          value={sort}
+          onChange={e => setSort(e.target.value as UserSort)}
+          aria-label="정렬 기준"
+        >
+          {SORT_OPTIONS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
       </div>
 
       <div className={styles.layout}>
@@ -355,12 +367,16 @@ export default function UserManagementPage() {
         <div className={styles.listPanel}>
           {loading ? (
             <div className={styles.loading}><div className={styles.spinner} /></div>
-          ) : filtered.length === 0 ? (
-            <p className={styles.empty}>검색 결과가 없습니다.</p>
+          ) : users.length === 0 ? (
+            <p className={styles.empty}>
+              {sort === 'ACTIVE' && !search.trim()
+                ? '현재 접속 중인 사용자가 없습니다.'
+                : '검색 결과가 없습니다.'}
+            </p>
           ) : (
             <>
               <ul className={styles.list}>
-                {filtered.map(u => {
+                {users.map(u => {
                   const status = userStatus(u);
                   const badge = roleBadgeClass(u.role);
                   return (
@@ -384,21 +400,11 @@ export default function UserManagementPage() {
                 })}
               </ul>
 
-              {totalPages > 1 && (
-                <div className={styles.pagination}>
-                  <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>‹</button>
-                  {pageNumbers.map(p => (
-                    <button
-                      key={p}
-                      className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`}
-                      onClick={() => goToPage(p)}
-                    >
-                      {p + 1}
-                    </button>
-                  ))}
-                  <button className={styles.pageBtn} disabled={currentPage === totalPages - 1} onClick={() => goToPage(currentPage + 1)}>›</button>
-                </div>
-              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+              />
             </>
           )}
         </div>
