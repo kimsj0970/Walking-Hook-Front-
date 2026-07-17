@@ -52,6 +52,23 @@
   gap: 8px;
 }
 
+.navBtn {
+  padding: 7px 16px;
+  background: rgba(0, 180, 216, 0.16);
+  border: 1px solid rgba(0, 180, 216, 0.45);
+  border-radius: var(--radius-full);
+  color: #7fdcf0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.navBtn:hover {
+  background: rgba(0, 180, 216, 0.28);
+  border-color: rgba(0, 180, 216, 0.7);
+  color: #b9ecf7;
+}
+
 .adminBtn {
   padding: 7px 14px;
   background: rgba(251, 191, 36, 0.15);
