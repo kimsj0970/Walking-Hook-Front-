@@ -46,6 +46,7 @@ interface ReissueData {
   csrfToken: string;
   userNickName: string | null;
   needsAgeAgreement: boolean;
+  needsTermsAgreement: boolean;
 }
 
 // silentRefresh와 401 인터셉터가 공유하는 단일 reissue 요청 — race condition 방지
@@ -67,6 +68,7 @@ function callReissue(): Promise<ReissueData> {
         csrfToken: data.data.csrfToken as string,
         userNickName: (data.data.userNickName as string | null) ?? null,
         needsAgeAgreement: (data.data.needsAgeAgreement as boolean) ?? false,
+        needsTermsAgreement: (data.data.needsTermsAgreement as boolean) ?? false,
       }))
       .finally(() => {
         reissuePromise = null;
@@ -143,6 +145,7 @@ export interface AuthResult {
   role: string;
   userId: string | null;
   needsAgeAgreement: boolean;
+  needsTermsAgreement: boolean;
 }
 
 /** 탈퇴 후 3개월 이내 계정 — 로그인 대신 복구 여부 확인이 필요한 상태 */
@@ -183,6 +186,7 @@ export async function oauthLogin(
     role: parseJwtRole(accessToken),
     userId: parseJwtUserId(accessToken),
     needsAgeAgreement: (data.data.needsAgeAgreement as boolean) ?? false,
+    needsTermsAgreement: (data.data.needsTermsAgreement as boolean) ?? false,
   };
 }
 
@@ -194,7 +198,7 @@ export async function requestAccountRecoveryApi(recoveryToken: string): Promise<
 /** 앱 시작 시 silent refresh (httpOnly 쿠키 → 메모리 토큰 복원) */
 export async function silentRefresh(): Promise<AuthResult | null> {
   try {
-    const { accessToken, csrfToken, userNickName, needsAgeAgreement } = await callReissue();
+    const { accessToken, csrfToken, userNickName, needsAgeAgreement, needsTermsAgreement } = await callReissue();
     setInMemoryToken(accessToken);
     setCsrfToken(csrfToken);
     return {
@@ -203,6 +207,7 @@ export async function silentRefresh(): Promise<AuthResult | null> {
       role: parseJwtRole(accessToken),
       userId: parseJwtUserId(accessToken),
       needsAgeAgreement,
+      needsTermsAgreement,
     };
   } catch {
     return null;
