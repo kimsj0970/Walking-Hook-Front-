@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
 import ImageLightbox from '../components/common/ImageLightbox';
 import {
@@ -136,7 +137,6 @@ export default function NoticePage() {
     catch { setError('삭제에 실패했습니다.'); }
   };
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
 
   return (
     <div className={styles.container}>
@@ -183,17 +183,11 @@ export default function NoticePage() {
                   ))}
                 </div>
 
-                {totalPages > 1 && (
-                  <div className={styles.pagination}>
-                    <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>‹</button>
-                    {pageNumbers.map((p) => (
-                      <button key={p} className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`} onClick={() => goToPage(p)}>
-                        {p + 1}
-                      </button>
-                    ))}
-                    <button className={styles.pageBtn} disabled={currentPage === totalPages - 1} onClick={() => goToPage(currentPage + 1)}>›</button>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                />
               </>
             )}
           </>
