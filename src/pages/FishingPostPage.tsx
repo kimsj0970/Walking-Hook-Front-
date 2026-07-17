@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import Pagination from '../components/common/Pagination';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import MapTypeControl from '../components/map/MapTypeControl';
@@ -771,7 +772,6 @@ export default function FishingPostPage() {
     catch { setError('삭제에 실패했습니다.'); }
   };
 
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i);
 
   const getDescendants = (parentId: string): FishingPostComment[] => {
     const children = comments.filter(c => c.parentId === parentId);
@@ -883,17 +883,11 @@ export default function FishingPostPage() {
                   ))}
                 </div>
 
-                {totalPages > 1 && (
-                  <div className={styles.pagination}>
-                    <button className={styles.pageBtn} disabled={currentPage === 0} onClick={() => goToPage(currentPage - 1)}>‹</button>
-                    {pageNumbers.map((p) => (
-                      <button key={p} className={`${styles.pageBtn} ${p === currentPage ? styles.pageBtnActive : ''}`} onClick={() => goToPage(p)}>
-                        {p + 1}
-                      </button>
-                    ))}
-                    <button className={styles.pageBtn} disabled={currentPage === totalPages - 1} onClick={() => goToPage(currentPage + 1)}>›</button>
-                  </div>
-                )}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                />
               </>
             )}
           </>
