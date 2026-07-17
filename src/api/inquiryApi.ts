@@ -2,10 +2,11 @@ import api from './authApi';
 
 export interface InquiryListItem {
   id: string;
-  title: string;
+  /** 타 사용자 문의는 서버에서 null 로 내려옴 (제목 비공개) */
+  title: string | null;
   authorNickname: string;
   createdAt: string;
-  photoUrls: string[];
+  photoCount: number;
   commentCount: number;
 }
 
@@ -16,7 +17,7 @@ export interface AdminInquiryListItem {
   authorNickname: string;
   authorRealName: string;
   createdAt: string;
-  photoUrls: string[];
+  photoCount: number;
   commentCount: number;
 }
 
