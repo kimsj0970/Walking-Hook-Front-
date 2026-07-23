@@ -17,6 +17,7 @@ import {
   setInMemoryToken,
   parseJwtUserId,
 } from '../api/authApi';
+import { setAnalyticsUserId } from '../lib/analytics';
 
 interface AuthContextType {
   accessToken: string | null;
@@ -121,6 +122,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('auth-expired', handleExpired);
     };
   }, []);
+
+  // GA User-ID 동기화 — 앱(Flutter)에서도 같은 사용자 PK를 보내야
+  // 웹·앱을 오간 사용자가 GA4에서 한 명으로 집계된다.
+  useEffect(() => {
+    setAnalyticsUserId(userId);
+  }, [userId]);
 
   const login = useCallback((token: string, nick: string | null, r?: string, needsAgeAgreement?: boolean, needsTermsAgreement?: boolean) => {
     setInMemoryToken(token);
