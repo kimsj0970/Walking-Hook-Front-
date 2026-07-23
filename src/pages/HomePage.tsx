@@ -16,7 +16,6 @@ import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPos
 import { getFreePostsPage, type FreePostListItem } from '../api/freePostApi';
 import { getThisMonthTopCatch, type TopCatch } from '../api/topCatchApi';
 import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
-import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import MapTypeControl from '../components/map/MapTypeControl';
 import styles from './HomePage.module.css';
 
@@ -560,7 +559,56 @@ export default function HomePage() {
                 <div className={styles.allPointsCardBody}>
                   <span className={styles.allPointsCardTitle}>모든 어종 포인트</span>
                   <p className={styles.allPointsCardDesc}>
-                    낚시 포인트 & 낚시 금지 포인트
+                    전국 낚시 포인트
+                  </p>
+                </div>
+                <span className={styles.allPointsCardCta}>보기 →</span>
+              </button>
+            </div>
+
+            {/* 실시간 CCTV + 낚시금지구역 */}
+            <div className={styles.migratoryRow}>
+              <button
+                className={`${styles.allPointsCard} ${styles.cctvCard}`}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setLoginToast(true);
+                    setTimeout(() => setLoginToast(false), 2000);
+                    setLoginModalOpen(true);
+                    return;
+                  }
+                  window.open('/map/cctv', 'cctvmap', 'width=900,height=680,resizable=yes');
+                }}
+              >
+                <span className={styles.allPointsCardShimmer} />
+                <span className={styles.allPointsCardIcon}>📹</span>
+                <div className={styles.allPointsCardBody}>
+                  <span className={styles.allPointsCardTitle}>실시간 CCTV</span>
+                  <p className={styles.allPointsCardDesc}>
+                    주요 항만 실시간 화면
+                  </p>
+                </div>
+                <span className={styles.allPointsCardCta}>보기 →</span>
+              </button>
+
+              <button
+                className={`${styles.allPointsCard} ${styles.zoneCard}`}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    setLoginToast(true);
+                    setTimeout(() => setLoginToast(false), 2000);
+                    setLoginModalOpen(true);
+                    return;
+                  }
+                  window.open('/map/fishing-zones', 'fishingzones', 'width=900,height=680,resizable=yes');
+                }}
+              >
+                <span className={styles.allPointsCardShimmer} />
+                <span className={styles.allPointsCardIcon}>🚫</span>
+                <div className={styles.allPointsCardBody}>
+                  <span className={styles.allPointsCardTitle}>낚시금지구역</span>
+                  <p className={styles.allPointsCardDesc}>
+                    금지·제한 구역 확인
                   </p>
                 </div>
                 <span className={styles.allPointsCardCta}>보기 →</span>
@@ -1448,15 +1496,11 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
     Promise.all([
       import('../api/migratoryPostApi'),
-      import('../api/fishingZoneApi'),
       loadKakaoSDK(appKey),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ]).then(([migratoryPostApi, fishingZoneApi]): any => {
+    ]).then(([migratoryPostApi]): any => {
       if (cancelled || !mapRef.current) return;
-      return Promise.all([
-        migratoryPostApi.getTodayMigratoryMarkers().catch(() => []),
-        fishingZoneApi.fetchFishingZones().catch(() => []),
-      ]).then(([markers, fishingZones]) => {
+      return migratoryPostApi.getTodayMigratoryMarkers().catch(() => []).then((markers) => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
@@ -1536,42 +1580,6 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         requestAnimationFrame(() => {
           map.relayout();
           map.setCenter(map.getCenter());
-        });
-
-        // ── 낚시 금지·제한구역 폴리곤 ──────────────────────────────
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (fishingZones as any[]).forEach((zone: any) => {
-          try {
-            const parsed = JSON.parse(zone.geoJson);
-            const ring: [number, number][] = parsed.coordinates[0];
-            const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
-              new kakao.maps.LatLng(lat, lng)
-            );
-            const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
-            const poly = new kakao.maps.Polygon({
-              map,
-              path,
-              strokeWeight: 2,
-              strokeColor: color,
-              strokeOpacity: 0.9,
-              fillColor: color,
-              fillOpacity: 0.2,
-            });
-            const infoWindow = new kakao.maps.InfoWindow({
-              content: `<div style="padding:12px 14px;width:220px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
-                <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
-                <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
-                ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
-              </div>`,
-              removable: true,
-            });
-            kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
-              infoWindow.setPosition(e.latLng);
-              infoWindow.open(map);
-            });
-          } catch {
-            // GeoJSON 파싱 실패 시 무시
-          }
         });
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1768,8 +1776,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
     Promise.all([
       loadKakaoSDK(appKey),
       fetchAllMigratoryFishPointMapMarkers().catch(() => [] as MigratoryFishPointMapMarker[]),
-      fetchFishingZones().catch(() => [] as FishingZone[]),
-    ]).then(([, points, zones]) => {
+    ]).then(([, points]) => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
@@ -1786,41 +1793,6 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
         requestAnimationFrame(() => {
           map.relayout();
           map.setCenter(map.getCenter());
-        });
-
-        // 낚시 금지·제한구역 폴리곤
-        zones.forEach((zone) => {
-          try {
-            const parsed = JSON.parse(zone.geoJson);
-            const ring: [number, number][] = parsed.coordinates[0];
-            const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
-              new kakao.maps.LatLng(lat, lng)
-            );
-            const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
-            const poly = new kakao.maps.Polygon({
-              map,
-              path,
-              strokeWeight: 2,
-              strokeColor: color,
-              strokeOpacity: 0.9,
-              fillColor: color,
-              fillOpacity: 0.2,
-            });
-            const zoneInfoWindow = new kakao.maps.InfoWindow({
-              content: `<div style="padding:12px 14px;width:220px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
-                <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
-                <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
-                ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
-              </div>`,
-              removable: true,
-            });
-            kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
-              zoneInfoWindow.setPosition(e.latLng);
-              zoneInfoWindow.open(map);
-            });
-          } catch {
-            // GeoJSON 파싱 실패 시 무시
-          }
         });
 
         const validPoints = points.filter(p => p.latitude != null && p.longitude != null);
