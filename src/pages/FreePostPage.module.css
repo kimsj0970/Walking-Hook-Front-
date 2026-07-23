@@ -101,6 +101,32 @@
 .monthSelect:hover { border-color: rgba(11, 61, 145, 0.35); }
 .monthSelect:focus { outline: none; border-color: var(--color-primary); }
 
+/* 달력형 날짜 필터 (낚시게시판과 동일) */
+.pointDropdown { position: relative; }
+
+.pointFilterBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-top: 12px;
+  background: rgba(11, 61, 145, 0.06);
+  border: 1px solid rgba(11, 61, 145, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+.pointFilterBar button {
+  border: none;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* ── 목록 (조황 게시판과 동일한 카드형) ── */
 .list {
   display: flex;
