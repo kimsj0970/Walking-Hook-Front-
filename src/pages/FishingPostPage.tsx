@@ -16,7 +16,6 @@ import {
   type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
-import { fetchFishingZones, type FishingZone } from '../api/fishingZoneApi';
 import ReportModal from '../components/common/ReportModal';
 import MonthYearPicker from '../components/common/MonthYearPicker';
 import styles from './FishingPostPage.module.css';
@@ -68,44 +67,6 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function renderFishingZones(kakao: any, map: any, zones: FishingZone[]) {
-  zones.forEach((zone) => {
-    try {
-      const parsed = JSON.parse(zone.geoJson);
-      const ring: [number, number][] = parsed.coordinates[0];
-      const path = ring.slice(0, -1).map(([lng, lat]: [number, number]) =>
-        new kakao.maps.LatLng(lat, lng)
-      );
-      const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
-      const poly = new kakao.maps.Polygon({
-        map,
-        path,
-        strokeWeight: 2,
-        strokeColor: color,
-        strokeOpacity: 0.9,
-        fillColor: color,
-        fillOpacity: 0.2,
-      });
-      const infoWindow = new kakao.maps.InfoWindow({
-        content: `
-          <div style="padding:12px 16px;width:220px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
-            <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
-            <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
-            ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
-          </div>`,
-        removable: true,
-      });
-      kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
-        infoWindow.setPosition(e.latLng);
-        infoWindow.open(map);
-      });
-    } catch {
-      // GeoJSON 파싱 실패 시 무시
-    }
-  });
-}
-
 /* ── 지도 포인트 선택 모달 ── */
 interface MapPickerProps {
   points: MigratoryFishPointMapMarker[];
@@ -142,10 +103,7 @@ function FishingPostMapPicker({ points, onSelect, onClose, emptyMessage }: MapPi
     const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
     if (!appKey) { setMapStatus('error'); return; }
     let cancelled = false;
-    Promise.all([
-      loadKakaoSDK(appKey),
-      fetchFishingZones().catch(() => [] as FishingZone[]),
-    ]).then(([, zones]) => {
+    loadKakaoSDK(appKey).then(() => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
@@ -164,7 +122,6 @@ function FishingPostMapPicker({ points, onSelect, onClose, emptyMessage }: MapPi
           map.setCenter(map.getCenter());
         });
 
-        renderFishingZones(kakao, map, zones);
         const markers = points.map((fp) => {
           const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
           const marker = new kakao.maps.Marker({ position });
@@ -213,7 +170,7 @@ function FishingPostMapPicker({ points, onSelect, onClose, emptyMessage }: MapPi
           <button className={styles.mapPickerClose} onClick={onClose}>✕</button>
         </div>
         <p className={styles.mapPickerHint}>
-          마커를 탭하면 이름이 뜨고, "이 포인트 선택"을 누르면 선택됩니다 · <span style={{ color: '#DC2626' }}>■</span> 낚시금지구역 <span style={{ color: '#EA580C' }}>■</span> 낚시제한구역
+          마커를 탭하면 이름이 뜨고, "이 포인트 선택"을 누르면 선택됩니다
         </p>
         {mapStatus === 'loading' && (
           <div className={styles.mapPickerLoading}><div className={styles.spinner} /></div>
