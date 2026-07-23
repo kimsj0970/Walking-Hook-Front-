@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
@@ -6,6 +6,7 @@ import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
 import ImageLightbox from '../components/common/ImageLightbox';
 import ReportModal from '../components/common/ReportModal';
+import MonthYearPicker from '../components/common/MonthYearPicker';
 import type { PostType } from '../api/reportApi';
 import {
   getFreePostsPage, getFreePostDetail, createFreePost, updateFreePost, deleteFreePost,
@@ -73,18 +74,10 @@ export default function FreePostPage() {
   const [totalPages, setTotalPages]   = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
-  // 월별 필터: 'YYYY-MM' 문자열, null이면 전체보기
-  const [filterMonth, setFilterMonth] = useState<string | null>(null);
-  const monthOptions = useMemo(() => {
-    const opts: { value: string; label: string }[] = [];
-    const now = new Date();
-    for (let i = 0; i < 24; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      opts.push({ value, label: `${d.getFullYear()}년 ${d.getMonth() + 1}월` });
-    }
-    return opts;
-  }, []);
+  // 월별 필터: 낚시게시판과 동일한 달력형 MonthYearPicker 사용
+  const [dateFilter, setDateFilter] = useState<{ year: number; month: number } | null>(null);
+  const [dateDropOpen, setDateDropOpen] = useState(false);
+  const dateDropRef = useRef<HTMLDivElement>(null);
 
   const [modalOpen, setModalOpen]     = useState(false);
   const [editingPost, setEditingPost] = useState<FreePostDetail | null>(null);
@@ -101,14 +94,11 @@ export default function FreePostPage() {
   const canManage = detail != null && (isAdmin || isModerator || detail.authorId === userId);
   const canModerate = isAdmin || isModerator;
 
-  const fetchList = useCallback(async (page: number, month: string | null) => {
+  const fetchList = useCallback(async (page: number, date: { year: number; month: number } | null) => {
     setLoading(true);
     setError('');
     try {
-      let year: number | undefined;
-      let mon: number | undefined;
-      if (month) { const [y, m] = month.split('-').map(Number); year = y; mon = m; }
-      const result = await getFreePostsPage(page, PAGE_SIZE, year, mon);
+      const result = await getFreePostsPage(page, PAGE_SIZE, date?.year, date?.month);
       setItems(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -122,11 +112,29 @@ export default function FreePostPage() {
 
   useEffect(() => { fetchList(0, null); }, [fetchList]);
 
-  const handleMonthChange = (month: string | null) => {
-    setFilterMonth(month);
-    fetchList(0, month);
+  const toggleDateDrop = () => setDateDropOpen(v => !v);
+
+  const handleDateSelect = (year: number, month: number) => {
+    setDateFilter({ year, month });
+    setDateDropOpen(false);
+    fetchList(0, { year, month });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const clearDateFilter = () => {
+    setDateFilter(null);
+    fetchList(0, null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (!dateDropOpen) return;
+    const onClickOut = (e: MouseEvent) => {
+      if (dateDropRef.current && !dateDropRef.current.contains(e.target as Node)) setDateDropOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOut);
+    return () => document.removeEventListener('mousedown', onClickOut);
+  }, [dateDropOpen]);
 
   useEffect(() => {
     const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
@@ -138,7 +146,7 @@ export default function FreePostPage() {
   }, []);
 
   const goToPage = (page: number) => {
-    fetchList(page, filterMonth);
+    fetchList(page, dateFilter);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -185,12 +193,12 @@ export default function FreePostPage() {
     } else {
       await createFreePost(title, content, photoUrls);
     }
-    await fetchList(currentPage, filterMonth);
+    await fetchList(currentPage, dateFilter);
   };
 
   const handleDelete = async () => {
     if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
-    try { await deleteFreePost(detail.id); await fetchList(currentPage, filterMonth); setView('list'); }
+    try { await deleteFreePost(detail.id); await fetchList(currentPage, dateFilter); setView('list'); }
     catch { setError('삭제에 실패했습니다.'); }
   };
 
@@ -219,26 +227,20 @@ export default function FreePostPage() {
         {view === 'list' && (
           <>
             <div className={styles.filterBar}>
-              <div className={styles.filterChips}>
-                <button
-                  className={`${styles.filterChip} ${filterMonth === null ? styles.filterChipActive : ''}`}
-                  onClick={() => handleMonthChange(null)}
-                >
-                  전체
-                </button>
-                <select
-                  className={styles.monthSelect}
-                  value={filterMonth ?? ''}
-                  onChange={(e) => handleMonthChange(e.target.value || null)}
-                  aria-label="월별 보기"
-                >
-                  <option value="">월 선택</option>
-                  {monthOptions.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
+              <div className={styles.pointDropdown} ref={dateDropRef}>
+                <button className={styles.iconActionBtn} onClick={toggleDateDrop}>📅 날짜로 보기</button>
+                {dateDropOpen && (
+                  <MonthYearPicker value={dateFilter} onSelect={handleDateSelect} />
+                )}
               </div>
             </div>
+
+            {dateFilter && (
+              <div className={styles.pointFilterBar}>
+                <span>📅 <strong>{dateFilter.year}년 {dateFilter.month}월</strong> 게시물</span>
+                <button onClick={clearDateFilter}>필터 해제 ✕</button>
+              </div>
+            )}
 
             {error && <p className={styles.error}>{error}</p>}
 
@@ -246,7 +248,7 @@ export default function FreePostPage() {
               <ListSkeleton />
             ) : items.length === 0 ? (
               <p className={styles.empty}>
-                {filterMonth
+                {dateFilter
                   ? '선택한 달에는 게시글이 없습니다.'
                   : '아직 게시글이 없습니다. 첫 번째 글을 작성해 보세요!'}
               </p>
