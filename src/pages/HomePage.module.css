@@ -1010,6 +1010,63 @@
   border-color: rgba(52,211,153,0.8);
 }
 
+/* ── 색 변형 ── 기존 시안(회유성)·에메랄드(모든포인트)와 한 세트로 어울리도록
+   동일한 "딥 다크 베이스 + 400톤 액센트(보더·글로우·펄스링·시머·CTA)" 구조를 그대로 따른다.
+   CCTV = 바이올렛-400 #A78BFA / 낚시금지구역 = 레드-400 #F87171 */
+.cctvCard {
+  background: linear-gradient(135deg, #12082E 0%, #1E1145 60%, #2A1860 100%);
+  border-color: rgba(167,139,250,0.5);
+  box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: cctvPulseRing 2.8s ease-in-out infinite;
+}
+.cctvCard:hover {
+  border-color: rgba(167,139,250,0.85);
+  box-shadow: 0 8px 36px rgba(0,0,0,0.5), 0 0 22px rgba(167,139,250,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+@keyframes cctvPulseRing {
+  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(167,139,250,0.5); }
+  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(167,139,250,0); }
+}
+.cctvCard .allPointsCardShimmer {
+  background: linear-gradient(105deg, transparent 38%, rgba(167,139,250,0.11) 50%, transparent 62%);
+}
+.cctvCard .allPointsCardCta {
+  background: rgba(167,139,250,0.16);
+  border-color: rgba(167,139,250,0.5);
+  color: #C4B5FD;
+}
+.cctvCard:hover .allPointsCardCta {
+  background: rgba(167,139,250,0.30);
+  border-color: rgba(167,139,250,0.85);
+}
+
+.zoneCard {
+  background: linear-gradient(135deg, #250810 0%, #3D111C 60%, #511823 100%);
+  border-color: rgba(248,113,113,0.5);
+  box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: zonePulseRing 2.8s ease-in-out infinite;
+}
+.zoneCard:hover {
+  border-color: rgba(248,113,113,0.85);
+  box-shadow: 0 8px 36px rgba(0,0,0,0.5), 0 0 22px rgba(248,113,113,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+@keyframes zonePulseRing {
+  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(248,113,113,0.5); }
+  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(248,113,113,0); }
+}
+.zoneCard .allPointsCardShimmer {
+  background: linear-gradient(105deg, transparent 38%, rgba(248,113,113,0.11) 50%, transparent 62%);
+}
+.zoneCard .allPointsCardCta {
+  background: rgba(248,113,113,0.16);
+  border-color: rgba(248,113,113,0.5);
+  color: #FCA5A5;
+}
+.zoneCard:hover .allPointsCardCta {
+  background: rgba(248,113,113,0.30);
+  border-color: rgba(248,113,113,0.85);
+}
+
 /* 모바일에서도 세로로 쌓지 않고 가로 2열 유지 — 카드 내부 여백/폰트를 줄여 글자 깨짐 방지 */
 @media (max-width: 560px) {
   .migratoryRow {
