@@ -6,11 +6,14 @@ import Footer from './components/common/Footer';
 import AgeConsentModal from './components/common/AgeConsentModal';
 import TermsReconsentModal from './components/common/TermsReconsentModal';
 import ScrollToTop from './components/common/ScrollToTop';
+import AnalyticsTracker from './components/common/AnalyticsTracker';
 import HomePage from './pages/HomePage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NicknamePage from './pages/NicknamePage';
 import MyPage from './pages/MyPage';
 import MapPage from './pages/MapPage';
+import CctvMapPage from './pages/CctvMapPage';
+import FishingZonesMapPage from './pages/FishingZonesMapPage';
 import AdminPage from './pages/admin/AdminPage';
 import InquiryPage from './pages/InquiryPage';
 import CommunityPage from './pages/CommunityPage';
@@ -38,6 +41,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <AnalyticsTracker />
         <NicknameGuard>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -46,6 +50,8 @@ export default function App() {
             <Route path="/nickname" element={<PrivateRoute><NicknamePage /></PrivateRoute>} />
             <Route path="/my" element={<PrivateRoute><MyPage /></PrivateRoute>} />
             <Route path="/map" element={<MapPage />} />
+            <Route path="/map/cctv" element={<CctvMapPage />} />
+            <Route path="/map/fishing-zones" element={<FishingZonesMapPage />} />
             <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
             <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
             <Route path="/community" element={<CommunityPage />} />
