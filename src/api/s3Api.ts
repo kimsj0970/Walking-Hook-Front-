@@ -1,6 +1,6 @@
 import api from './authApi';
 
-export type BoardType = 'FISHING_POST' | 'MIGRATORY_POST' | 'NOTICE' | 'INQUIRY' | 'FREE_POST';
+export type BoardType = 'CATCH_POST' | 'NOTICE' | 'INQUIRY' | 'FREE_POST';
 
 // ── Magic byte signatures for image validation ─────────────────────────────
 const SIGNATURES = [
