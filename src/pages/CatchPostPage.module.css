@@ -533,32 +533,143 @@
 .inputError { border-color: #E53E3E !important; }
 .errorMsg { font-size: 12px; color: #E53E3E; margin: 0; }
 
-.speciesCheckboxGroup {
+/* ── 어종 입력: 직접 입력 + 목록 칩 + 선택된 태그 ───────────────────────── */
+
+.speciesInputRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.speciesAddBtn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.speciesAddBtn:hover { background: var(--color-bg); }
+
+.speciesTagList {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* 목록에 있는 어종 */
+.speciesTag,
+/* 직접 입력한 어종 — 옅은 회색으로 구분한다 */
+.speciesTagCustom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.speciesTag {
+  background: rgba(11, 61, 145, 0.1);
+  color: var(--color-primary);
+}
+.speciesTagCustom {
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.speciesTagRemove {
+  border: none;
+  background: transparent;
+  padding: 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  line-height: 1;
+}
+.speciesTagRemove:hover { opacity: 1; }
+
+.speciesChipGroups {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  margin-top: 10px;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-bg);
 }
 
-.speciesCheckboxItem {
+/* 소제목을 칩과 같은 줄에 두어 세 그룹이 세 줄로 끝나게 한다(예전에는 여섯 줄이었다). */
+.speciesChipGroup {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: var(--color-text);
-  cursor: pointer;
-  user-select: none;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.speciesCheckboxItem input[type='checkbox'] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--color-primary);
+.speciesGroupLabel {
+  flex: 0 0 52px;
+  padding-top: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+.speciesChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex: 1;
+}
+
+/* 좁은 화면에서는 칩이 접히다 못해 눌리므로 소제목을 위로 올린다. */
+@media (max-width: 520px) {
+  .speciesChipGroup {
+    flex-direction: column;
+    gap: 5px;
+  }
+  .speciesGroupLabel {
+    flex: none;
+    padding-top: 0;
+  }
+}
+
+.speciesChip,
+.speciesChipOn {
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
+.speciesChip {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-text-muted);
+}
+.speciesChip:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.speciesChipOn {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* 어종 필터 드롭다운의 그룹 소제목 */
+.pointListGroupLabel {
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
 .serverError { font-size: 13px; color: #E53E3E; text-align: center; }
 .fieldHint { font-size: 12px; color: var(--color-text-muted); margin: 2px 0 0; }
 .charCount { font-size: 11px; color: var(--color-text-muted); text-align: right; margin-top: -4px; }
