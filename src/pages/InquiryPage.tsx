@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PostFormModal from '../components/common/PostFormModal';
@@ -25,6 +26,7 @@ type View = 'list' | 'detail';
 
 export default function InquiryPage() {
   const { isAdmin, isModerator, isLoggedIn, userId } = useAuth();
+  const location = useLocation();
   const isPrivileged = isAdmin || isModerator;
 
   const [view, setView] = useState<View>('list');
@@ -57,6 +59,16 @@ export default function InquiryPage() {
   useEffect(() => {
     fetchList();
   }, [fetchList]);
+
+  // 알림(종 아이콘)에서 넘어온 경우 해당 문의 상세를 바로 연다.
+  useEffect(() => {
+    const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
+    if (openPostId) {
+      handleViewDetail(openPostId);
+      window.history.replaceState({}, document.title);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleViewDetail = async (id: string) => {
     if (!isLoggedIn) {
