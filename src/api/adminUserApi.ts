@@ -12,6 +12,7 @@ export interface UserSummary {
   isSuspended: boolean;
   createdAt: string;
   deletedAt: string | null;
+  lastAccessAt: string | null;
   monthlyVisitCount: number;
   totalVisitCount: number;
 }
