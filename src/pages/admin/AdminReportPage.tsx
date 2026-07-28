@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   fetchReportedPosts, fetchReportedComments, fetchReportsByContent,
-  adminDeleteFishingPost, adminDeleteMigratoryPost, adminDeleteFreePost,
-  adminDeleteFishingComment, adminDeleteMigratoryComment, adminDeleteFreeComment,
+  adminDeleteCatchPost, adminDeleteFreePost,
+  adminDeleteCatchComment, adminDeleteFreeComment,
   dismissReports,
   REPORT_REASON_LABELS, POST_TYPE_LABELS,
   type ReportedPostSummary, type ReportItem,
@@ -61,11 +61,9 @@ export default function AdminReportPage() {
     if (!window.confirm(`이 ${typeLabel}을(를) 삭제하시겠습니까?`)) return;
     setDeleting(true);
     try {
-      if (selectedItem.postType === 'FISHING_POST') await adminDeleteFishingPost(selectedItem.postId);
-      else if (selectedItem.postType === 'MIGRATORY_POST') await adminDeleteMigratoryPost(selectedItem.postId);
+      if (selectedItem.postType === 'CATCH_POST') await adminDeleteCatchPost(selectedItem.postId);
       else if (selectedItem.postType === 'FREE_POST') await adminDeleteFreePost(selectedItem.postId);
-      else if (selectedItem.postType === 'FISHING_COMMENT') await adminDeleteFishingComment(selectedItem.postId);
-      else if (selectedItem.postType === 'MIGRATORY_COMMENT') await adminDeleteMigratoryComment(selectedItem.postId);
+      else if (selectedItem.postType === 'CATCH_COMMENT') await adminDeleteCatchComment(selectedItem.postId);
       else if (selectedItem.postType === 'FREE_COMMENT') await adminDeleteFreeComment(selectedItem.postId);
       await fetchList(tab);
     } catch {
@@ -92,14 +90,10 @@ export default function AdminReportPage() {
 
   const handleViewContent = () => {
     if (!selectedItem) return;
-    if (selectedItem.postType === 'FISHING_POST') {
-      navigate('/fishing-posts', { state: { openPostId: selectedItem.postId } });
-    } else if (selectedItem.postType === 'MIGRATORY_POST') {
-      navigate('/migratory-posts', { state: { openPostId: selectedItem.postId } });
-    } else if (selectedItem.postType === 'FISHING_COMMENT' && selectedItem.parentPostId) {
-      navigate('/fishing-posts', { state: { openPostId: selectedItem.parentPostId } });
-    } else if (selectedItem.postType === 'MIGRATORY_COMMENT' && selectedItem.parentPostId) {
-      navigate('/migratory-posts', { state: { openPostId: selectedItem.parentPostId } });
+    if (selectedItem.postType === 'CATCH_POST') {
+      navigate('/catch-posts', { state: { openPostId: selectedItem.postId } });
+    } else if (selectedItem.postType === 'CATCH_COMMENT' && selectedItem.parentPostId) {
+      navigate('/catch-posts', { state: { openPostId: selectedItem.parentPostId } });
     } else if (selectedItem.postType === 'FREE_POST') {
       navigate('/free-posts', { state: { openPostId: selectedItem.postId } });
     } else if (selectedItem.postType === 'FREE_COMMENT' && selectedItem.parentPostId) {
