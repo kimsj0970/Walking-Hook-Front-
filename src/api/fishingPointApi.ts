@@ -297,13 +297,20 @@ export async function analyzeFishingPoint(id: string): Promise<FishingAnalysisRe
 
 // ── AI 캐시 스케줄러 Admin API ─────────────────────────────────────────────
 
-export async function getAiScheduleStatus(): Promise<boolean> {
-  const { data } = await api.get('/admin/fish-points/ai-schedule/status');
-  return data.data as boolean;
+/** 스케줄러 실행 상태 + 동작 시간대 (KST, [startHour, endHour) 구간. endHour 24 = 자정) */
+export interface AiScheduleStatus {
+  running: boolean;
+  startHour: number;
+  endHour: number;
 }
 
-export async function startAiSchedule(): Promise<void> {
-  await api.post('/admin/fish-points/ai-schedule/start');
+export async function getAiScheduleStatus(): Promise<AiScheduleStatus> {
+  const { data } = await api.get('/admin/fish-points/ai-schedule/status');
+  return data.data as AiScheduleStatus;
+}
+
+export async function startAiSchedule(startHour: number, endHour: number): Promise<void> {
+  await api.post('/admin/fish-points/ai-schedule/start', { startHour, endHour });
 }
 
 export async function stopAiSchedule(): Promise<void> {
