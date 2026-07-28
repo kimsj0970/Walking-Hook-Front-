@@ -11,12 +11,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
-import { getMigratoryPostsPage, type MigratoryPostListItem } from '../api/migratoryPostApi';
-import { getFishingPostsPage, type FishingPostListItem } from '../api/fishingPostApi';
+import AdSlot from '../components/common/AdSlot';
+import { getCatchPostsPage, type CatchPostListItem } from '../api/catchPostApi';
 import { getFreePostsPage, type FreePostListItem } from '../api/freePostApi';
 import { getThisMonthTopCatch, type TopCatch } from '../api/topCatchApi';
 import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
 import MapTypeControl from '../components/map/MapTypeControl';
+import PointVideoListModal from '../components/map/PointVideoListModal';
 import styles from './HomePage.module.css';
 
 const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
@@ -65,7 +66,8 @@ function getWindDesc(windSpeed: number | null | undefined): string | null {
 }
 
 /* ─── 조건 카드 팝업 설명 데이터 ─── */
-type InfoRow = { label: string; desc: string; highlight?: boolean };
+/** max: 수치형 구간의 상한(이하). 오름차순으로 나열하며 마지막 행은 생략(=무한대). */
+type InfoRow = { label: string; desc: string; highlight?: boolean; max?: number };
 type ConditionInfoKey = '파고' | '풍속' | '물때' | '조류' | '몇물' | '수온';
 
 const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string; rows: InfoRow[] }> = {
@@ -73,12 +75,12 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     title: '🌊 파고 (파도 높이)',
     subtitle: '파도가 높을수록 물이 탁해져 물고기 경계심이 낮아지지만, 너무 높으면 채비 컨트롤이 어렵고 위험해요.',
     rows: [
-      { label: '0 ~ 0.3m', desc: '잔잔함 · 물이 맑아 물고기 경계심이 높아져요. 광어·우럭 루어엔 불리하지 않지만 감성돔은 입질 적어요' },
-      { label: '0.3 ~ 0.5m', desc: '약한 파도 · 밑밥·루어 운용 안정적, 광어 등 저부 어종 활동 편함' },
-      { label: '0.5 ~ 0.7m', desc: '적당한 파도 · 채비 흐름이 생겨 루어 액션이 자연스러워요' },
-      { label: '0.7 ~ 1.5m', desc: '보통 파도 · 감성돔·농어 포말·탁도 활용 최고 활성', highlight: true },
-      { label: '1.5 ~ 2.0m', desc: '강한 파도 · 농어 계속 활발하지만 채비 컨트롤 난이도 증가' },
-      { label: '2.0 ~ 2.5m', desc: '거친 파도 · 갯바위 낚시 위험 구간, 방파제 낚시 주의' },
+      { label: '0 ~ 0.3m', desc: '잔잔함 · 물이 맑아 물고기 경계심이 높아져요. 광어·우럭 루어엔 불리하지 않지만 감성돔은 입질 적어요', max: 0.3 },
+      { label: '0.3 ~ 0.5m', desc: '약한 파도 · 밑밥·루어 운용 안정적, 광어 등 저부 어종 활동 편함', max: 0.5 },
+      { label: '0.5 ~ 0.7m', desc: '적당한 파도 · 채비 흐름이 생겨 루어 액션이 자연스러워요', max: 0.7 },
+      { label: '0.7 ~ 1.5m', desc: '보통 파도 · 감성돔·농어 포말·탁도 활용 최고 활성', highlight: true, max: 1.5 },
+      { label: '1.5 ~ 2.0m', desc: '강한 파도 · 농어 계속 활발하지만 채비 컨트롤 난이도 증가', max: 2.0 },
+      { label: '2.0 ~ 2.5m', desc: '거친 파도 · 갯바위 낚시 위험 구간, 방파제 낚시 주의', max: 2.5 },
       { label: '2.5m 이상', desc: '위험 파도 · 갯바위·방파제 출조 자제 권장 ⚠️' },
     ],
   },
@@ -86,12 +88,12 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     title: '💨 풍속 (바람 세기)',
     subtitle: '바람이 약할수록 캐스팅이 쉽고, 강해질수록 루어 비행 거리와 방향 컨트롤이 어려워져요.',
     rows: [
-      { label: '0 ~ 1.5 m/s (실바람)', desc: '캐스팅 완벽 · 단 물이 잔잔해 물고기 경계심이 높아질 수 있어요' },
-      { label: '1.5 ~ 3.3 m/s (산들바람)', desc: '낚시 최적 조건 · 적당한 탁도와 쉬운 캐스팅', highlight: true },
-      { label: '3.3 ~ 5.4 m/s (건들바람)', desc: '루어 컨트롤에 신경 써야 해요 · 채비 흐름이 빨라져요' },
-      { label: '5.4 ~ 7.9 m/s (흔들바람)', desc: '캐스팅 거리 감소, 캐스팅 손실 위험 · 원투 낚시 어려워요' },
-      { label: '7.9 ~ 10.7 m/s (된바람)', desc: '안전에 주의하세요 ⚠️ · 갯바위·방파제 위험 구간' },
-      { label: '10.7 ~ 13.8 m/s (센바람)', desc: '출조 자제 권장 ⚠️ · 캐스팅 거의 불가 수준' },
+      { label: '0 ~ 1.5 m/s (실바람)', desc: '캐스팅 완벽 · 단 물이 잔잔해 물고기 경계심이 높아질 수 있어요', max: 1.5 },
+      { label: '1.5 ~ 3.3 m/s (산들바람)', desc: '낚시 최적 조건 · 적당한 탁도와 쉬운 캐스팅', highlight: true, max: 3.3 },
+      { label: '3.3 ~ 5.4 m/s (건들바람)', desc: '루어 컨트롤에 신경 써야 해요 · 채비 흐름이 빨라져요', max: 5.4 },
+      { label: '5.4 ~ 7.9 m/s (흔들바람)', desc: '캐스팅 거리 감소, 캐스팅 손실 위험 · 원투 낚시 어려워요', max: 7.9 },
+      { label: '7.9 ~ 10.7 m/s (된바람)', desc: '안전에 주의하세요 ⚠️ · 갯바위·방파제 위험 구간', max: 10.7 },
+      { label: '10.7 ~ 13.8 m/s (센바람)', desc: '출조 자제 권장 ⚠️ · 캐스팅 거의 불가 수준', max: 13.8 },
       { label: '13.8 m/s 이상 (강풍)', desc: '출조 금지 수준 ⛔ · 생명 안전 위협' },
     ],
   },
@@ -144,16 +146,54 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     title: '🌡 수온 (물 온도)',
     subtitle: '각 어종마다 선호하는 수온 범위가 달라요. 수온이 적정 범위를 벗어나면 활성이 떨어지고 입질이 줄어들어요.',
     rows: [
-      { label: '5℃ 이하', desc: '극저수온 · 거의 모든 어종 활성 최저, 깊은 곳으로 이동해 연안 낚시 매우 어려움' },
-      { label: '5 ~ 10℃', desc: '저수온 · 대부분 어종 활성 감소. 감성돔은 한겨울 패턴으로 깊은 곳 공략 필요' },
-      { label: '10 ~ 15℃', desc: '봄 초반·초겨울 · 감성돔·우럭 서서히 회복 시작, 광어는 연안 진출 중' },
-      { label: '15 ~ 20℃', desc: '봄~초여름 · 감성돔·우럭·광어 최적 활성 시작', highlight: true },
-      { label: '20 ~ 26℃', desc: '수온 상승기로 어종별 선호 수심 편차가 커짐', highlight: true },
-      { label: '26 ~ 28℃', desc: '고수온 초입 · 농어는 여전히 활발, 감성돔은 심층 이동 시작' },
+      { label: '5℃ 이하', desc: '극저수온 · 거의 모든 어종 활성 최저, 깊은 곳으로 이동해 연안 낚시 매우 어려움', max: 5 },
+      { label: '5 ~ 10℃', desc: '저수온 · 대부분 어종 활성 감소. 감성돔은 한겨울 패턴으로 깊은 곳 공략 필요', max: 10 },
+      { label: '10 ~ 15℃', desc: '봄 초반·초겨울 · 감성돔·우럭 서서히 회복 시작, 광어는 연안 진출 중', max: 15 },
+      { label: '15 ~ 20℃', desc: '봄~초여름 · 감성돔·우럭·광어 최적 활성 시작', highlight: true, max: 20 },
+      { label: '20 ~ 26℃', desc: '수온 상승기로 어종별 선호 수심 편차가 커짐', highlight: true, max: 26 },
+      { label: '26 ~ 28℃', desc: '고수온 초입 · 농어는 여전히 활발, 감성돔은 심층 이동 시작', max: 28 },
       { label: '28℃ 이상', desc: '고수온 · 감성돔 연안 활성 대폭 저하, 일부 어종 심층 이동. 야간 농어 여전히 활발' },
     ],
   },
 };
+
+/**
+ * 현재 포인트의 수치가 어느 구간에 해당하는지 찾는다.
+ * @returns 해당 행의 인덱스와 배지 문구. 값이 없거나 일치 구간이 없으면 null
+ */
+function findCurrentRow(
+  key: ConditionInfoKey,
+  c: FishingConditionsResult | null,
+): { index: number; text: string } | null {
+  if (!c) return null;
+  const rows = CONDITION_INFO[key].rows;
+
+  // 수치형: 오름차순 구간의 상한(max)과 비교 — 경계값은 아래쪽 구간에 포함
+  const byBand = (v: number | null | undefined, text: string) => {
+    if (v == null) return null;
+    const index = rows.findIndex((r) => v <= (r.max ?? Infinity));
+    return index < 0 ? null : { index, text };
+  };
+  // 문자형: 라벨 일치
+  const byLabel = (label: string | null, text: string, contains = false) => {
+    if (!label) return null;
+    const index = rows.findIndex((r) => (contains ? label.includes(r.label) : r.label === label));
+    return index < 0 ? null : { index, text };
+  };
+
+  switch (key) {
+    case '수온': return byBand(c.waterTemp, `현재 ${c.waterTemp}℃`);
+    case '파고': return byBand(c.waveHeight, `현재 ${c.waveHeight}m`);
+    case '풍속': return byBand(c.windSpeed, `현재 ${c.windSpeed}m/s`);
+    case '물때': return byLabel(c.tideDescription, '오늘', true);
+    case '몇물': return byLabel(c.waterNumber, '오늘');
+    case '조류': return byLabel(
+      c.tideFlowPhase ? (c.tideFlowPhase === 'UNKNOWN' ? '정보 없음' : TIDE_FLOW_LABELS[c.tideFlowPhase]) : null,
+      '지금',
+    );
+  }
+  return null;
+}
 
 function buildFishCards(results: SpeciesAnalysis[]): FishData[] {
   return results.map((r) => ({
@@ -192,11 +232,10 @@ export default function HomePage() {
   const handleInfoClick = useCallback((key: ConditionInfoKey) => setActiveInfoKey(key), []);
   const handleInfoClose = useCallback(() => setActiveInfoKey(null), []);
 
-  // 회유성 지도 모달
+  // 이번 주 조황 지도 모달
   const [migratoryMapOpen, setMigratoryMapOpen] = useState(false);
   const [allPointsMapOpen, setAllPointsMapOpen] = useState(false);
-  const [migratoryPostsPreview, setMigratoryPostsPreview] = useState<MigratoryPostListItem[]>([]);
-  const [fishingPostsPreview, setFishingPostsPreview] = useState<FishingPostListItem[]>([]);
+  const [catchPostsPreview, setCatchPostsPreview] = useState<CatchPostListItem[]>([]);
   const [freePostsPreview, setFreePostsPreview] = useState<FreePostListItem[]>([]);
   const [topCatch, setTopCatch] = useState<TopCatch | null>(null);
 
@@ -212,8 +251,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    getMigratoryPostsPage(0, 5).then(r => setMigratoryPostsPreview(r.content)).catch(() => {});
-    getFishingPostsPage(0, 5).then(r => setFishingPostsPreview(r.content)).catch(() => {});
+    getCatchPostsPage({ page: 0, size: 5 }).then(r => setCatchPostsPreview(r.content)).catch(() => {});
     getFreePostsPage(0, 5).then(r => setFreePostsPreview(r.content)).catch(() => {});
     getThisMonthTopCatch().then(setTopCatch).catch(() => {});
   }, []);
@@ -391,7 +429,7 @@ export default function HomePage() {
                     return;
                   }
                   navigate(
-                    topCatch.postType === 'FISHING' ? '/fishing-posts' : '/migratory-posts',
+                    '/catch-posts',
                     { state: { openPostId: topCatch.postId } }
                   );
                 }}
@@ -514,7 +552,7 @@ export default function HomePage() {
               />
             </div>
 
-            {/* 실시간 회유성 정보(지도) 카드 + 모든 낚시 포인트 보기 */}
+            {/* 이번 주 어종 현황(지도) 카드 + 모든 낚시 포인트 보기 */}
             <div className={styles.migratoryRow}>
               <button
                 className={styles.migratoryCard}
@@ -533,10 +571,10 @@ export default function HomePage() {
                 <div className={styles.migratoryCardBody}>
                   <div className={styles.migratoryCardTop}>
                     <span className={styles.migratoryCardLive}>● LIVE</span>
-                    <span className={styles.migratoryCardTitle}>실시간 회유성 정보</span>
+                    <span className={styles.migratoryCardTitle}>이번 주 어종 현황</span>
                   </div>
                   <p className={styles.migratoryCardDesc}>
-                    {now.getMonth() + 1}월 {now.getDate()}일 회유성 포인트
+                    이번 주 조황이 올라온 포인트
                   </p>
                 </div>
                 <span className={styles.migratoryCardCta}>보기 →</span>
@@ -812,22 +850,22 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ─── 회유성 조황 게시판 미리보기 ─── */}
+        {/* ─── 조황 게시판 미리보기 ─── */}
         <section className={styles.section}>
           <div className={styles.sectionInner}>
             <div className={styles.sectionHeader}>
               <h2
                 className={styles.sectionTitle}
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                onClick={() => navigate('/migratory-posts')}
-                title="전체 회유성 조황 게시판 보기"
+                onClick={() => navigate('/catch-posts')}
+                title="전체 조황 게시판 보기"
               >
-                🐟 회유성 조황 게시판
+                🐟 조황 게시판
                 <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
               </h2>
               {isLoggedIn && (
                 <button
-                  onClick={() => navigate('/migratory-posts')}
+                  onClick={() => navigate('/catch-posts')}
                   style={{
                     padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
                     border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
@@ -838,22 +876,22 @@ export default function HomePage() {
                 </button>
               )}
             </div>
-            {migratoryPostsPreview.length === 0 ? (
+            {catchPostsPreview.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
                 아직 등록된 게시글이 없습니다.
               </p>
             ) : (
               <div className={styles.previewList}>
-                {migratoryPostsPreview.map(item => (
+                {catchPostsPreview.map(item => (
                   <div
                     key={item.id}
                     className={styles.previewCard}
-                    onClick={() => navigate('/migratory-posts', { state: { openPostId: item.id } })}
+                    onClick={() => navigate('/catch-posts', { state: { openPostId: item.id } })}
                   >
                     <div className={styles.previewMain}>
                       <div className={styles.previewCardTop}>
                         <span className={styles.previewSpeciesBadge}>
-                          {item.speciesDisplayNames?.join('·') ?? ''}
+                          {item.species.map(sp => sp.name).join('·')}
                         </span>
                         <span className={styles.previewTitle}>{item.title}</span>
                       </div>
@@ -864,6 +902,7 @@ export default function HomePage() {
                         <span className={styles.previewAuthor}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
                         {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
+                        {(item.likeCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>👍 {item.likeCount}</span>}
                       </div>
                     </div>
                     <div className={styles.previewDates}>
@@ -876,82 +915,7 @@ export default function HomePage() {
             )}
             <div style={{ textAlign: 'center', marginTop: 14 }}>
               <button
-                onClick={() => navigate('/migratory-posts')}
-                style={{
-                  padding: '8px 24px', background: 'transparent',
-                  border: '1px solid var(--color-border)', borderRadius: 999,
-                  fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)',
-                  cursor: 'pointer',
-                }}
-              >
-                더보기
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ─── 조황 게시판 미리보기 ─── */}
-        <section className={styles.section}>
-          <div className={styles.sectionInner}>
-            <div className={styles.sectionHeader}>
-              <h2
-                className={styles.sectionTitle}
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                onClick={() => navigate('/fishing-posts')}
-                title="전체 조황 게시판 보기"
-              >
-                🐟 조황 게시판
-                <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
-              </h2>
-              {isLoggedIn && (
-                <button
-                  onClick={() => navigate('/fishing-posts')}
-                  style={{
-                    padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
-                    border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  글쓰기
-                </button>
-              )}
-            </div>
-            {fishingPostsPreview.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
-                아직 등록된 게시글이 없습니다.
-              </p>
-            ) : (
-              <div className={styles.previewList}>
-                {fishingPostsPreview.map(item => (
-                  <div
-                    key={item.id}
-                    className={styles.previewCard}
-                    onClick={() => navigate('/fishing-posts', { state: { openPostId: item.id } })}
-                  >
-                    <div className={styles.previewMain}>
-                      <div className={styles.previewCardTop}>
-                        <span className={styles.previewTitle}>{item.title}</span>
-                      </div>
-                      <div className={styles.previewCardBottom}>
-                        {item.pointName
-                          ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
-                          : <span className={styles.previewNoPointBadge}>포인트 미지정</span>}
-                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
-                        {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
-                        {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
-                      </div>
-                    </div>
-                    <div className={styles.previewDates}>
-                      <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
-                      {item.caughtAt && <span className={styles.previewWriteDate}>잡은 날짜 {item.caughtAt}</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ textAlign: 'center', marginTop: 14 }}>
-              <button
-                onClick={() => navigate('/fishing-posts')}
+                onClick={() => navigate('/catch-posts')}
                 style={{
                   padding: '8px 24px', background: 'transparent',
                   border: '1px solid var(--color-border)', borderRadius: 999,
@@ -1011,6 +975,7 @@ export default function HomePage() {
                         <span className={styles.previewAuthor}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
                         {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
+                        {(item.likeCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>👍 {item.likeCount}</span>}
                       </div>
                     </div>
                     <div className={styles.previewDates}>
@@ -1042,6 +1007,8 @@ export default function HomePage() {
             <NoticeBoard isAdmin={isAdmin} navigateOnClick />
           </div>
         </section>
+
+        <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_HOME as string | undefined} />
       </main>
 
       <footer className={styles.footer}>
@@ -1051,7 +1018,7 @@ export default function HomePage() {
         </div>
       </footer>
 
-      <ConditionInfoSheet infoKey={activeInfoKey} onClose={handleInfoClose} />
+      <ConditionInfoSheet infoKey={activeInfoKey} current={conditionsResult} onClose={handleInfoClose} />
       <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
       {migratoryMapOpen && <MigratoryMapModal onClose={() => setMigratoryMapOpen(false)} />}
       {allPointsMapOpen && <AllMigratoryPointsMapModal onClose={() => setAllPointsMapOpen(false)} />}
@@ -1060,11 +1027,14 @@ export default function HomePage() {
 }
 
 /* ─── 조건 설명 바텀시트 ─── */
-function ConditionInfoSheet({ infoKey, onClose }: {
+function ConditionInfoSheet({ infoKey, current, onClose }: {
   infoKey: ConditionInfoKey | null;
+  current: FishingConditionsResult | null;
   onClose: () => void;
 }) {
   const info = infoKey ? CONDITION_INFO[infoKey] : null;
+  const currentRow = infoKey ? findCurrentRow(infoKey, current) : null;
+  const currentRowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!infoKey) return;
@@ -1072,6 +1042,15 @@ function ConditionInfoSheet({ infoKey, onClose }: {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [infoKey, onClose]);
+
+  // 시트가 열리면 현재 구간이 보이도록 스크롤 (바텀시트 등장 애니메이션 이후)
+  useEffect(() => {
+    if (!infoKey || !currentRow) return;
+    const timer = setTimeout(() => {
+      currentRowRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [infoKey, currentRow?.index]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!info) return null;
 
@@ -1084,13 +1063,31 @@ function ConditionInfoSheet({ infoKey, onClose }: {
           <button className={styles.infoSheetCloseIcon} onClick={onClose} aria-label="닫기">✕</button>
         </div>
         <p className={styles.infoSheetSubtitle}>{info.subtitle}</p>
+        {currentRow && (
+          <div className={styles.infoLegend}>
+            <span className={styles.infoLegendItem}>
+              <i className={styles.infoLegendDotCurrent} />현재 구간
+            </span>
+            <span className={styles.infoLegendItem}>
+              <i className={styles.infoLegendDotBest} />낚시 적정 구간
+            </span>
+          </div>
+        )}
         <div className={styles.infoRowList}>
-          {info.rows.map((row) => (
-            <div key={row.label} className={`${styles.infoRow} ${row.highlight ? styles.infoRowHighlight : ''}`}>
-              <span className={styles.infoRowLabel}>{row.label}</span>
-              <span className={styles.infoRowDesc}>{row.desc}</span>
-            </div>
-          ))}
+          {info.rows.map((row, i) => {
+            const isCurrent = currentRow?.index === i;
+            return (
+              <div
+                key={row.label}
+                ref={isCurrent ? currentRowRef : undefined}
+                className={`${styles.infoRow} ${row.highlight ? styles.infoRowHighlight : ''} ${isCurrent ? styles.infoRowCurrent : ''}`}
+              >
+                <span className={styles.infoRowLabel}>{row.label}</span>
+                <span className={styles.infoRowDesc}>{row.desc}</span>
+                {isCurrent && <span className={styles.infoRowCurrentBadge}>{currentRow.text}</span>}
+              </div>
+            );
+          })}
         </div>
         <button className={styles.infoSheetClose} onClick={onClose}>닫기</button>
       </div>
@@ -1407,7 +1404,7 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
   );
 }
 
-/* ─── 실시간 회유성 정보 카카오맵 모달 ─── */
+/* ─── 이번 주 조황 카카오맵 모달 ─── */
 function loadKakaoSDK(appKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1426,19 +1423,43 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-const MIGRATORY_SPECIES_COLORS: Record<string, string> = {
-  SAMCHI:     '#F59E0B',
-  BANGEO:     '#3B82F6',
-  BUSSIRI:    '#8B5CF6',
-  JATBANGEO:  '#6D28D9',
-  MACKEREL:   '#10B981',
-  TUNA:       '#EF4444',
-  JEONGAENGI: '#0EA5E9',
+/**
+ * 어종 배지 색. 목록에 없는 어종(직접 입력)이나 색을 안 정한 어종은 기본색으로 떨어진다.
+ * 어종명은 서버가 내려주는 name 을 그대로 쓴다 — 표를 따로 둘 필요가 없다.
+ */
+const SPECIES_BADGE_COLORS: Record<string, string> = {
+  SAMCHI:            '#F59E0B',
+  BANGEO:            '#3B82F6',
+  BUSSIRI:           '#8B5CF6',
+  JATBANGEO:         '#6D28D9',
+  MACKEREL:          '#10B981',
+  TUNA:              '#EF4444',
+  JEONGAENGI:        '#0EA5E9',
+  FLOUNDER:          '#0D9488',
+  ROCKFISH:          '#B45309',
+  BLACK_SEA_BREAM:   '#475569',
+  RED_SEA_BREAM:     '#DB2777',
+  OPALEYE:           '#166534',
+  STRIPED_BEAKFISH:  '#7C2D12',
+  SEA_BASS:          '#1D4ED8',
+  CUTTLEFISH:        '#9333EA',
+  BIGFIN_REEF_SQUID: '#C026D3',
+  WEBFOOT_OCTOPUS:   '#E11D48',
 };
 
-const MIGRATORY_SPECIES_KO: Record<string, string> = {
-  SAMCHI:'삼치', BANGEO:'방어', BUSSIRI:'부시리', JATBANGEO:'잿방어', MACKEREL:'고등어', TUNA:'참치', JEONGAENGI:'전갱이',
-};
+const DEFAULT_SPECIES_COLOR = '#0B3D91';
+
+/** 서버가 내려주는 어종 목록({code, name})을 배지 HTML로 만든다. */
+function buildSpeciesBadges(
+  species: { code: string | null; name: string }[],
+  fontSize: number,
+  margin: string,
+): string {
+  return species.map((sp) => {
+    const color = (sp.code && SPECIES_BADGE_COLORS[sp.code]) || DEFAULT_SPECIES_COLOR;
+    return `<span style="display:inline-block;padding:${fontSize <= 10 ? '1px 6px' : '2px 8px'};border-radius:99px;font-size:${fontSize}px;font-weight:700;background:${color}20;color:${color};margin:${margin};">${escapeHtml(sp.name)}</span>`;
+  }).join('');
+}
 
 function makeFishPin(color: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
@@ -1477,7 +1498,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     (window as any).__openMigratoryPost = (postId: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       onClose();
-      navigate('/migratory-posts', { state: { openPostId: postId } });
+      navigate('/catch-posts', { state: { openPostId: postId } });
     };
     return () => { delete (window as any).__openMigratoryPost; }; // eslint-disable-line @typescript-eslint/no-explicit-any
   }, [onClose, navigate]);
@@ -1495,12 +1516,12 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
     const pointPageState = new Map<string, { page: number; totalPages: number; pointName: string | null; speciesBadges: string; iw: any }>();
 
     Promise.all([
-      import('../api/migratoryPostApi'),
+      import('../api/catchPostApi'),
       loadKakaoSDK(appKey),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ]).then(([migratoryPostApi]): any => {
+    ]).then(([catchPostApi]): any => {
       if (cancelled || !mapRef.current) return;
-      return migratoryPostApi.getTodayMigratoryMarkers().catch(() => []).then((markers) => {
+      return catchPostApi.getWeeklyCatchMarkers().catch(() => []).then((markers) => {
       if (cancelled || !mapRef.current) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const kakao = (window as any).kakao;
@@ -1508,11 +1529,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
       // 게시글 목록 HTML 생성 (최초 로딩·화살표 페이지 이동 공통)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const buildPostListHtml = (posts: any[]) => posts.map((p: any) => {
-        const pBadges = (p.species as string[]).map((s: string) => {
-          const color = MIGRATORY_SPECIES_COLORS[s] ?? '#0B3D91';
-          const label = MIGRATORY_SPECIES_KO[s] ?? s;
-          return `<span style="display:inline-block;padding:1px 6px;border-radius:99px;font-size:10px;font-weight:700;background:${color}20;color:${color};margin-right:2px;">${escapeHtml(label)}</span>`;
-        }).join('');
+        const pBadges = buildSpeciesBadges(p.species ?? [], 10, '0 2px 0 0');
         return `<div style="padding:6px 0;border-top:1px solid #F1F5F9;">
           <div style="margin-bottom:3px;">${pBadges}</div>
           <div onclick="window.__openMigratoryPost('${p.postId}')" style="font-size:12px;font-weight:600;color:#1E293B;cursor:pointer;text-decoration:underline;">${escapeHtml(p.title)}</div>
@@ -1549,7 +1566,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         if (!state) return;
         const nextPage = state.page + direction;
         if (nextPage < 0 || nextPage >= state.totalPages) return;
-        migratoryPostApi.getTodayMigratoryPostsByPoint(pointId, nextPage, 3).then((result) => {
+        catchPostApi.getWeeklyCatchPostsByPoint(pointId, nextPage, 3).then((result) => {
           state.page = result.page;
           state.totalPages = result.totalPages;
           state.iw.setContent(buildInfoContent(
@@ -1607,12 +1624,12 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
               ),
             });
 
-            // 어종 뱃지 목록
-            const speciesBadges = (m.species as string[]).map((s: string) => {
-              const color = MIGRATORY_SPECIES_COLORS[s] ?? '#0B3D91';
-              const label = MIGRATORY_SPECIES_KO[s] ?? s;
-              return `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:${color}20;color:${color};margin:2px 2px 2px 0;">${escapeHtml(label)}</span>`;
-            }).join('');
+            // 어종 배지 — 서버가 3종까지만 담아 보내므로 잘린 만큼 "+N" 을 덧붙인다.
+            const hidden = Math.max(0, (m.totalSpeciesCount ?? 0) - (m.species?.length ?? 0));
+            const speciesBadges = buildSpeciesBadges(m.species ?? [], 11, '2px 2px 2px 0')
+              + (hidden > 0
+                ? `<span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:#F1F5F9;color:#64748B;margin:2px 2px 2px 0;">+${hidden}</span>`
+                : '');
 
             const totalPages = Math.max(1, Math.ceil((m.totalPostCount ?? m.posts.length) / 3));
             const infoContent = buildInfoContent(
@@ -1676,7 +1693,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)' }}>
-              🐟 실시간 회유성 정보(지도)
+              🐟 이번 주 어종 현황(지도)
             </span>
             {status === 'ready' && (
               <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -1722,7 +1739,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
               borderRadius: 10, fontSize: 13, color: '#475569', zIndex: 2,
               boxShadow: '0 2px 8px rgba(0,0,0,0.12)', whiteSpace: 'nowrap',
             }}>
-              오늘 등록된 회유성 조황이 없습니다
+              이번 주에 등록된 조황이 없습니다
             </div>
           )}
 
@@ -1742,7 +1759,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* ─── 모든 낚시(회유성 어종) 포인트 지도 모달 ─── */
+/* ─── 모든 조황 포인트 지도 모달 ─── */
 function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const hasAppKey = !!(import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined);
@@ -1751,6 +1768,29 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
   const [pointCount, setPointCount] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
+  /** 영상 목록을 열 포인트 — 마커 말풍선의 "영상 보기"로 지정된다 */
+  const [videoPoint, setVideoPoint] = useState<{ id: string; name: string } | null>(null);
+
+  /** 상단 가운데 필터 — false: 모든 포인트, true: 유튜브 영상이 등록된 포인트만 */
+  const [onlyWithVideos, setOnlyWithVideos] = useState(false);
+  const [videoPointCount, setVideoPointCount] = useState(0);
+  // 필터를 바꿀 때 다시 요청하지 않고, 만들어 둔 마커를 클러스터러에 넣었다 뺐다 한다.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clustererRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allMarkersRef = useRef<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markerVideoCounts = useRef(new Map<any, number>()).current;
+
+  useEffect(() => {
+    const clusterer = clustererRef.current;
+    if (!clusterer) return;
+    const visible = onlyWithVideos
+      ? allMarkersRef.current.filter((m) => (markerVideoCounts.get(m) ?? 0) > 0)
+      : allMarkersRef.current;
+    clusterer.clear();
+    clusterer.addMarkers(visible);
+  }, [onlyWithVideos, status, markerVideoCounts]);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -1809,17 +1849,29 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
             pinnedWindows.get(pointId)?.close();
           };
 
+          // 말풍선 안의 "영상 보기" — InfoWindow 는 React 밖의 HTML 이라 전역 함수로 잇는다.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (window as any).__openPointVideos = (pointId: string, pointName: string) => {
+            pinnedWindows.get(pointId)?.close();
+            setVideoPoint({ id: pointId, name: pointName });
+          };
+
           const markers = validPoints.map((p) => {
             const position = new kakao.maps.LatLng(p.latitude, p.longitude);
             const marker = new kakao.maps.Marker({ position });
+            // 필터 전환 때 클러스터러에 다시 넣을 대상을 고르려고 개수를 들고 다닌다.
+            markerVideoCounts.set(marker, p.videoCount ?? 0);
 
-            // 포인트 이름만 표시 — 회유성 어종 정보는 노출하지 않음
+            // 포인트 이름만 표시 — 어종 정보는 노출하지 않음
             const nameContent = `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">📍 ${escapeHtml(p.name)}</div>`;
 
             // 클릭 시 큰 ✕ 버튼으로 직접 닫기 전까지 이름이 고정되는 InfoWindow
-            const pinnedContent = `<div style="position:relative;padding:7px 34px 7px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">
+            const pinnedContent = `<div style="position:relative;padding:7px 34px 9px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">
               📍 ${escapeHtml(p.name)}
               <button onclick="window.__closeAllPointsInfo('${p.id}')" style="position:absolute;top:3px;right:3px;width:26px;height:26px;border:none;background:#F1F5F9;border-radius:50%;font-size:14px;font-weight:700;color:#64748B;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
+              ${(p.videoCount ?? 0) > 0
+                ? `<button onclick="window.__openPointVideos('${p.id}', '${escapeHtml(p.name).replace(/'/g, '&#39;')}')" style="display:block;margin-top:8px;width:100%;padding:6px 14px;background:#0B3D91;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">이 포인트가 나오는 영상 ${p.videoCount}</button>`
+                : ''}
             </div>`;
             const pinnedInfoWindow = new kakao.maps.InfoWindow({ content: pinnedContent, removable: false });
             pinnedWindows.set(p.id, pinnedInfoWindow);
@@ -1839,13 +1891,16 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
             return marker;
           });
 
-          new kakao.maps.MarkerClusterer({
+          const clusterer = new kakao.maps.MarkerClusterer({
             map,
             markers,
             gridSize: 60,
             averageCenter: true,
             minLevel: 5,
           });
+          clustererRef.current = clusterer;
+          allMarkersRef.current = markers;
+          setVideoPointCount(validPoints.filter((p) => (p.videoCount ?? 0) > 0).length);
         }
 
         setStatus('ready');
@@ -1937,6 +1992,51 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
+          {/* 포인트 필터 — 지도 맨 위 가운데 */}
+          {status === 'ready' && pointCount > 0 && (
+            <div style={{
+              position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+              display: 'flex', gap: 4, padding: 4, zIndex: 3,
+              background: '#fff', borderRadius: 999,
+              border: '1px solid #BFD3EC', boxShadow: '0 4px 14px rgba(11,61,145,0.18)',
+            }}>
+              {[
+                { label: '모든 포인트', value: false },
+                { label: '유튜버 포인트', value: true },
+              ].map((tab) => {
+                const selected = onlyWithVideos === tab.value;
+                return (
+                  <button
+                    key={String(tab.value)}
+                    type="button"
+                    onClick={() => setOnlyWithVideos(tab.value)}
+                    style={{
+                      padding: '7px 14px', border: 'none', borderRadius: 999,
+                      background: selected ? '#0B3D91' : 'transparent',
+                      color: selected ? '#fff' : '#64748B',
+                      fontSize: 12.5, fontWeight: selected ? 700 : 600,
+                      cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.15s',
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 유튜버 포인트만 봤는데 하나도 없을 때 — 빈 지도만 보이면 고장으로 읽힌다 */}
+          {status === 'ready' && onlyWithVideos && videoPointCount === 0 && (
+            <div style={{
+              position: 'absolute', top: 62, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(255,255,255,0.94)', padding: '8px 16px', borderRadius: 10,
+              fontSize: 12.5, color: '#475569', zIndex: 3, whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            }}>
+              영상이 등록된 포인트가 아직 없습니다
+            </div>
+          )}
+
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
           <MapTypeControl map={mapForControl} />
         </div>
@@ -1946,9 +2046,17 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           padding: '8px 16px', borderTop: '1px solid var(--color-border)',
           flexShrink: 0, background: 'var(--color-bg)',
         }}>
-          <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 포인트 이름을 확인할 수 있습니다 · 지도를 축소하면 숫자로 묶여 표시됩니다</span>
+          <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 포인트 이름과 그 포인트가 나오는 영상을 확인할 수 있습니다 · 지도를 축소하면 숫자로 묶여 표시됩니다</span>
         </div>
       </div>
+
+      {videoPoint && (
+        <PointVideoListModal
+          pointId={videoPoint.id}
+          pointName={videoPoint.name}
+          onClose={() => setVideoPoint(null)}
+        />
+      )}
     </div>
   );
 }
