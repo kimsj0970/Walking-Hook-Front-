@@ -5,26 +5,38 @@ import Header from '../components/common/Header';
 import Pagination from '../components/common/Pagination';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
-import MapTypeControl from '../components/map/MapTypeControl';
+import MigratoryPointMapPicker from '../components/map/MigratoryPointMapPicker';
 import {
-  getMigratoryPostsPage, getMigratoryPostDetail, createMigratoryPost,
-  updateMigratoryPost, deleteMigratoryPost, getMigratoryPostMapPoints,
-  getMigratoryPostComments, addMigratoryPostComment, deleteMigratoryPostComment,
-  type MigratoryPostListItem, type MigratoryPostDetail, type MigratoryPostCreateRequest,
-  type MigratoryPostComment,
-} from '../api/migratoryPostApi';
+  getCatchPostsPage, getCatchPostDetail, createCatchPost,
+  updateCatchPost, deleteCatchPost, getCatchPostMapPoints,
+  getCatchPostComments, addCatchPostComment, deleteCatchPostComment,
+  type CatchPostListItem, type CatchPostDetail, type CatchPostCreateRequest,
+  type CatchPostComment,
+} from '../api/catchPostApi';
+import {
+  FISH_SPECIES_BY_GROUP, FISH_SPECIES_LABELS, SPECIES_GROUP_LABELS,
+  MAX_SPECIES_COUNT, MAX_SPECIES_NAME_LENGTH,
+  normalizeSpeciesName, validateSpeciesName,
+  type FishSpecies,
+} from '../api/fishSpecies';
 import {
   fetchMigratoryFishPointMapMarkers,
-  MIGRATORY_SPECIES_OPTIONS, MIGRATORY_SPECIES_LABELS,
-  type MigratorySpecies, type MigratoryFishPointMapMarker,
+  type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
 import ReportModal from '../components/common/ReportModal';
 import MonthYearPicker from '../components/common/MonthYearPicker';
-import styles from './MigratoryPostPage.module.css';
+import ReactionBar from '../components/common/ReactionBar';
+import styles from './CatchPostPage.module.css';
 
 type View = 'list' | 'detail';
 const PAGE_SIZE = 10;
+
+/** 어종 필터 칩·빈 목록 문구에 쓸 이름. 'CUSTOM' 은 목록에 없는 어종을 모은 항목이다. */
+function speciesFilterLabel(filter: FishSpecies | 'CUSTOM' | null): string {
+  if (!filter) return '';
+  return filter === 'CUSTOM' ? '기타 어종' : FISH_SPECIES_LABELS[filter];
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -41,164 +53,12 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function loadKakaoSDK(appKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if ((window as any).kakao?.maps) { resolve(); return; }
-    const script = document.createElement('script');
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=clusterer`;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('카카오맵 로드 실패'));
-    document.head.appendChild(script);
-  });
-}
-
-/* ── 지도 포인트 선택 모달 ───────────────────────────────────────── */
-interface MapPickerProps {
-  points: MigratoryFishPointMapMarker[];
-  onSelect: (point: MigratoryFishPointMapMarker) => void;
-  onClose: () => void;
-  emptyMessage?: string;
-}
-
-function MigratoryPointMapPicker({ points, onSelect, onClose, emptyMessage }: MapPickerProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [mapForControl, setMapForControl] = useState<any>(null);
-  const onSelectRef = useRef(onSelect);
-  useEffect(() => { onSelectRef.current = onSelect; }, [onSelect]);
-
-  useEffect(() => {
-    const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
-    if (!appKey) { setMapStatus('error'); return; }
-
-    let cancelled = false;
-
-    loadKakaoSDK(appKey).then(() => {
-      if (cancelled || !mapRef.current) return;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const kakao = (window as any).kakao;
-      kakao.maps.load(() => {
-        if (cancelled || !mapRef.current) return;
-
-        const map = new kakao.maps.Map(mapRef.current, {
-          center: new kakao.maps.LatLng(36.0, 127.8),
-          level: 13,
-        });
-        setMapForControl(map);
-
-        // 모달이 막 열리는 시점엔 flex 레이아웃(.mapPickerMap { flex: 1 })이
-        // 아직 확정되지 않아 지도 타일이 실제 크기보다 작게 잡히는 문제가 있어 보정한다.
-        requestAnimationFrame(() => {
-          map.relayout();
-          map.setCenter(map.getCenter());
-        });
-
-        const hoverInfoWindow = new kakao.maps.InfoWindow({ removable: false });
-
-        const markers = points.map((fp) => {
-          const position = new kakao.maps.LatLng(fp.latitude, fp.longitude);
-          const marker = new kakao.maps.Marker({ position });
-
-          kakao.maps.event.addListener(marker, 'mouseover', () => {
-            hoverInfoWindow.setContent(
-              `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">📍 ${escapeHtml(fp.name)}</div>`
-            );
-            hoverInfoWindow.open(map, marker);
-          });
-
-          kakao.maps.event.addListener(marker, 'mouseout', () => {
-            hoverInfoWindow.close();
-          });
-
-          const pickInfoWindow = new kakao.maps.InfoWindow({
-            content: `
-              <div style="padding:10px 14px;font-family:'Pretendard','Noto Sans KR',sans-serif;text-align:center;white-space:nowrap;">
-                <strong style="font-size:13px;color:#0B3D91;display:block;margin-bottom:8px;">📍 ${escapeHtml(fp.name)}</strong>
-                <button id="pick-${fp.id}" style="padding:6px 16px;background:#0B3D91;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">이 포인트 선택</button>
-              </div>`,
-            removable: true,
-          });
-
-          kakao.maps.event.addListener(marker, 'click', () => {
-            hoverInfoWindow.close();
-            pickInfoWindow.open(map, marker);
-            setTimeout(() => {
-              const btn = document.getElementById(`pick-${fp.id}`);
-              if (btn) btn.onclick = () => { pickInfoWindow.close(); onSelectRef.current(fp); };
-            }, 0);
-          });
-
-          return marker;
-        });
-
-        new kakao.maps.MarkerClusterer({
-          map,
-          markers,
-          gridSize: 60,
-          averageCenter: true,
-          minLevel: 5,
-        });
-
-        setMapStatus('ready');
-      });
-    }).catch(() => setMapStatus('error'));
-
-    return () => { cancelled = true; };
-  }, [points]); // onSelect는 ref로 안정화 — deps에서 제외
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
-  return (
-    <div className={styles.mapPickerOverlay}>
-      <div className={styles.mapPickerModal}>
-        <div className={styles.mapPickerHeader}>
-          <span>지도에서 포인트 선택</span>
-          <button className={styles.mapPickerClose} onClick={onClose}>✕</button>
-        </div>
-        <p className={styles.mapPickerHint}>
-          마커를 탭하면 이름이 뜨고, "이 포인트 선택"을 누르면 선택됩니다
-        </p>
-        {mapStatus === 'loading' && (
-          <div className={styles.mapPickerLoading}>
-            <div className={styles.spinner} />
-          </div>
-        )}
-        {mapStatus === 'error' && (
-          <div className={styles.mapPickerLoading}>
-            <p style={{ color: '#E53E3E', fontSize: 14 }}>지도를 불러오지 못했습니다.</p>
-          </div>
-        )}
-        {mapStatus === 'ready' && points.length === 0 && emptyMessage && (
-          <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13, margin: '8px 0 0' }}>
-            {emptyMessage}
-          </p>
-        )}
-        <div className={styles.mapPickerMap}>
-          <div ref={mapRef} className={styles.mapPickerMapCanvas} />
-          <MapTypeControl map={mapForControl} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ── 게시글 작성/수정 모달 ────────────────────────────────────────── */
 interface FormState {
   title: string;
   content: string;
-  species: MigratorySpecies[];
+  /** 어종명 목록. 칩에서 고른 것과 직접 입력한 것이 섞여 순서대로 쌓인다. */
+  species: string[];
   caughtAt: string;
   selectedProvince: Province | '';
   migratoryPointId: string;
@@ -211,7 +71,7 @@ interface FormState {
 
 interface PostFormModalProps {
   open: boolean;
-  editTarget: MigratoryPostDetail | null;
+  editTarget: CatchPostDetail | null;
   points: MigratoryFishPointMapMarker[];
   onClose: () => void;
   onSaved: () => void;
@@ -230,6 +90,46 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
 
+  /** 아직 확정되지 않은 직접 입력 텍스트 */
+  const [speciesDraft, setSpeciesDraft] = useState('');
+  const [speciesError, setSpeciesError] = useState('');
+
+  /** 어종명이 목록에 있는 어종인지 — 태그 색을 가르는 데 쓴다. */
+  const speciesCodeOf = (name: string): FishSpecies | null => {
+    const found = FISH_SPECIES_BY_GROUP.flatMap(([, items]) => items).find(([, label]) => label === name);
+    return found ? found[0] : null;
+  };
+
+  /** 입력창의 텍스트를 태그로 확정한다. 규칙 위반이면 문구만 띄우고 추가하지 않는다. */
+  const commitSpeciesDraft = () => {
+    const message = validateSpeciesName(speciesDraft, form.species);
+    if (message) {
+      setSpeciesError(message);
+      return;
+    }
+    set('species', [...form.species, normalizeSpeciesName(speciesDraft)]);
+    setSpeciesDraft('');
+    setSpeciesError('');
+  };
+
+  /**
+   * 칩을 누르면 입력창에 쓰던 텍스트를 버리고 그 어종을 태그로 확정한다.
+   * 이미 담긴 어종을 다시 누르면 제거한다(토글).
+   */
+  const toggleSpeciesChip = (label: string) => {
+    if (form.species.includes(label)) {
+      set('species', form.species.filter(s => s !== label));
+      return;
+    }
+    if (form.species.length >= MAX_SPECIES_COUNT) {
+      setSpeciesError(`어종은 최대 ${MAX_SPECIES_COUNT}개까지 추가할 수 있습니다.`);
+      return;
+    }
+    setSpeciesDraft('');
+    setSpeciesError('');
+    set('species', [...form.species, label]);
+  };
+
   useEffect(() => {
     if (!open) return;
     if (editTarget) {
@@ -239,7 +139,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
       setForm({
         title: editTarget.title,
         content: editTarget.content,
-        species: editTarget.species,
+        species: editTarget.species.map(s => s.name),
         caughtAt: editTarget.caughtAt,
         selectedProvince: pt?.province ?? '',
         migratoryPointId: editTarget.migratoryPointId ?? '',
@@ -252,6 +152,8 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
     } else {
       setForm({ title: '', content: '', species: [], caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [], lure: '', fishSizeCm: '', action: '' });
     }
+    setSpeciesDraft('');
+    setSpeciesError('');
     setErrors({});
     setServerError('');
     setPointDropOpen(false);
@@ -314,7 +216,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
     if (!validate()) return;
     setSaving(true);
     setServerError('');
-    const req: MigratoryPostCreateRequest = {
+    const req: CatchPostCreateRequest = {
       title: form.title.trim(),
       content: form.content.trim(),
       species: form.species,
@@ -327,9 +229,9 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
     };
     try {
       if (editTarget) {
-        await updateMigratoryPost(editTarget.id, req);
+        await updateCatchPost(editTarget.id, req);
       } else {
-        await createMigratoryPost(req);
+        await createCatchPost(req);
       }
       onSaved();
     } catch {
@@ -344,7 +246,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
       <div className={styles.overlay}>
         <div className={styles.modal} onClick={e => e.stopPropagation()}>
           <div className={styles.modalHeader}>
-            <h2 className={styles.modalTitle}>{editTarget ? '게시글 수정' : '회유성 조황 등록'}</h2>
+            <h2 className={styles.modalTitle}>{editTarget ? '게시글 수정' : '조황 등록'}</h2>
             <button className={styles.modalClose} onClick={onClose} disabled={saving}>✕</button>
           </div>
 
@@ -362,35 +264,86 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
               {errors.title && <p className={styles.errorMsg}>{errors.title}</p>}
             </div>
 
-            {/* 어종 (다중 선택) + 날짜 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className={styles.field}>
-                <label className={styles.label}>어종 <span className={styles.required}>*</span> <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>복수 선택 가능</span></label>
-                <div className={`${styles.speciesCheckboxGroup} ${errors.species ? styles.inputError : ''}`}>
-                  {MIGRATORY_SPECIES_OPTIONS.map(([code, label]) => {
-                    const checked = (form.species as MigratorySpecies[]).includes(code as MigratorySpecies);
-                    return (
-                      <label key={code} className={styles.speciesCheckboxItem}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={e => {
-                            const current = form.species as MigratorySpecies[];
-                            set('species', e.target.checked
-                              ? [...current, code as MigratorySpecies]
-                              : current.filter(s => s !== code)
-                            );
-                          }}
-                        />
-                        {label}
-                      </label>
-                    );
-                  })}
+            {/* 어종 — 칩이 세 그룹이라 폭을 전부 쓴다 */}
+            <div className={styles.field}>
+                <label className={styles.label}>
+                  어종 <span className={styles.required}>*</span>{' '}
+                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                    최대 {MAX_SPECIES_COUNT}개 · 목록에 없으면 직접 입력
+                  </span>
+                </label>
+                <div className={styles.speciesInputRow}>
+                  <input
+                    className={`${styles.input} ${errors.species ? styles.inputError : ''}`}
+                    value={speciesDraft}
+                    maxLength={MAX_SPECIES_NAME_LENGTH}
+                    placeholder="어종을 선택하거나 직접 입력하세요"
+                    onChange={e => { setSpeciesDraft(e.target.value); setSpeciesError(''); }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.preventDefault(); commitSpeciesDraft(); }
+                    }}
+                  />
+                  <button type="button" className={styles.speciesAddBtn} onClick={commitSpeciesDraft}>
+                    추가
+                  </button>
                 </div>
-                {errors.species && <p className={styles.errorMsg}>{errors.species}</p>}
-              </div>
+                {form.species.length > 0 && (
+                  <div className={styles.speciesTagList}>
+                    {form.species.map(name => (
+                      <span
+                        key={name}
+                        className={
+                          speciesCodeOf(name) ? styles.speciesTag : styles.speciesTagCustom
+                        }
+                      >
+                        {name}
+                        <button
+                          type="button"
+                          className={styles.speciesTagRemove}
+                          onClick={() => set('species', form.species.filter(s => s !== name))}
+                          aria-label={`${name} 삭제`}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className={styles.speciesChipGroups}>
+                  {FISH_SPECIES_BY_GROUP.map(([group, items]) => (
+                    <div key={group} className={styles.speciesChipGroup}>
+                      <span className={styles.speciesGroupLabel}>{SPECIES_GROUP_LABELS[group]}</span>
+                      <div className={styles.speciesChips}>
+                        {items.map(([code, label]) => (
+                          <button
+                            key={code}
+                            type="button"
+                            className={
+                              form.species.includes(label) ? styles.speciesChipOn : styles.speciesChip
+                            }
+                            onClick={() => toggleSpeciesChip(label)}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {(speciesError || errors.species) && (
+                  <p className={styles.errorMsg}>{speciesError || errors.species}</p>
+                )}
+            </div>
+
+            {/* 잡은 날짜 + 시/도 → 낚시 포인트 — 짧은 입력 셋을 한 줄에 모아 빈 공간을 없앤다 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 12 }}>
               <div className={styles.field}>
-                <label className={styles.label}>잡은 날짜</label>
+                <label className={styles.label}>
+                  잡은 날짜{' '}
+                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>
+                    (기본값: 오늘)
+                  </span>
+                </label>
                 <input
                   type="date"
                   className={styles.input}
@@ -398,12 +351,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                   max={todayStr()}
                   onChange={e => set('caughtAt', e.target.value)}
                 />
-                <p className={styles.fieldHint}>기본값: 오늘</p>
               </div>
-            </div>
-
-            {/* 시/도 선택 → 낚시 포인트 선택 */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
               <div className={styles.field}>
                 <label className={styles.label}>시/도</label>
                 <select
@@ -540,7 +488,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
               <PhotoUploader
                 value={form.photoUrls}
                 onChange={urls => set('photoUrls', urls)}
-                boardType="MIGRATORY_POST"
+                boardType="CATCH_POST"
                 maxPhotos={3}
                 disabled={saving}
               />
@@ -570,14 +518,14 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
 }
 
 /* ── 메인 페이지 ─────────────────────────────────────────────── */
-export default function MigratoryPostPage() {
+export default function CatchPostPage() {
   const { isLoggedIn, userId, isAdmin, isModerator } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const [view, setView] = useState<View>('list');
-  const [items, setItems] = useState<MigratoryPostListItem[]>([]);
-  const [detail, setDetail] = useState<MigratoryPostDetail | null>(null);
+  const [items, setItems] = useState<CatchPostListItem[]>([]);
+  const [detail, setDetail] = useState<CatchPostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState('');
@@ -587,7 +535,7 @@ export default function MigratoryPostPage() {
   const [totalElements, setTotalElements] = useState(0);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingPost, setEditingPost] = useState<MigratoryPostDetail | null>(null);
+  const [editingPost, setEditingPost] = useState<CatchPostDetail | null>(null);
 
   const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
@@ -605,10 +553,11 @@ export default function MigratoryPostPage() {
   const dateDropRef = useRef<HTMLDivElement>(null);
 
   const [speciesDropOpen, setSpeciesDropOpen] = useState(false);
-  const [speciesFilter, setSpeciesFilter] = useState<MigratorySpecies | null>(null);
+  /** 어종 필터. 'CUSTOM' 은 목록에 없는 어종을 직접 입력한 글만 보는 "기타" 항목이다. */
+  const [speciesFilter, setSpeciesFilter] = useState<FishSpecies | 'CUSTOM' | null>(null);
   const speciesDropRef = useRef<HTMLDivElement>(null);
 
-  const [comments, setComments] = useState<MigratoryPostComment[]>([]);
+  const [comments, setComments] = useState<CatchPostComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: string; nickname: string } | null>(null);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
@@ -619,10 +568,16 @@ export default function MigratoryPostPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await getMigratoryPostsPage(
-        page, PAGE_SIZE, pointFilter?.id, regionFilter ?? undefined,
-        dateFilter?.year, dateFilter?.month, speciesFilter ?? undefined
-      );
+      const result = await getCatchPostsPage({
+        page,
+        size: PAGE_SIZE,
+        migratoryPointId: pointFilter?.id,
+        province: regionFilter ?? undefined,
+        year: dateFilter?.year,
+        month: dateFilter?.month,
+        species: speciesFilter && speciesFilter !== 'CUSTOM' ? [speciesFilter] : undefined,
+        customSpeciesOnly: speciesFilter === 'CUSTOM',
+      });
       setItems(result.content);
       setTotalPages(result.totalPages);
       setTotalElements(result.totalElements);
@@ -637,11 +592,11 @@ export default function MigratoryPostPage() {
   useEffect(() => { fetchList(0); }, [fetchList]);
   useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
 
-  /** "지도로 보기"는 전체 포인트가 아니라 회유성 게시물이 실제로 존재하는 포인트만 표시한다 */
+  /** "지도로 보기"는 전체 포인트가 아니라 조황 게시물이 실제로 존재하는 포인트만 표시한다 */
   useEffect(() => {
     if (!browseMapOpen) return;
     let cancelled = false;
-    getMigratoryPostMapPoints().then((pts) => {
+    getCatchPostMapPoints().then((pts) => {
       if (cancelled) return;
       setBrowseMapPoints(pts.map((p) => ({
         id: p.pointId, name: p.name, province: p.province, region: p.region,
@@ -695,7 +650,7 @@ export default function MigratoryPostPage() {
     setDateDropOpen(false);
   };
 
-  const handleSpeciesSelect = (species: MigratorySpecies) => {
+  const handleSpeciesSelect = (species: FishSpecies | 'CUSTOM') => {
     setPointFilter(null);
     setRegionFilter(null);
     setDateFilter(null);
@@ -738,9 +693,14 @@ export default function MigratoryPostPage() {
   }, [dateDropOpen]);
 
   useEffect(() => {
-    const openPostId = (location.state as { openPostId?: string } | null)?.openPostId;
-    if (openPostId) {
-      openDetail(openPostId);
+    const state = location.state as { openPostId?: string; openWrite?: boolean } | null;
+    if (state?.openPostId) {
+      openDetail(state.openPostId);
+      window.history.replaceState({}, document.title);
+    } else if (state?.openWrite) {
+      // 커뮤니티 홈의 "글쓰기"에서 넘어온 경우 — 작성 폼(어종 입력이 있는 쪽)을 바로 띄운다.
+      setEditingPost(null);
+      setModalOpen(true);
       window.history.replaceState({}, document.title);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -763,7 +723,7 @@ export default function MigratoryPostPage() {
     setReplyTo(null);
     setView('detail');
     try {
-      const [d, cmts] = await Promise.all([getMigratoryPostDetail(id), getMigratoryPostComments(id)]);
+      const [d, cmts] = await Promise.all([getCatchPostDetail(id), getCatchPostComments(id)]);
       setDetail(d);
       setComments(cmts);
     } catch {
@@ -778,8 +738,8 @@ export default function MigratoryPostPage() {
     if (!detail || !commentInput.trim()) return;
     setCommentSubmitting(true);
     try {
-      await addMigratoryPostComment(detail.id, commentInput.trim(), replyTo?.id);
-      setComments(await getMigratoryPostComments(detail.id));
+      await addCatchPostComment(detail.id, commentInput.trim(), replyTo?.id);
+      setComments(await getCatchPostComments(detail.id));
       setCommentInput('');
       setReplyTo(null);
     } catch {
@@ -792,14 +752,14 @@ export default function MigratoryPostPage() {
   const handleDeleteComment = async (commentId: string) => {
     if (!detail || !window.confirm('댓글을 삭제하시겠습니까?')) return;
     try {
-      await deleteMigratoryPostComment(detail.id, commentId);
-      setComments(await getMigratoryPostComments(detail.id));
+      await deleteCatchPostComment(detail.id, commentId);
+      setComments(await getCatchPostComments(detail.id));
     } catch {
       setError('댓글 삭제에 실패했습니다.');
     }
   };
 
-  const getDescendants = (parentId: string): MigratoryPostComment[] => {
+  const getDescendants = (parentId: string): CatchPostComment[] => {
     const children = comments.filter(c => c.parentId === parentId);
     return children.flatMap(child => [child, ...getDescendants(child.id)]);
   };
@@ -819,7 +779,7 @@ export default function MigratoryPostPage() {
   const handleSaved = async () => {
     setModalOpen(false);
     if (editingPost && detail) {
-      const updated = await getMigratoryPostDetail(detail.id).catch(() => null);
+      const updated = await getCatchPostDetail(detail.id).catch(() => null);
       if (updated) setDetail(updated);
     } else {
       setView('list');
@@ -830,7 +790,7 @@ export default function MigratoryPostPage() {
   const handleDelete = async () => {
     if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
     try {
-      await deleteMigratoryPost(detail.id);
+      await deleteCatchPost(detail.id);
       setView('list');
       fetchList(currentPage);
     } catch {
@@ -847,9 +807,9 @@ export default function MigratoryPostPage() {
         {/* ── 헤더 ── */}
         <div className={styles.pageHeader}>
           <div>
-            <h1 className={styles.pageTitle}>🐟 회유성 조황 게시판</h1>
+            <h1 className={styles.pageTitle}>🐟 조황 게시판</h1>
             <p className={styles.pageDesc}>
-              삼치·방어·부시리·고등어 등 회유성 어종 조황을 공유하세요.
+              오늘의 조황을 어종·포인트와 함께 공유하세요.
               {view === 'list' && !loading && (
                 <span className={styles.totalCount}> 총 {totalElements}개</span>
               )}
@@ -884,15 +844,26 @@ export default function MigratoryPostPage() {
                 <button className={styles.iconActionBtn} onClick={toggleSpeciesDrop}>🐟 어종으로 찾기</button>
                 {speciesDropOpen && (
                   <div className={styles.pointList}>
-                    {MIGRATORY_SPECIES_OPTIONS.map(([code, label]) => (
-                      <div
-                        key={code}
-                        className={styles.pointListItem}
-                        onClick={() => handleSpeciesSelect(code)}
-                      >
-                        {label}
+                    {FISH_SPECIES_BY_GROUP.map(([group, items]) => (
+                      <div key={group}>
+                        <div className={styles.pointListGroupLabel}>{SPECIES_GROUP_LABELS[group]}</div>
+                        {items.map(([code, label]) => (
+                          <div
+                            key={code}
+                            className={styles.pointListItem}
+                            onClick={() => handleSpeciesSelect(code)}
+                          >
+                            {label}
+                          </div>
+                        ))}
                       </div>
                     ))}
+                    <div
+                      className={styles.pointListItem}
+                      onClick={() => handleSpeciesSelect('CUSTOM')}
+                    >
+                      기타 (목록에 없는 어종)
+                    </div>
                   </div>
                 )}
               </div>
@@ -920,7 +891,7 @@ export default function MigratoryPostPage() {
                     ? <>🗺️ <strong>{PROVINCE_LABELS[regionFilter as Province]}</strong> 지역 게시물</>
                     : dateFilter
                     ? <>📅 <strong>{dateFilter.year}년 {dateFilter.month}월</strong> 게시물</>
-                    : <>🐟 <strong>{MIGRATORY_SPECIES_LABELS[speciesFilter as MigratorySpecies]}</strong> 게시물</>}
+                    : <>🐟 <strong>{speciesFilterLabel(speciesFilter)}</strong> 게시물</>}
                 </span>
                 <button onClick={clearFilter}>필터 해제 ✕</button>
               </div>
@@ -937,7 +908,7 @@ export default function MigratoryPostPage() {
                   : dateFilter
                   ? `${dateFilter.year}년 ${dateFilter.month}월에 잡힌 게시글이 아직 없습니다.`
                   : speciesFilter
-                  ? `"${MIGRATORY_SPECIES_LABELS[speciesFilter]}" 게시글이 아직 없습니다.`
+                  ? `"${speciesFilterLabel(speciesFilter)}" 게시글이 아직 없습니다.`
                   : '아직 등록된 게시글이 없습니다.'}
               </p>
             ) : (
@@ -946,7 +917,7 @@ export default function MigratoryPostPage() {
                   <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
                     <div className={styles.listMain}>
                       <div className={styles.listTop}>
-                        <span className={styles.speciesBadge}>{item.speciesDisplayNames?.join('·') ?? ''}</span>
+                        <span className={styles.speciesBadge}>{item.species.map(sp => sp.name).join('·')}</span>
                         <span className={styles.listTitle}>{item.title}</span>
                       </div>
                       <div className={styles.listBottom}>
@@ -956,6 +927,7 @@ export default function MigratoryPostPage() {
                         <span className={styles.authorNickname}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.photoIcon}>📷 {item.photoUrls.length}</span>}
                         <span className={styles.commentCount}>💬 {item.commentCount ?? 0}</span>
+                        <span className={styles.commentCount}>👍 {item.likeCount ?? 0}</span>
                       </div>
                     </div>
                     <div className={styles.listDates}>
@@ -1022,7 +994,7 @@ export default function MigratoryPostPage() {
                     <span>작성 날짜: {formatDate(detail.createdAt)}</span>
                   </div>
 
-                  <span className={styles.speciesBadge}>잡은 어종 {detail.speciesDisplayNames?.join('·') ?? ''}</span>
+                  <span className={styles.speciesBadge}>잡은 어종 {detail.species.map(sp => sp.name).join('·')}</span>
 
                   {(detail.lure || detail.fishSizeCm != null || detail.action) && (
                     <div className={styles.statGrid}>
@@ -1062,6 +1034,19 @@ export default function MigratoryPostPage() {
                     ))}
                   </div>
                 )}
+
+                <ReactionBar
+                  key={detail.id}
+                  targetType="CATCH_POST"
+                  targetId={detail.id}
+                  initial={{
+                    likeCount: detail.likeCount ?? 0,
+                    dislikeCount: detail.dislikeCount ?? 0,
+                    myReaction: detail.myReaction ?? null,
+                  }}
+                  isLoggedIn={isLoggedIn}
+                  onRequireLogin={() => navigate('/login')}
+                />
 
                 {/* ── 댓글 ── */}
                 <div className={styles.commentSection}>
@@ -1160,7 +1145,7 @@ export default function MigratoryPostPage() {
           points={browseMapPoints}
           onSelect={handleBrowseSelect}
           onClose={() => setBrowseMapOpen(false)}
-          emptyMessage="아직 회유성 게시물이 등록된 포인트가 없습니다."
+          emptyMessage="아직 조황 게시물이 등록된 포인트가 없습니다."
         />
       )}
       {lbIdx !== null && detail?.photoUrls && (
@@ -1175,7 +1160,7 @@ export default function MigratoryPostPage() {
       {reportOpen && detail && (
         <ReportModal
           postId={detail.id}
-          postType="MIGRATORY_POST"
+          postType="CATCH_POST"
           postTitle={detail.title}
           onClose={() => setReportOpen(false)}
         />
@@ -1183,7 +1168,7 @@ export default function MigratoryPostPage() {
       {commentReportTarget && detail && (
         <ReportModal
           postId={commentReportTarget.id}
-          postType="MIGRATORY_COMMENT"
+          postType="CATCH_COMMENT"
           postTitle={commentReportTarget.content.slice(0, 100)}
           parentPostId={detail.id}
           onClose={() => setCommentReportTarget(null)}
