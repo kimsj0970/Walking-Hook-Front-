@@ -44,10 +44,10 @@ export default function OAuthCallbackPage() {
 
     oauthLogin(provider, code, returnedState ?? undefined)
       .then(async (result) => {
-        // 탈퇴 후 3개월 이내 계정 — 복구 여부 확인
+        // 탈퇴 후 5일 이내 계정 — 복구 여부 확인
         if (isRecoveryAvailable(result)) {
           const wantsRecovery = window.confirm(
-            '기존에 탈퇴한 계정입니다.\n탈퇴 후 3개월이 지나지 않아 계정 복구가 가능합니다.\n계정 복구를 진행하시겠습니까?'
+            '기존에 탈퇴한 계정입니다.\n탈퇴 후 5일이 지나지 않아 계정 복구가 가능합니다.\n계정 복구를 진행하시겠습니까?'
           );
           if (wantsRecovery) {
             try {
