@@ -1,11 +1,8 @@
 import api from './authApi';
-import { deleteFishingPost } from './fishingPostApi';
-import { deleteMigratoryPost } from './migratoryPostApi';
+import { deleteCatchPost } from './catchPostApi';
 import { deleteFreePost } from './freePostApi';
 
-export type PostType =
-  | 'FISHING_POST' | 'MIGRATORY_POST' | 'FREE_POST'
-  | 'FISHING_COMMENT' | 'MIGRATORY_COMMENT' | 'FREE_COMMENT';
+export type PostType = 'CATCH_POST' | 'FREE_POST' | 'CATCH_COMMENT' | 'FREE_COMMENT';
 
 export const REPORT_REASON_LABELS: Record<string, string> = {
   HATE_SPEECH:        '혐오/차별적/생명경시/욕설 표현입니다.',
@@ -19,12 +16,10 @@ export const REPORT_REASON_LABELS: Record<string, string> = {
 export const REPORT_REASON_KEYS = Object.keys(REPORT_REASON_LABELS);
 
 export const POST_TYPE_LABELS: Record<PostType, string> = {
-  FISHING_POST:      '조황 게시판',
-  MIGRATORY_POST:    '회유성 조황',
-  FREE_POST:         '자유게시판',
-  FISHING_COMMENT:   '조황 댓글',
-  MIGRATORY_COMMENT: '회유성 댓글',
-  FREE_COMMENT:      '자유게시판 댓글',
+  CATCH_POST:    '조황 게시판',
+  FREE_POST:     '자유게시판',
+  CATCH_COMMENT: '조황 댓글',
+  FREE_COMMENT:  '자유게시판 댓글',
 };
 
 export interface ReportedPostSummary {
@@ -80,20 +75,12 @@ export async function dismissReports(contentId: string): Promise<void> {
   await api.delete(`/admin/reports/${contentId}`);
 }
 
-export async function adminDeleteFishingPost(id: string): Promise<void> {
-  await deleteFishingPost(id);
+export async function adminDeleteCatchPost(id: string): Promise<void> {
+  await deleteCatchPost(id);
 }
 
-export async function adminDeleteMigratoryPost(id: string): Promise<void> {
-  await deleteMigratoryPost(id);
-}
-
-export async function adminDeleteFishingComment(commentId: string): Promise<void> {
-  await api.delete(`/admin/fishing-post-comments/${commentId}`);
-}
-
-export async function adminDeleteMigratoryComment(commentId: string): Promise<void> {
-  await api.delete(`/admin/migratory-post-comments/${commentId}`);
+export async function adminDeleteCatchComment(commentId: string): Promise<void> {
+  await api.delete(`/admin/catch-post-comments/${commentId}`);
 }
 
 export async function adminDeleteFreePost(id: string): Promise<void> {
