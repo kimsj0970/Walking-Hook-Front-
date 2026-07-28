@@ -1,5 +1,6 @@
 import api from './authApi';
 import type { PageResult } from './noticeApi';
+import type { ReactionKind } from './reactionApi';
 
 export interface FreePostListItem {
   id: string;
@@ -8,6 +9,8 @@ export interface FreePostListItem {
   createdAt: string;
   photoUrls: string[];
   commentCount: number;
+  likeCount: number;
+  dislikeCount: number;
 }
 
 export interface FreePostDetail {
@@ -19,6 +22,9 @@ export interface FreePostDetail {
   createdAt: string;
   updatedAt: string | null;
   photoUrls: string[];
+  likeCount: number;
+  dislikeCount: number;
+  myReaction: ReactionKind | null;
 }
 
 export async function getFreePostsPreview(): Promise<FreePostListItem[]> {
