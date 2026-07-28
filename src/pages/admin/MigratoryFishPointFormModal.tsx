@@ -64,6 +64,12 @@ interface Props {
   editTarget: MigratoryFishPointDetail | null;
   onClose: () => void;
   onSaved: () => void;
+  /**
+   * 유튜브 영상 관리로 넘어가는 콜백.
+   * 신규 추가 모드에서는 아직 포인트 ID가 없어 영상을 붙일 수 없으므로,
+   * 호출하는 쪽이 수정 모드일 때만 넘긴다(없으면 버튼도 안 보인다).
+   */
+  onManageVideos?: () => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,7 +101,9 @@ function makePinUrl(color: string, stroke: string): string {
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
 
-export default function MigratoryFishPointFormModal({ open, editTarget, onClose, onSaved }: Props) {
+export default function MigratoryFishPointFormModal({
+  open, editTarget, onClose, onSaved, onManageVideos,
+}: Props) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
@@ -184,7 +192,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
           });
         }).catch(() => {});
 
-        // 이미 등록된 회유성 포인트 — 참고용 핀 표시 (축소 시 클러스터 숫자로 표시)
+        // 이미 등록된 조황 포인트 — 참고용 핀 표시 (축소 시 클러스터 숫자로 표시)
         fetchAllMigratoryFishPoints().then(points => {
           const pinUrl = makePinUrl('#0891B2', '#164E63');
           const pinSize = new kakao.maps.Size(24, 32);
@@ -324,7 +332,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
       <div className={styles.modal}>
         <div className={styles.header}>
           <h2 className={styles.title}>
-            {editTarget ? '회유성 포인트 수정' : '새 회유성 포인트 추가'}
+            {editTarget ? '조황 포인트 수정' : '새 조황 포인트 추가'}
           </h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
         </div>
@@ -426,7 +434,7 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
                 <div ref={mapContainerRef} className={styles.mapCanvas} />
                 <MapTypeControl map={mapForControl} />
                 <p className={styles.mapHint}>
-                  지도를 클릭하면 위도·경도가 자동으로 입력됩니다 · 🔵 등록된 회유성 포인트 (축소 시 숫자로 표시)
+                  지도를 클릭하면 위도·경도가 자동으로 입력됩니다 · 🔵 등록된 조황 포인트 (축소 시 숫자로 표시)
                 </p>
               </div>
             )}
@@ -445,7 +453,12 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
 
           {/* 주요 어종 */}
           <section className={styles.section}>
-            <h3 className={styles.sectionTitle}>주요 회유 어종 <span className={styles.required}>*</span></h3>
+            <h3 className={styles.sectionTitle}>
+              주요 회유 어종 <span className={styles.required}>*</span>
+              <span className={styles.sectionHint}>
+                {' '}시즌 표시용 — 포인트에는 회유성 어종만 등록합니다
+              </span>
+            </h3>
             {errors.targetSpecies && <p className={styles.errorMsg}>{errors.targetSpecies}</p>}
             <div className={styles.boolGrid}>
               {MIGRATORY_SPECIES_OPTIONS.map(([code, label]) => (
@@ -499,6 +512,16 @@ export default function MigratoryFishPointFormModal({ open, editTarget, onClose,
         </div>
 
         <div className={styles.footer}>
+          {onManageVideos && (
+            <button
+              className={styles.videoBtn}
+              onClick={onManageVideos}
+              disabled={saving}
+              title="이 포인트의 유튜브 영상 관리"
+            >
+              영상 관리
+            </button>
+          )}
           <button className={styles.cancelBtn} onClick={onClose} disabled={saving}>취소</button>
           <button className={styles.saveBtn} onClick={handleSubmit} disabled={saving}>
             {saving ? '저장 중...' : editTarget ? '수정 완료' : '추가'}
