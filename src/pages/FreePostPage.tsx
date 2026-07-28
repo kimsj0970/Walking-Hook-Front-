@@ -7,6 +7,7 @@ import PostFormModal from '../components/common/PostFormModal';
 import ImageLightbox from '../components/common/ImageLightbox';
 import ReportModal from '../components/common/ReportModal';
 import MonthYearPicker from '../components/common/MonthYearPicker';
+import ReactionBar from '../components/common/ReactionBar';
 import type { PostType } from '../api/reportApi';
 import {
   getFreePostsPage, getFreePostDetail, createFreePost, updateFreePost, deleteFreePost,
@@ -265,6 +266,7 @@ export default function FreePostPage() {
                           <AuthorLabel nickname={item.authorNickname} />
                           {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷 {item.photoUrls.length}</span>}
                           {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
+                          {(item.likeCount ?? 0) > 0 && <span className={styles.listCommentCount}>👍 {item.likeCount}</span>}
                         </div>
                       </div>
                       <div className={styles.listDates}>
@@ -337,6 +339,19 @@ export default function FreePostPage() {
                     ))}
                   </div>
                 )}
+
+                <ReactionBar
+                  key={detail.id}
+                  targetType="FREE_POST"
+                  targetId={detail.id}
+                  initial={{
+                    likeCount: detail.likeCount ?? 0,
+                    dislikeCount: detail.dislikeCount ?? 0,
+                    myReaction: detail.myReaction ?? null,
+                  }}
+                  isLoggedIn={isLoggedIn}
+                  onRequireLogin={() => navigate('/login')}
+                />
 
                 {/* 댓글 영역 */}
                 <div className={styles.commentSection}>
