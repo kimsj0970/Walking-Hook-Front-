@@ -77,6 +77,15 @@
   border-bottom: 2px solid rgba(11, 61, 145, 0.1);
 }
 
+/* 섹션 제목 옆 부연 설명 — 제목의 대문자·자간을 물려받지 않게 되돌린다. */
+.sectionHint {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .row2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -262,6 +271,27 @@
   gap: 10px;
   padding: 20px 28px 24px;
   border-top: 1px solid var(--color-border-light);
+}
+
+/* 영상 관리 — 저장/취소와 성격이 다른 이동 버튼이라 왼쪽 끝으로 밀어둔다 */
+.videoBtn {
+  margin-right: auto;
+  padding: 9px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.videoBtn:hover:not(:disabled) {
+  background: rgba(11, 61, 145, 0.06);
+}
+.videoBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cancelBtn {
