@@ -185,9 +185,12 @@ export default function MyPage() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalIcon}>⚠️</div>
             <h3 className={styles.modalTitle}>정말 탈퇴하시겠어요?</h3>
+            {/* 실제 동작(5일 유예 후 하드 삭제, 그 안에는 복구 가능)과 문구를 맞춘다. */}
             <p className={styles.modalDesc}>
-              탈퇴 시 모든 게시물과 데이터가 삭제되며,
-              <br />이 작업은 되돌릴 수 없습니다.
+              탈퇴하시면 작성하신 게시물·댓글이 모두 숨겨지고,
+              <br />5일 뒤 계정과 개인정보가 완전히 삭제됩니다.
+              <br />5일 안에 다시 로그인하시면 관리자 승인을 거쳐
+              <br />계정을 복구할 수 있습니다.
             </p>
             <div className={styles.modalBtns}>
               <button
