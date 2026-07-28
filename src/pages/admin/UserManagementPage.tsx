@@ -23,6 +23,14 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
+function formatDateTime(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('ko-KR', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+}
+
 function userStatus(u: UserSummary): 'deleted' | 'suspended' | 'active' {
   if (u.deletedAt) return 'deleted';
   if (u.isSuspended) return 'suspended';
@@ -444,6 +452,7 @@ export default function UserManagementPage() {
                   </tr>
                   <tr><th>이번 달 접속일수</th><td>{selected.monthlyVisitCount.toLocaleString()}일</td></tr>
                   <tr><th>누적 접속일수</th><td>{selected.totalVisitCount.toLocaleString()}일</td></tr>
+                  <tr><th>최근 방문일</th><td>{formatDateTime(selected.lastAccessAt)}</td></tr>
                 </tbody>
               </table>
 
