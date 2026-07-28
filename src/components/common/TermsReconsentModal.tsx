@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import styles from './AgeConsentModal.module.css';
 
@@ -70,10 +69,9 @@ export default function TermsReconsentModal() {
               checked={termsChecked}
               onChange={(e) => setTermsChecked(e.target.checked)}
             />
-            <span className={styles.checkLabelText}>
-              <Link to="/terms" target="_blank" rel="noopener noreferrer">이용약관</Link>에 동의합니다
-            </span>
+            <span className={styles.checkLabelText}>이용약관 동의</span>
             <span className={styles.badge}>필수</span>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className={styles.viewLink}>보기</a>
           </label>
 
           <label className={styles.checkItem}>
@@ -82,10 +80,9 @@ export default function TermsReconsentModal() {
               checked={privacyChecked}
               onChange={(e) => setPrivacyChecked(e.target.checked)}
             />
-            <span className={styles.checkLabelText}>
-              <Link to="/privacy" target="_blank" rel="noopener noreferrer">개인정보처리방침</Link>에 동의합니다
-            </span>
+            <span className={styles.checkLabelText}>개인정보처리방침 동의</span>
             <span className={styles.badge}>필수</span>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className={styles.viewLink}>보기</a>
           </label>
 
           <label className={styles.checkItem}>
