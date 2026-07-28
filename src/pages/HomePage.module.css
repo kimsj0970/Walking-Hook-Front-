@@ -1493,6 +1493,37 @@
   margin: 0 0 18px;
 }
 
+.infoLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: -8px 0 14px;
+}
+
+.infoLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.infoLegendDotCurrent,
+.infoLegendDotBest {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.infoLegendDotCurrent {
+  background: #38bdf8;
+}
+
+.infoLegendDotBest {
+  background: #4ade80;
+}
+
 .infoRowList {
   display: flex;
   flex-direction: column;
@@ -1515,6 +1546,31 @@
   border-color: rgba(74, 222, 128, 0.25);
 }
 
+/* 현재 포인트의 수치가 속한 구간 */
+.infoRowCurrent {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+}
+
+/* 현재 구간이면서 적정 구간이면 초록 배경 유지 + 파란 테두리 */
+.infoRowHighlight.infoRowCurrent {
+  background: rgba(74, 222, 128, 0.16);
+}
+
+.infoRowCurrentBadge {
+  margin-left: auto;
+  align-self: center;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #38bdf8;
+  color: #0b1a2e;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .infoRowLabel {
   font-size: 13px;
   font-weight: 700;
@@ -1525,6 +1581,14 @@
 }
 
 .infoRowHighlight .infoRowLabel {
+  color: #4ade80;
+}
+
+.infoRowCurrent .infoRowLabel {
+  color: #7dd3fc;
+}
+
+.infoRowHighlight.infoRowCurrent .infoRowLabel {
   color: #4ade80;
 }
 
