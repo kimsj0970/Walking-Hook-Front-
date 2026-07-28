@@ -1,20 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
-import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
 import {
-  getFishingPostsPage, getFishingPostDetail, createFishingPost, updateFishingPost, deleteFishingPost,
-  type FishingPostListItem, type FishingPostDetail,
-} from '../api/fishingPostApi';
-import {
-  fetchMigratoryFishPointMapMarkers, MIGRATORY_SPECIES_LABELS,
-  type MigratoryFishPointMapMarker,
-} from '../api/migratoryFishPointApi';
-import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
+  getCatchPostsPage, getCatchPostDetail, deleteCatchPost,
+  type CatchPostListItem, type CatchPostDetail,
+} from '../api/catchPostApi';
 import {
   getNoticesPreview, getNoticesPage, getNoticeDetail, createNotice, updateNotice, deleteNotice,
   type NoticeListItem, type NoticeDetail,
@@ -26,225 +20,7 @@ import {
 import ReportModal from '../components/common/ReportModal';
 import styles from './CommunityPage.module.css';
 
-function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
 /* ── 조황 작성/수정 모달 ──────────────────────────────────────────── */
-interface FishingWriteState {
-  title: string; content: string; photoUrls: string[];
-  selectedProvince: Province | ''; migratoryPointId: string; selectedPointName: string;
-  caughtAt: string;
-  lure: string; fishSizeCm: string; action: string;
-}
-interface FishingWriteModalProps {
-  open: boolean; editTarget: FishingPostDetail | null;
-  points: MigratoryFishPointMapMarker[];
-  onClose: () => void; onSaved: () => void;
-}
-function FishingWriteModal({ open, editTarget, points, onClose, onSaved }: FishingWriteModalProps) {
-  const [form, setForm] = useState<FishingWriteState>({
-    title: '', content: '', photoUrls: [],
-    selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(),
-    lure: '', fishSizeCm: '', action: '',
-  });
-  const [errors, setErrors] = useState<{ title?: string; content?: string }>({});
-  const [serverError, setServerError] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [dropOpen, setDropOpen] = useState(false);
-  const dropRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    if (editTarget) {
-      const pt = editTarget.migratoryPointId ? points.find(p => p.id === editTarget.migratoryPointId) : undefined;
-      setForm({
-        title: editTarget.title, content: editTarget.content, photoUrls: editTarget.photoUrls ?? [],
-        selectedProvince: pt?.province ?? '',
-        migratoryPointId: editTarget.migratoryPointId ?? '',
-        selectedPointName: pt?.name ?? editTarget.pointName ?? '',
-        caughtAt: editTarget.caughtAt ?? todayStr(),
-        lure: editTarget.lure ?? '',
-        fishSizeCm: editTarget.fishSizeCm != null ? String(editTarget.fishSizeCm) : '',
-        action: editTarget.action ?? '',
-      });
-    } else {
-      setForm({ title: '', content: '', photoUrls: [], selectedProvince: '', migratoryPointId: '', selectedPointName: '', caughtAt: todayStr(), lure: '', fishSizeCm: '', action: '' });
-    }
-    setErrors({}); setServerError(''); setDropOpen(false);
-  }, [open, editTarget, points]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { if (dropOpen) setDropOpen(false); else onClose(); } };
-    if (open) document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose, dropOpen]);
-
-  useEffect(() => {
-    if (!dropOpen) return;
-    const onClick = (e: MouseEvent) => { if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropOpen(false); };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, [dropOpen]);
-
-  if (!open) return null;
-
-  const set = <K extends keyof FishingWriteState>(k: K, v: FishingWriteState[K]) =>
-    setForm(prev => ({ ...prev, [k]: v }));
-
-  const filteredPoints = form.selectedProvince ? points.filter(p => p.province === form.selectedProvince) : [];
-
-  const handleSubmit = async () => {
-    const e: { title?: string; content?: string } = {};
-    if (!form.title.trim()) e.title = '제목을 입력하세요.';
-    if (!form.content.trim()) e.content = '내용을 입력하세요.';
-    if (Object.keys(e).length) { setErrors(e); return; }
-    setSaving(true); setServerError('');
-    const pointId = form.migratoryPointId || undefined;
-    const caughtAt = form.caughtAt || undefined;
-    const lure = form.lure.trim() || undefined;
-    const fishSizeCm = form.fishSizeCm.trim() ? Number(form.fishSizeCm.trim()) : undefined;
-    const action = form.action.trim() || undefined;
-    try {
-      if (editTarget) {
-        await updateFishingPost(editTarget.id, form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSizeCm, action);
-      } else {
-        await createFishingPost(form.title.trim(), form.content.trim(), form.photoUrls, pointId, caughtAt, lure, fishSizeCm, action);
-      }
-      onSaved();
-    } catch { setServerError('저장 중 오류가 발생했습니다.'); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>{editTarget ? '조황 수정' : '조황 등록'}</h2>
-          <button className={styles.modalClose} onClick={onClose} disabled={saving}>✕</button>
-        </div>
-        <div className={styles.modalBody}>
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>제목 <span className={styles.required}>*</span></label>
-            <input className={`${styles.fieldInput} ${errors.title ? styles.fieldInputError : ''}`}
-              value={form.title} onChange={e => set('title', e.target.value)}
-              placeholder="게시글 제목을 입력하세요" maxLength={200} />
-            {errors.title && <p className={styles.errorMsg}>{errors.title}</p>}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>조황 날짜</label>
-              <input type="date" className={styles.fieldInput}
-                value={form.caughtAt} max={todayStr()}
-                onChange={e => set('caughtAt', e.target.value)} />
-            </div>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>시/도</label>
-              <select className={styles.fieldSelect} value={form.selectedProvince}
-                onChange={e => { const v = e.target.value as Province | '';
-                  setForm(prev => ({ ...prev, selectedProvince: v, migratoryPointId: '', selectedPointName: '' }));
-                  setDropOpen(false); }}>
-                <option value="">시/도 선택</option>
-                {PROVINCE_OPTIONS.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>낚시 포인트 <span className={styles.fieldHint}>(선택)</span></label>
-            <div className={styles.pointDropdown} ref={dropRef}>
-              <button type="button" className={styles.pointSelectBtn}
-                onClick={() => { if (form.selectedProvince) setDropOpen(v => !v); }}
-                disabled={!form.selectedProvince}
-                style={!form.selectedProvince ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>
-                {form.selectedPointName
-                  ? <span>{form.selectedPointName}</span>
-                  : <span className={styles.pointSelectPlaceholder}>{form.selectedProvince ? '포인트 선택' : '시/도를 먼저 선택하세요'}</span>}
-                {form.selectedProvince && <span>{dropOpen ? '▲' : '▼'}</span>}
-              </button>
-              {dropOpen && form.selectedProvince && (
-                <div className={styles.pointList}>
-                  <div className={`${styles.pointListItem} ${!form.migratoryPointId ? styles.pointListItemSelected : ''}`}
-                    onClick={() => { setForm(prev => ({ ...prev, migratoryPointId: '', selectedPointName: '' })); setDropOpen(false); }}>
-                    <span style={{ color: 'var(--color-text-muted)' }}>포인트 없음</span>
-                  </div>
-                  {filteredPoints.length === 0
-                    ? <div className={styles.pointListItem} style={{ cursor: 'default', color: 'var(--color-text-muted)' }}>
-                        {PROVINCE_LABELS[form.selectedProvince as Province]}에 등록된 포인트가 없습니다
-                      </div>
-                    : filteredPoints.map(p => (
-                        <div key={p.id}
-                          className={`${styles.pointListItem} ${form.migratoryPointId === p.id ? styles.pointListItemSelected : ''}`}
-                          onClick={() => { setForm(prev => ({ ...prev, migratoryPointId: p.id, selectedPointName: p.name })); setDropOpen(false); }}>
-                          <span>{p.name}</span>
-                          <span className={styles.pointListItemRegion}>{p.targetSpecies.map(s => MIGRATORY_SPECIES_LABELS[s]).join('·')}</span>
-                        </div>
-                      ))
-                  }
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>내용 <span className={styles.required}>*</span></label>
-            <textarea className={`${styles.fieldTextarea} ${errors.content ? styles.fieldInputError : ''}`}
-              value={form.content} onChange={e => set('content', e.target.value)}
-              placeholder="조황 내용을 공유해 주세요" rows={5} />
-            {errors.content && <p className={styles.errorMsg}>{errors.content}</p>}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>루어 <span className={styles.fieldHint}>(선택)</span></label>
-              <input className={styles.fieldInput}
-                value={form.lure} onChange={e => set('lure', e.target.value)}
-                placeholder="예: 바이브 20g" maxLength={100} />
-            </div>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>어종 크기 <span className={styles.fieldHint}>(선택)</span></label>
-              <div style={{ position: 'relative' }}>
-                <input className={styles.fieldInput}
-                  style={{ paddingRight: 36 }}
-                  value={form.fishSizeCm}
-                  onChange={e => set('fishSizeCm', e.target.value.replace(/[^0-9]/g, ''))}
-                  inputMode="numeric"
-                  placeholder="예: 45" maxLength={4} />
-                <span style={{
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  fontSize: 13, color: 'var(--color-text-muted)', pointerEvents: 'none',
-                }}>cm</span>
-              </div>
-            </div>
-            <div className={styles.field}>
-              <label className={styles.fieldLabel}>사용한 액션 <span className={styles.fieldHint}>(선택)</span></label>
-              <input className={styles.fieldInput}
-                value={form.action} onChange={e => set('action', e.target.value)}
-                placeholder="예: 저킹, 슬로우롤" maxLength={100} />
-            </div>
-          </div>
-
-          <div className={styles.field}>
-            <label className={styles.fieldLabel}>사진 (최대 3장)</label>
-            <PhotoUploader value={form.photoUrls} onChange={urls => set('photoUrls', urls)}
-              boardType="FISHING_POST" maxPhotos={3} disabled={saving} />
-          </div>
-
-          {serverError && <p className={styles.serverError}>{serverError}</p>}
-        </div>
-        <div className={styles.modalFooter}>
-          <button className={styles.cancelBtn} onClick={onClose} disabled={saving}>취소</button>
-          <button className={styles.submitBtn} onClick={handleSubmit} disabled={saving}>
-            {saving ? '저장 중...' : editTarget ? '수정 완료' : '등록'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const ADMIN_NICKNAMES = ['운영자', '관리자', 'admin', 'Admin'];
 
 function AuthorLabel({ nickname }: { nickname: string }) {
@@ -267,14 +43,11 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
   const navigate = useNavigate();
   const { userId, isAdmin, isModerator } = useAuth();
   const [view, setView]     = useState<BoardView>('list');
-  const [items, setItems]   = useState<FishingPostListItem[]>([]);
-  const [detail, setDetail] = useState<FishingPostDetail | null>(null);
+  const [items, setItems]   = useState<CatchPostListItem[]>([]);
+  const [detail, setDetail] = useState<CatchPostDetail | null>(null);
   const [loading, setLoading]       = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError]   = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingPost, setEditingPost] = useState<FishingPostDetail | null>(null);
-  const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -284,9 +57,9 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
     setLoading(true);
     try {
       if (navigateOnClick) {
-        setItems((await getFishingPostsPage(0, 5)).content);
+        setItems((await getCatchPostsPage({ page: 0, size: 5 })).content);
       } else {
-        const result = await getFishingPostsPage(page, 10);
+        const result = await getCatchPostsPage({ page, size: 10 });
         setItems(result.content);
         setTotalPages(result.totalPages);
         setCurrentPage(result.page);
@@ -297,33 +70,22 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
   }, [navigateOnClick]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
-  useEffect(() => { fetchMigratoryFishPointMapMarkers().then(setPoints).catch(() => {}); }, []);
 
   const openDetail = async (id: string) => {
     if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setView('detail');
-    try { setDetail(await getFishingPostDetail(id)); }
+    try { setDetail(await getCatchPostDetail(id)); }
     catch { setError('게시글을 불러오지 못했습니다.'); setView('list'); }
     finally { setDetailLoading(false); }
   };
 
-  const openCreate = () => { setEditingPost(null); setModalOpen(true); };
-  const openEdit   = () => { if (!detail) return; setEditingPost(detail); setModalOpen(true); };
-
-  const handleSaved = async () => {
-    setModalOpen(false);
-    if (editingPost && detail) {
-      const updated = await getFishingPostDetail(detail.id).catch(() => null);
-      if (updated) setDetail(updated);
-    } else {
-      setView('list');
-    }
-    await fetchList(currentPage);
-  };
+  // 조황 글은 어종 입력이 필요해 작성·수정 폼을 조황 게시판 페이지 한 곳에서만 관리한다.
+  const openCreate = () => navigate('/catch-posts', { state: { openWrite: true } });
+  const openEdit   = () => { if (detail) navigate('/catch-posts', { state: { openPostId: detail.id } }); };
 
   const handleDelete = async () => {
     if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
-    try { await deleteFishingPost(detail.id); await fetchList(currentPage); setView('list'); }
+    try { await deleteCatchPost(detail.id); await fetchList(currentPage); setView('list'); }
     catch { setError('삭제에 실패했습니다.'); }
   };
 
@@ -332,7 +94,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
       <div className={styles.sectionHeader}>
         <h2
           className={`${styles.sectionTitle} ${styles.sectionTitleLink}`}
-          onClick={() => view === 'list' && navigate('/fishing-posts')}
+          onClick={() => view === 'list' && navigate('/catch-posts')}
           title="전체 조황 게시판 보기"
         >
           🐟 조황 게시판
@@ -357,7 +119,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                 <div key={item.id} className={styles.boardItem}
                   onClick={() => {
                     if (!isLoggedIn) { navigate('/login'); return; }
-                    if (navigateOnClick) navigate('/fishing-posts', { state: { openPostId: item.id } });
+                    if (navigateOnClick) navigate('/catch-posts', { state: { openPostId: item.id } });
                     else openDetail(item.id);
                   }}>
                   <div className={styles.boardTop}>
@@ -371,6 +133,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                     <div className={styles.boardMeta}>
                       {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷 {item.photoUrls.length}</span>}
                       {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
+                      {(item.likeCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>👍 {item.likeCount}</span>}
                       <AuthorLabel nickname={item.authorNickname} />
                     </div>
                   </div>
@@ -378,7 +141,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
               ))}
             </div>
             {navigateOnClick ? (
-              <button className={styles.moreBtn} onClick={() => navigate('/fishing-posts')}>더보기</button>
+              <button className={styles.moreBtn} onClick={() => navigate('/catch-posts')}>더보기</button>
             ) : totalPages > 1 && (
               <Pagination
                 currentPage={currentPage}
@@ -432,19 +195,12 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
       {reportOpen && detail && (
         <ReportModal
           postId={detail.id}
-          postType="FISHING_POST"
+          postType="CATCH_POST"
           postTitle={detail.title}
           onClose={() => setReportOpen(false)}
         />
       )}
 
-      <FishingWriteModal
-        open={modalOpen}
-        editTarget={editingPost}
-        points={points}
-        onClose={() => setModalOpen(false)}
-        onSaved={handleSaved}
-      />
       {lbIdx !== null && detail?.photoUrls && (
         <ImageLightbox
           images={detail.photoUrls}
@@ -695,6 +451,7 @@ export function FreeBoard({ isLoggedIn }: { isLoggedIn: boolean }) {
                   <span className={styles.boardMeta}>
                     {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷 {item.photoUrls.length}</span>}
                     {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
+                    {(item.likeCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>👍 {item.likeCount}</span>}
                     <AuthorLabel nickname={item.authorNickname} />
                     <span className={styles.boardDate}>{formatDate(item.createdAt)}</span>
                   </span>
