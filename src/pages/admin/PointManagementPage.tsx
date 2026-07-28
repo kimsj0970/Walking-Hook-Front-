@@ -15,6 +15,22 @@ import {
 import FishingPointFormModal from './FishingPointFormModal';
 import styles from './PointManagementPage.module.css';
 
+/** 기본 동작 시간대: 06시 ~ 24시 (새벽 시간대 제외) */
+const DEFAULT_START_HOUR = 6;
+const DEFAULT_END_HOUR = 24;
+
+/** 시작 시각 후보 0~23시, 종료 시각 후보 1~24시 (24 = 자정) */
+const START_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
+const END_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i + 1);
+
+const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}시`;
+
+/** 06시~24시처럼 동작 구간을 사람이 읽는 문구로. 자정을 넘는 구간도 표기 */
+const formatWindow = (startHour: number, endHour: number) =>
+  startHour < endHour
+    ? `${formatHour(startHour)}~${formatHour(endHour)}`
+    : `${formatHour(startHour)}~다음날 ${formatHour(endHour)}`;
+
 export default function PointManagementPage() {
   const [points, setPoints] = useState<FishingPointSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +51,13 @@ export default function PointManagementPage() {
 
   const [scheduleRunning, setScheduleRunning] = useState(false);
   const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [scheduleStartHour, setScheduleStartHour] = useState(DEFAULT_START_HOUR);
+  const [scheduleEndHour, setScheduleEndHour] = useState(DEFAULT_END_HOUR);
+
+  // 시간대 선택 다이얼로그 (스케줄러 켜기 클릭 시 오픈)
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [draftStartHour, setDraftStartHour] = useState(DEFAULT_START_HOUR);
+  const [draftEndHour, setDraftEndHour] = useState(DEFAULT_END_HOUR);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -53,21 +76,51 @@ export default function PointManagementPage() {
   }, [load]);
 
   useEffect(() => {
-    getAiScheduleStatus().then(setScheduleRunning).catch(() => {});
+    getAiScheduleStatus()
+      .then((status) => {
+        setScheduleRunning(status.running);
+        setScheduleStartHour(status.startHour);
+        setScheduleEndHour(status.endHour);
+      })
+      .catch(() => {});
   }, []);
 
+  /** 켜져 있으면 즉시 중지, 꺼져 있으면 시간대 선택 다이얼로그를 연다 */
   const handleScheduleToggle = async () => {
+    if (!scheduleRunning) {
+      setDraftStartHour(scheduleStartHour);
+      setDraftEndHour(scheduleEndHour);
+      setScheduleDialogOpen(true);
+      return;
+    }
+
     setScheduleLoading(true);
     try {
-      if (scheduleRunning) {
-        await stopAiSchedule();
-        setScheduleRunning(false);
-        showToast('AI 캐싱 스케줄러가 중지되었습니다.');
-      } else {
-        await startAiSchedule();
-        setScheduleRunning(true);
-        showToast('AI 캐싱 스케줄러가 시작되었습니다. (1시간 간격, 포인트당 35초 간격)');
-      }
+      await stopAiSchedule();
+      setScheduleRunning(false);
+      showToast('AI 캐싱 스케줄러가 중지되었습니다.');
+    } catch {
+      showToast('스케줄러 상태 변경에 실패했습니다.');
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const handleScheduleStart = async () => {
+    if (draftStartHour === draftEndHour) {
+      showToast('시작 시각과 종료 시각이 같을 수 없습니다.');
+      return;
+    }
+    setScheduleLoading(true);
+    try {
+      await startAiSchedule(draftStartHour, draftEndHour);
+      setScheduleRunning(true);
+      setScheduleStartHour(draftStartHour);
+      setScheduleEndHour(draftEndHour);
+      setScheduleDialogOpen(false);
+      showToast(
+        `AI 캐싱 스케줄러가 시작되었습니다. (${formatWindow(draftStartHour, draftEndHour)}, 1시간 간격, 포인트당 35초 간격)`,
+      );
     } catch {
       showToast('스케줄러 상태 변경에 실패했습니다.');
     } finally {
@@ -159,8 +212,8 @@ export default function PointManagementPage() {
           </span>
           <span className={styles.schedulerStatus}>
             {scheduleRunning
-              ? '실행 중 — 1시간마다 전체 포인트 AI 분석 자동 갱신'
-              : '중지됨 — 켜면 1시간마다 전체 포인트 AI 분석을 자동으로 갱신합니다'}
+              ? `실행 중 — ${formatWindow(scheduleStartHour, scheduleEndHour)}에만 1시간마다 전체 포인트 AI 분석 자동 갱신`
+              : '중지됨 — 켜기를 누르면 동작 시간대를 고를 수 있습니다'}
           </span>
         </div>
         <button
@@ -282,6 +335,69 @@ export default function PointManagementPage() {
           </table>
         )}
       </div>
+
+      {/* 스케줄러 동작 시간대 선택 다이얼로그 */}
+      {scheduleDialogOpen && (
+        <div className={styles.dialogOverlay} onClick={() => !scheduleLoading && setScheduleDialogOpen(false)}>
+          <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.dialogTitle}>스케줄러 동작 시간대</h3>
+            <p className={styles.dialogBody}>
+              선택한 시간대에만 AI 분석 갱신이 돌아갑니다.<br />
+              시간대 밖에서는 다음 시작 시각까지 대기합니다.
+            </p>
+            <div className={styles.hourPicker}>
+              <label className={styles.hourField}>
+                <span className={styles.hourLabel}>시작</span>
+                <select
+                  className={styles.hourSelect}
+                  value={draftStartHour}
+                  onChange={(e) => setDraftStartHour(Number(e.target.value))}
+                  disabled={scheduleLoading}
+                >
+                  {START_HOUR_OPTIONS.map((h) => (
+                    <option key={h} value={h}>{formatHour(h)}</option>
+                  ))}
+                </select>
+              </label>
+              <span className={styles.hourSeparator}>~</span>
+              <label className={styles.hourField}>
+                <span className={styles.hourLabel}>종료</span>
+                <select
+                  className={styles.hourSelect}
+                  value={draftEndHour}
+                  onChange={(e) => setDraftEndHour(Number(e.target.value))}
+                  disabled={scheduleLoading}
+                >
+                  {END_HOUR_OPTIONS.map((h) => (
+                    <option key={h} value={h}>{formatHour(h)}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <p className={styles.hourHint}>
+              {draftStartHour === draftEndHour
+                ? '시작 시각과 종료 시각이 같을 수 없습니다.'
+                : `${formatWindow(draftStartHour, draftEndHour)} 동안 동작합니다.`}
+            </p>
+            <div className={styles.dialogActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setScheduleDialogOpen(false)}
+                disabled={scheduleLoading}
+              >
+                취소
+              </button>
+              <button
+                className={styles.startScheduleBtn}
+                onClick={handleScheduleStart}
+                disabled={scheduleLoading || draftStartHour === draftEndHour}
+              >
+                {scheduleLoading ? '시작 중...' : '스케줄러 켜기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 생성/수정 모달 */}
       <FishingPointFormModal
