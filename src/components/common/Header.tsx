@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoginModal from './LoginModal';
+import NotificationBell from './NotificationBell';
 import styles from './Header.module.css';
 
 export default function Header() {
@@ -39,6 +40,7 @@ export default function Header() {
                 <button className={styles.logoutBtn} onClick={handleLogout}>
                   로그아웃
                 </button>
+                <NotificationBell />
                 <button
                   className={styles.profileBtn}
                   onClick={() => navigate('/my')}
