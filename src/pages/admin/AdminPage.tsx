@@ -18,8 +18,8 @@ import styles from './AdminPage.module.css';
 type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai' | 'reports' | 'deleted-contents';
 
 const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
-  { tab: 'points',           label: '포인트 관리',        adminOnly: false },
-  { tab: 'migratory-points', label: '회유성 포인트 관리',  adminOnly: false },
+  { tab: 'points',           label: 'AI 분석 포인트',     adminOnly: false },
+  { tab: 'migratory-points', label: '조황 포인트 관리',    adminOnly: false },
   { tab: 'fishing-zones',    label: '낚시 금지구역 추가',  adminOnly: false },
   { tab: 'documents',        label: 'RAG 문서 관리',      adminOnly: true  },
   { tab: 'users',            label: '사용자 관리',        adminOnly: false },
