@@ -22,6 +22,7 @@ import CatchPostPage from './pages/CatchPostPage';
 import FreePostPage from './pages/FreePostPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
+import AccountDeletionPage from './pages/AccountDeletionPage';
 import LoginPage from './pages/LoginPage';
 import './App.css';
 
@@ -59,6 +60,9 @@ export default function App() {
             <Route path="/free-posts" element={<FreePostPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            {/* Play Console 데이터 안전 설문의 "계정 삭제 요청 URL" 로 제출한다. 로그인 없이
+                접근할 수 있어야 하므로 PrivateRoute 로 감싸면 안 된다. */}
+            <Route path="/account-deletion" element={<AccountDeletionPage />} />
             <Route path="/login" element={<LoginPage />} />
           </Routes>
           <Footer />
