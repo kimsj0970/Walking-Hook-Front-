@@ -9,6 +9,7 @@ import ReportModal from '../components/common/ReportModal';
 import MonthYearPicker from '../components/common/MonthYearPicker';
 import ReactionBar from '../components/common/ReactionBar';
 import type { PostType } from '../api/reportApi';
+import { blockUser } from '../api/blockApi';
 import {
   getFreePostsPage, getFreePostDetail, createFreePost, updateFreePost, deleteFreePost,
   getFreePostComments, addFreePostComment, deleteFreePostComment,
@@ -203,6 +204,30 @@ export default function FreePostPage() {
     catch { setError('삭제에 실패했습니다.'); }
   };
 
+  /**
+   * 사용자 차단. 목록에서 걸러내는 일은 서버가 하므로 여기서는 다시 불러오기만 하면 된다.
+   * 글쓴이를 차단하면 그 글 자체가 목록에서 사라지므로 목록으로 되돌린다 —
+   * 상세는 서버가 걸러주지 않아 그대로 두면 방금 차단한 글을 계속 보게 된다.
+   */
+  const handleBlockUser = async (targetId: string, nickname: string, isPostAuthor: boolean) => {
+    if (!detail) return;
+    const ok = window.confirm(
+      `${nickname} 님을 차단하시겠습니까?\n\n` +
+      '이 사용자의 게시글과 댓글이 목록에 보이지 않습니다. ' +
+      '마이페이지 > 차단한 사용자에서 해제할 수 있습니다.',
+    );
+    if (!ok) return;
+    try {
+      await blockUser(targetId);
+      if (isPostAuthor) {
+        await fetchList(currentPage, dateFilter);
+        setView('list');
+      } else {
+        setComments(await getFreePostComments(detail.id));
+      }
+    } catch { setError('차단에 실패했습니다.'); }
+  };
+
 
   return (
     <div className={styles.container}>
@@ -303,12 +328,20 @@ export default function FreePostPage() {
                         </>
                       )}
                       {isLoggedIn && detail.authorId !== userId && (
-                        <button
-                          className={styles.iconActionBtn}
-                          onClick={() => setReportTarget({ postType: 'FREE_POST', postId: detail.id, postTitle: detail.title })}
-                        >
-                          <span>🚩</span>신고
-                        </button>
+                        <>
+                          <button
+                            className={styles.iconActionBtn}
+                            onClick={() => setReportTarget({ postType: 'FREE_POST', postId: detail.id, postTitle: detail.title })}
+                          >
+                            <span>🚩</span>신고
+                          </button>
+                          <button
+                            className={styles.iconActionBtn}
+                            onClick={() => handleBlockUser(detail.authorId, detail.authorNickname, true)}
+                          >
+                            <span>🚫</span>차단
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -379,10 +412,16 @@ export default function FreePostPage() {
                                 <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
                               )}
                               {isLoggedIn && c.authorId !== userId && (
-                                <button
-                                  className={styles.reportCommentBtn}
-                                  onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: c.id, postTitle: c.content.slice(0, 30), parentPostId: detail.id })}
-                                >신고</button>
+                                <>
+                                  <button
+                                    className={styles.reportCommentBtn}
+                                    onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: c.id, postTitle: c.content.slice(0, 30), parentPostId: detail.id })}
+                                  >신고</button>
+                                  <button
+                                    className={styles.reportCommentBtn}
+                                    onClick={() => handleBlockUser(c.authorId, c.authorNickname, false)}
+                                  >차단</button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -401,10 +440,16 @@ export default function FreePostPage() {
                               <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
                             )}
                             {isLoggedIn && r.authorId !== userId && (
-                              <button
-                                className={styles.reportCommentBtn}
-                                onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: r.id, postTitle: r.content.slice(0, 30), parentPostId: detail.id })}
-                              >신고</button>
+                              <>
+                                <button
+                                  className={styles.reportCommentBtn}
+                                  onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: r.id, postTitle: r.content.slice(0, 30), parentPostId: detail.id })}
+                                >신고</button>
+                                <button
+                                  className={styles.reportCommentBtn}
+                                  onClick={() => handleBlockUser(r.authorId, r.authorNickname, false)}
+                                >차단</button>
+                              </>
                             )}
                           </div>
                           <p className={styles.commentContent}>{r.content}</p>
