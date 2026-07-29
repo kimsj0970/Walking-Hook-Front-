@@ -24,6 +24,7 @@ import {
   type MigratoryFishPointMapMarker,
 } from '../api/migratoryFishPointApi';
 import { PROVINCE_LABELS, PROVINCE_OPTIONS, type Province } from '../api/fishingPointApi';
+import { blockUser } from '../api/blockApi';
 import ReportModal from '../components/common/ReportModal';
 import MonthYearPicker from '../components/common/MonthYearPicker';
 import ReactionBar from '../components/common/ReactionBar';
@@ -787,6 +788,26 @@ export default function CatchPostPage() {
     fetchList(currentPage);
   };
 
+  /** 자유게시판과 동일한 동작 — FreePostPage.tsx 의 같은 함수 참고. */
+  const handleBlockUser = async (targetId: string, nickname: string, isPostAuthor: boolean) => {
+    if (!detail) return;
+    const ok = window.confirm(
+      `${nickname} 님을 차단하시겠습니까?\n\n` +
+      '이 사용자의 게시글과 댓글이 목록에 보이지 않습니다. ' +
+      '마이페이지 > 차단한 사용자에서 해제할 수 있습니다.',
+    );
+    if (!ok) return;
+    try {
+      await blockUser(targetId);
+      if (isPostAuthor) {
+        setView('list');
+        fetchList(currentPage);
+      } else {
+        setComments(await getCatchPostComments(detail.id));
+      }
+    } catch { setError('차단에 실패했습니다.'); }
+  };
+
   const handleDelete = async () => {
     if (!detail || !window.confirm('게시글을 삭제하시겠습니까?')) return;
     try {
@@ -973,6 +994,15 @@ export default function CatchPostPage() {
                         <button className={styles.iconActionBtn} onClick={() => setReportOpen(true)} title="신고하기">
                           <span>🚨</span>신고
                         </button>
+                        {detail.authorId !== userId && (
+                          <button
+                            className={styles.iconActionBtn}
+                            onClick={() => handleBlockUser(detail.authorId, detail.authorNickname, true)}
+                            title="이 사용자 차단"
+                          >
+                            <span>🚫</span>차단
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1065,6 +1095,9 @@ export default function CatchPostPage() {
                             <div className={styles.commentActions}>
                               {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>}
                               {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: c.id, content: c.content })}>신고</button>}
+                              {isLoggedIn && c.authorId !== userId && (
+                                <button className={styles.reportCommentBtn} onClick={() => handleBlockUser(c.authorId, c.authorNickname, false)}>차단</button>
+                              )}
                               {(isOwner || isAdmin || isModerator || c.authorId === userId) && (
                                 <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
                               )}
@@ -1088,6 +1121,9 @@ export default function CatchPostPage() {
                                 <div className={styles.commentActions}>
                                   {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>}
                                   {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: r.id, content: r.content })}>신고</button>}
+                                  {isLoggedIn && r.authorId !== userId && (
+                                    <button className={styles.reportCommentBtn} onClick={() => handleBlockUser(r.authorId, r.authorNickname, false)}>차단</button>
+                                  )}
                                   {(isAdmin || isModerator || r.authorId === userId) && (
                                     <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
                                   )}
