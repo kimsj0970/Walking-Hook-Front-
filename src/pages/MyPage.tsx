@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getMyInfoApi, type UserInfoResponse } from '../api/authApi';
+import { fetchBlockedUsers, unblockUser, type BlockedUser } from '../api/blockApi';
 import styles from './MyPage.module.css';
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -159,6 +160,8 @@ export default function MyPage() {
           )}
         </div>
 
+        <BlockedUsersCard />
+
         {/* 메뉴 */}
         <div className={styles.menuSection}>
           <button className={styles.logoutBtn} onClick={handleLogout}>
@@ -210,6 +213,79 @@ export default function MyPage() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 차단한 사용자 목록·해제.
+ *
+ * 차단은 게시판의 게시글·댓글에서 걸고 해제는 여기서만 한다. 앱(app-flutter)의
+ * 마이페이지 > 차단한 사용자 화면과 같은 역할이며 같은 엔드포인트를 쓴다.
+ */
+function BlockedUsersCard() {
+  const [users, setUsers] = useState<BlockedUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  // 해제 요청 중인 사용자 — 같은 줄을 두 번 누르는 것을 막는다.
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchBlockedUsers()
+      .then(setUsers)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleUnblock = async (user: BlockedUser) => {
+    const ok = window.confirm(
+      `${user.nickname} 님의 차단을 해제하시겠습니까?\n` +
+      '이 사용자의 게시글과 댓글이 다시 보이게 됩니다.',
+    );
+    if (!ok) return;
+    setBusyId(user.userId);
+    try {
+      await unblockUser(user.userId);
+      setUsers((prev) => prev.filter((u) => u.userId !== user.userId));
+    } catch {
+      alert('차단 해제에 실패했습니다. 다시 시도해 주세요.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className={styles.infoCard}>
+      <p className={styles.infoCardTitle}>차단한 사용자</p>
+      {loading ? (
+        <div className={styles.infoLoading}>
+          <div className={`${styles.skeletonRow} skeleton`} />
+        </div>
+      ) : error ? (
+        <p className={styles.infoError}>차단 목록을 불러오지 못했습니다. 새로고침 해주세요.</p>
+      ) : users.length === 0 ? (
+        <p className={styles.blockedEmpty}>
+          차단한 사용자가 없습니다. 게시글이나 댓글의 차단 버튼으로 차단할 수 있습니다.
+        </p>
+      ) : (
+        users.map((user) => (
+          <div key={user.userId} className={styles.blockedRow}>
+            <div className={styles.blockedInfo}>
+              <span className={styles.blockedNick}>{user.nickname}</span>
+              <span className={styles.blockedDate}>
+                {new Date(user.blockedAt).toLocaleDateString('ko-KR')} 차단
+              </span>
+            </div>
+            <button
+              className={styles.unblockBtn}
+              onClick={() => handleUnblock(user)}
+              disabled={busyId === user.userId}
+            >
+              해제
+            </button>
+          </div>
+        ))
       )}
     </div>
   );
