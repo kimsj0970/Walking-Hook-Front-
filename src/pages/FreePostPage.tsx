@@ -159,7 +159,11 @@ export default function FreePostPage() {
       const [d, c] = await Promise.all([getFreePostDetail(id), getFreePostComments(id)]);
       setDetail(d); setComments(c);
     }
-    catch { setError('게시글을 불러오지 못했습니다.'); setView('list'); }
+    catch (err) {
+      // 차단 관계(403) 등 서버가 사용자용 문구를 내려주면 그대로 보여준다.
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? '게시글을 불러오지 못했습니다.'); setView('list');
+    }
     finally { setDetailLoading(false); }
   };
 
@@ -170,7 +174,11 @@ export default function FreePostPage() {
       await addFreePostComment(detail.id, commentInput.trim(), replyTo?.id);
       setComments(await getFreePostComments(detail.id));
       setCommentInput(''); setReplyTo(null);
-    } catch { setError('댓글 작성에 실패했습니다.'); }
+    } catch (err) {
+      // 차단 관계면 서버가 403 + 안내 문구를 내려준다 — 그대로 보여준다.
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? '댓글 작성에 실패했습니다.');
+    }
     finally { setCommentSubmitting(false); }
   };
 
@@ -213,7 +221,7 @@ export default function FreePostPage() {
     if (!detail) return;
     const ok = window.confirm(
       `${nickname} 님을 차단하시겠습니까?\n\n` +
-      '이 사용자의 게시글과 댓글이 목록에 보이지 않습니다. ' +
+      '서로의 게시글과 댓글이 보이지 않게 되고, 서로의 게시물에 댓글을 달 수 없습니다. ' +
       '마이페이지 > 차단한 사용자에서 해제할 수 있습니다.',
     );
     if (!ok) return;
