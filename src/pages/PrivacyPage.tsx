@@ -8,7 +8,7 @@ export default function PrivacyPage() {
       <main className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>개인정보처리방침</h1>
-          <p className={styles.updated}>시행일: 2026년 7월 29일 (개정일: 2026년 7월 27일)</p>
+          <p className={styles.updated}>시행일: 2026년 8월 6일 (개정일: 2026년 7월 30일)</p>
 
           <p className={styles.intro}>
             Walking Hook(이하 "서비스")은 이용자의 개인정보를 소중히 여기며, 「개인정보 보호법」을 준수합니다.
@@ -17,7 +17,7 @@ export default function PrivacyPage() {
 
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>1. 수집하는 개인정보 항목</h2>
-            <p>서비스는 소셜 로그인(카카오·네이버)을 통해 다음 정보를 수집합니다.</p>
+            <p>서비스는 소셜 로그인(카카오·네이버·구글)을 통해 다음 정보를 수집합니다.</p>
             <ul className={styles.list}>
               <li>카카오 로그인 시
                 <ul className={styles.subList}>
@@ -32,6 +32,13 @@ export default function PrivacyPage() {
                   <li>이름 (네이버 계정 제공)</li>
                   <li>이메일 주소 (네이버 계정 제공, 선택)</li>
                   <li>성별, 연령대, 생년월일 및 출생연도 (네이버 계정 제공, 선택)</li>
+                </ul>
+              </li>
+              <li>구글 로그인 시
+                <ul className={styles.subList}>
+                  <li>구글 고유 식별자 (provider ID)</li>
+                  <li>이름 (구글 계정 제공)</li>
+                  <li>이메일 주소 (구글 계정 제공)</li>
                 </ul>
               </li>
               <li>닉네임 (서비스 내 직접 입력)</li>
@@ -164,7 +171,7 @@ export default function PrivacyPage() {
                 </tr>
                 <tr>
                   <td>Google LLC</td>
-                  <td>서비스 이용 통계 분석(Google Analytics), 푸시 알림 발송(Firebase Cloud Messaging)</td>
+                  <td>소셜 로그인 인증 처리, 서비스 이용 통계 분석(Google Analytics), 푸시 알림 발송(Firebase Cloud Messaging)</td>
                 </tr>
               </tbody>
             </table>
@@ -176,8 +183,8 @@ export default function PrivacyPage() {
             <ul className={styles.list}>
               <li>Google LLC (미국)
                 <ul className={styles.subList}>
-                  <li>이전 항목: 쿠키 및 앱 인스턴스 식별자, 광고 식별자(광고 쿠키, Android 광고 ID, iOS 광고 식별자), 회원 식별자, 기기·브라우저 정보, 서비스 이용 기록, 광고 노출 및 클릭 기록, 푸시 알림 발송을 위한 기기 토큰</li>
-                  <li>이전 목적: 서비스 이용 통계 분석, 푸시 알림 발송, 광고 게재 및 광고 성과 측정</li>
+                  <li>이전 항목: 구글 로그인 이용 시 계정 정보(구글 고유 식별자, 이름, 이메일 주소), 쿠키 및 앱 인스턴스 식별자, 광고 식별자(광고 쿠키, Android 광고 ID, iOS 광고 식별자), 회원 식별자, 기기·브라우저 정보, 서비스 이용 기록, 광고 노출 및 클릭 기록, 푸시 알림 발송을 위한 기기 토큰</li>
+                  <li>이전 목적: 소셜 로그인 인증 처리, 서비스 이용 통계 분석, 푸시 알림 발송, 광고 게재 및 광고 성과 측정</li>
                   <li>이전 일시 및 방법: 서비스 이용 시점에 정보통신망을 통해 전송</li>
                   <li>보유 및 이용 기간: 통계 분석 정보는 수집일로부터 최대 14개월, 그 외는 위탁 계약 종료 시까지</li>
                 </ul>
