@@ -119,7 +119,7 @@ export default function PointManagementPage() {
       setScheduleEndHour(draftEndHour);
       setScheduleDialogOpen(false);
       showToast(
-        `AI 캐싱 스케줄러가 시작되었습니다. (${formatWindow(draftStartHour, draftEndHour)}, 1시간 간격, 포인트당 35초 간격)`,
+        `AI 캐싱 스케줄러가 시작되었습니다. (매일 ${formatWindow(draftStartHour, draftEndHour)}, 1시간 간격, 포인트당 35초 간격)`,
       );
     } catch {
       showToast('스케줄러 상태 변경에 실패했습니다.');
@@ -212,7 +212,7 @@ export default function PointManagementPage() {
           </span>
           <span className={styles.schedulerStatus}>
             {scheduleRunning
-              ? `실행 중 — ${formatWindow(scheduleStartHour, scheduleEndHour)}에만 1시간마다 전체 포인트 AI 분석 자동 갱신`
+              ? `실행 중 — 매일 ${formatWindow(scheduleStartHour, scheduleEndHour)}에만 1시간마다 전체 포인트 AI 분석 자동 갱신`
               : '중지됨 — 켜기를 누르면 동작 시간대를 고를 수 있습니다'}
           </span>
         </div>
@@ -342,8 +342,8 @@ export default function PointManagementPage() {
           <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.dialogTitle}>스케줄러 동작 시간대</h3>
             <p className={styles.dialogBody}>
-              선택한 시간대에만 AI 분석 갱신이 돌아갑니다.<br />
-              시간대 밖에서는 다음 시작 시각까지 대기합니다.
+              매일 선택한 시간대에만 AI 분석 갱신이 돌아갑니다.<br />
+              시간대 밖에서는 다음날 시작 시각까지 대기하며, 끄기 전까지 계속 유지됩니다.
             </p>
             <div className={styles.hourPicker}>
               <label className={styles.hourField}>
