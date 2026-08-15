@@ -173,11 +173,16 @@ export function isFeaturedSpecies(code: FishSpecies): boolean {
 
 export const FISH_SPECIES_OPTIONS = Object.entries(FISH_SPECIES_LABELS) as [FishSpecies, string][];
 
-/** 그룹별로 묶은 어종 목록 — 어종 선택 UI를 소제목과 함께 그릴 때 쓴다. */
+/**
+ * 그룹별로 묶은 어종 목록 — 어종 선택 UI를 소제목과 함께 그릴 때 쓴다.
+ * 그룹 안에서는 가나다순으로 정렬한다(앱 `fish_species.dart` 와 같은 규칙).
+ */
 export const FISH_SPECIES_BY_GROUP: [SpeciesGroup, [FishSpecies, string][]][] =
   (Object.keys(SPECIES_GROUP_LABELS) as SpeciesGroup[]).map((group) => [
     group,
-    FISH_SPECIES_OPTIONS.filter(([code]) => FISH_SPECIES_GROUPS[code] === group),
+    FISH_SPECIES_OPTIONS
+      .filter(([code]) => FISH_SPECIES_GROUPS[code] === group)
+      .sort(([, a], [, b]) => a.localeCompare(b, 'ko')),
   ]);
 
 /** 포인트에 등록할 수 있는 회유성 어종만. */
