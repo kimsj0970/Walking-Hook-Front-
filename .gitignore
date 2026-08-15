@@ -30,3 +30,8 @@ dist-ssr
 
 # Claude Code memory (auto-generated)
 .claude/
+
+### 로컬 도구 설정 (비밀정보 포함 — 커밋 금지) ###
+# Claude Code 승인 목록. DB 비밀번호·공공데이터 API 키가 명령어 형태로 남는다.
+.claude/settings.local.json
+
