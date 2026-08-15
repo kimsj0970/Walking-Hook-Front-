@@ -14,10 +14,11 @@ import {
   type CatchPostComment,
 } from '../api/catchPostApi';
 import {
-  FISH_SPECIES_BY_GROUP, FISH_SPECIES_LABELS, SPECIES_GROUP_LABELS,
+  FISH_SPECIES_BY_GROUP, FISH_SPECIES_LABELS, SPECIES_GROUP_LABELS, isFeaturedSpecies,
   MAX_SPECIES_COUNT, MAX_SPECIES_NAME_LENGTH,
   normalizeSpeciesName, validateSpeciesName,
   type FishSpecies,
+  type SpeciesGroup,
 } from '../api/fishSpecies';
 import {
   fetchMigratoryFishPointMapMarkers,
@@ -131,6 +132,30 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
     set('species', [...form.species, label]);
   };
 
+  /**
+   * 어종 "더보기" — 카테고리 하나의 어종 전체를 별도 창에서 고르게 한다.
+   * 자주 쓰는 어종만 칩으로 깔고 나머지는 여기로 보낸다(앱과 같은 규칙).
+   */
+  const [moreGroup, setMoreGroup] = useState<SpeciesGroup | null>(null);
+
+  /** 더보기 창에서 고른 결과를 그 카테고리에 한해 갈아 끼운다. */
+  const applyMoreSpecies = (group: SpeciesGroup, picked: string[]) => {
+    const labelsInGroup = (FISH_SPECIES_BY_GROUP.find(([g]) => g === group)?.[1] ?? [])
+      .map(([, label]) => label);
+    // 이 카테고리에서 빠진 어종만 지우고, 다른 카테고리·직접 입력 어종은 그대로 둔다.
+    const kept = form.species.filter(
+      name => !labelsInGroup.includes(name) || picked.includes(name),
+    );
+    const added = picked.filter(name => !kept.includes(name));
+    set('species', [...kept, ...added]);
+    setSpeciesError('');
+    setMoreGroup(null);
+  };
+
+  /** 한 카테고리에 칩으로 깔 어종 — 기본 노출 + 더보기에서 이미 고른 어종. */
+  const chipsFor = (items: [FishSpecies, string][]) =>
+    items.filter(([code, label]) => isFeaturedSpecies(code) || form.species.includes(label));
+
   useEffect(() => {
     if (!open) return;
     if (editTarget) {
@@ -223,6 +248,9 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
       species: form.species,
       caughtAt: form.caughtAt || undefined,
       migratoryPointId: form.migratoryPointId || undefined,
+      // 포인트를 못 고른 경우에도 시/도만 보내두면 지역 필터에서 글이 잡힌다.
+      // 포인트가 함께 있으면 서버가 그 포인트의 지역으로 덮어쓰므로 그대로 보내도 된다.
+      province: form.selectedProvince || undefined,
       photoUrls: form.photoUrls.length > 0 ? form.photoUrls : undefined,
       lure: form.lure.trim() || null,
       fishSizeCm: form.fishSizeCm.trim() ? Number(form.fishSizeCm.trim()) : null,
@@ -315,7 +343,7 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                     <div key={group} className={styles.speciesChipGroup}>
                       <span className={styles.speciesGroupLabel}>{SPECIES_GROUP_LABELS[group]}</span>
                       <div className={styles.speciesChips}>
-                        {items.map(([code, label]) => (
+                        {chipsFor(items).map(([code, label]) => (
                           <button
                             key={code}
                             type="button"
@@ -327,6 +355,16 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
                             {label}
                           </button>
                         ))}
+                        {items.some(([code]) => !isFeaturedSpecies(code)) && (
+                          <button
+                            type="button"
+                            className={styles.speciesMoreBtn}
+                            onClick={() => setMoreGroup(group)}
+                            title={`${SPECIES_GROUP_LABELS[group]} 어종 전체 보기`}
+                          >
+                            ＋ 더보기 {items.filter(([code]) => !isFeaturedSpecies(code)).length}종
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -507,6 +545,16 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
         </div>
       </div>
 
+      {moreGroup && (
+        <SpeciesMoreModal
+          group={moreGroup}
+          picked={form.species}
+          maxCount={MAX_SPECIES_COUNT}
+          onApply={picked => applyMoreSpecies(moreGroup, picked)}
+          onClose={() => setMoreGroup(null)}
+        />
+      )}
+
       {mapPickerOpen && (
         <MigratoryPointMapPicker
           points={points}
@@ -515,6 +563,80 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
         />
       )}
     </>
+  );
+}
+
+/* ── 어종 더보기 창 ───────────────────────────────────────────────
+ * 카테고리 하나의 어종 전체를 체크박스로 보여 준다. 앱의 SpeciesPickerPage 와 같은 규칙:
+ * 한 창에 한 카테고리만, 검색창 없음, 돌려주는 값은 그 카테고리의 최종 선택.
+ */
+interface SpeciesMoreModalProps {
+  group: SpeciesGroup;
+  /** 지금 폼에 담긴 어종명 전체(다른 카테고리·직접 입력 포함) */
+  picked: string[];
+  maxCount: number;
+  onApply: (picked: string[]) => void;
+  onClose: () => void;
+}
+
+function SpeciesMoreModal({ group, picked, maxCount, onApply, onClose }: SpeciesMoreModalProps) {
+  const items = FISH_SPECIES_BY_GROUP.find(([g]) => g === group)?.[1] ?? [];
+  const labelsInGroup = items.map(([, label]) => label);
+
+  const [selected, setSelected] = useState<string[]>(
+    () => picked.filter(name => labelsInGroup.includes(name)),
+  );
+  const [error, setError] = useState('');
+
+  // 상한은 화면 전체 기준이라 이 카테고리 밖에서 담긴 것까지 센다.
+  const outsideCount = picked.filter(name => !labelsInGroup.includes(name)).length;
+  const total = outsideCount + selected.length;
+
+  const toggle = (label: string) => {
+    if (selected.includes(label)) {
+      setSelected(selected.filter(s => s !== label));
+      setError('');
+      return;
+    }
+    if (total >= maxCount) {
+      setError(`어종은 최대 ${maxCount}개까지 추가할 수 있습니다.`);
+      return;
+    }
+    setSelected([...selected, label]);
+    setError('');
+  };
+
+  return (
+    <div className={styles.overlay} style={{ zIndex: 210 }}>
+      <div className={styles.modal} style={{ maxWidth: 420 }}>
+        <div className={styles.modalHeader}>
+          <h2 className={styles.modalTitle}>{SPECIES_GROUP_LABELS[group]} 선택</h2>
+          <button className={styles.modalClose} onClick={onClose}>✕</button>
+        </div>
+
+        {/* 작성 폼과 같은 칩 모양으로 깔아 둔다 — 같은 어종을 두 화면에서 다르게 보이면 안 된다. */}
+        <div className={styles.speciesPickerChips}>
+          {items.map(([code, label]) => (
+            <button
+              key={code}
+              type="button"
+              className={selected.includes(label) ? styles.speciesChipOn : styles.speciesChip}
+              onClick={() => toggle(label)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {error && <p className={styles.errorMsg} style={{ padding: '0 24px' }}>{error}</p>}
+
+        <div className={styles.modalFooter}>
+          <span className={styles.speciesPickerCount}>선택 {total} / {maxCount}</span>
+          <button className={styles.cancelBtn} onClick={onClose}>취소</button>
+          <button className={styles.submitBtn} onClick={() => onApply(selected)}>선택 완료</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -948,7 +1070,9 @@ export default function CatchPostPage() {
                       <div className={styles.listBottom}>
                         {item.pointName
                           ? <span className={styles.listPoint}>📍 {item.pointName}</span>
-                          : <span className={styles.listNoPoint}>포인트 미지정</span>}
+                          : item.province
+                            ? <span className={styles.listPoint}>🗺 {PROVINCE_LABELS[item.province]}</span>
+                            : <span className={styles.listNoPoint}>위치 미지정</span>}
                         <span className={styles.authorNickname}>{item.authorNickname}</span>
                         {item.photoUrls?.length > 0 && <span className={styles.photoIcon}>📷 {item.photoUrls.length}</span>}
                         <span className={styles.commentCount}>💬 {item.commentCount ?? 0}</span>
@@ -1018,12 +1142,17 @@ export default function CatchPostPage() {
                     </span>
                     <span className={styles.metaDot}>·</span>
                     <span>잡은 날짜: {detail.caughtAt}</span>
-                    {detail.pointName && (
+                    {detail.pointName ? (
                       <>
                         <span className={styles.metaDot}>·</span>
                         <span className={styles.metaPoint}>📍 {detail.pointName}</span>
                       </>
-                    )}
+                    ) : detail.province ? (
+                      <>
+                        <span className={styles.metaDot}>·</span>
+                        <span className={styles.metaPoint}>🗺 {PROVINCE_LABELS[detail.province]}</span>
+                      </>
+                    ) : null}
                     <span className={styles.metaDot}>·</span>
                     <span>작성 날짜: {formatDate(detail.createdAt)}</span>
                   </div>
