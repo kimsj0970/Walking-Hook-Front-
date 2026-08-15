@@ -233,7 +233,13 @@ export default function FreePostPage() {
       } else {
         setComments(await getFreePostComments(detail.id));
       }
-    } catch { setError('차단에 실패했습니다.'); }
+    } catch (e) {
+      // 운영자 차단 시도 등 서버가 사용자용 문구를 내려주면 그대로 보여준다.
+      const msg = (e as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      if (msg) window.alert(msg);
+      else setError('차단에 실패했습니다.');
+    }
   };
 
 
