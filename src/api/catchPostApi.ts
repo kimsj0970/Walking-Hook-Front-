@@ -25,6 +25,7 @@ export interface CatchPostListItem {
   species: CatchSpecies[];
   caughtAt: string;
   pointName: string | null;
+  province: Province | null;
   photoUrls: string[];
   createdAt: string;
   commentCount: number;
@@ -42,6 +43,7 @@ export interface CatchPostDetail {
   caughtAt: string;
   migratoryPointId: string | null;
   pointName: string | null;
+  province: Province | null;
   pointLatitude: number | null;
   pointLongitude: number | null;
   photoUrls: string[];
@@ -71,6 +73,7 @@ export interface PostSummary {
 export interface WeeklyCatchMapMarker {
   migratoryPointId: string;
   pointName: string | null;
+  province: Province | null;
   latitude: number | null;
   longitude: number | null;
   species: CatchSpecies[];
@@ -95,6 +98,11 @@ export interface CatchPostCreateRequest {
   species: string[];
   caughtAt?: string;
   migratoryPointId?: string;
+  /**
+   * 지역(시/도). 포인트를 못 골랐을 때 이것만이라도 있으면 지역 필터에서 찾을 수 있다.
+   * migratoryPointId 가 함께 있으면 서버가 그 포인트의 지역으로 덮어쓴다.
+   */
+  province?: Province;
   photoUrls?: string[];
   lure?: string | null;
   fishSizeCm?: number | null;
