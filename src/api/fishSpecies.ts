@@ -18,51 +18,158 @@ export const SPECIES_GROUP_LABELS: Record<SpeciesGroup, string> = {
 export type FishSpecies =
   // 회유성
   | 'SAMCHI' | 'BANGEO' | 'BUSSIRI' | 'JATBANGEO' | 'MACKEREL' | 'TUNA' | 'JEONGAENGI'
+  //   더보기 어종
+  | 'HAIRTAIL' | 'MULLET' | 'HALFBEAK' | 'SANDFISH' | 'MAHI_MAHI'
   // 일반 어종
   | 'FLOUNDER' | 'ROCKFISH' | 'BLACK_SEA_BREAM' | 'RED_SEA_BREAM' | 'OPALEYE'
   | 'STRIPED_BEAKFISH' | 'SEA_BASS'
+  //   더보기 어종
+  | 'GREENLING' | 'CONGER_EEL' | 'GAJAMI' | 'LONGTAIL_OPALEYE' | 'MARBLED_ROCKFISH'
+  | 'PIKE_CONGER' | 'SURFPERCH' | 'GIZZARD_SHAD' | 'SAND_WHITING' | 'FILEFISH' | 'GURNARD'
+  | 'FLATHEAD' | 'GROUPER' | 'DAGEUMBARI' | 'BOLLAK' | 'YEOLGI' | 'CROAKER' | 'RAY' | 'COD'
+  | 'BLACKTHROAT_SEAPERCH' | 'RED_SPOTTED_GROUPER' | 'GIANT_SEABASS' | 'MONKFISH' | 'SHARK'
+  | 'WRASSE'
   // 두족류
-  | 'CUTTLEFISH' | 'BIGFIN_REEF_SQUID' | 'WEBFOOT_OCTOPUS';
+  | 'CUTTLEFISH' | 'BIGFIN_REEF_SQUID' | 'WEBFOOT_OCTOPUS'
+  //   더보기 어종
+  | 'SWORDTIP_SQUID' | 'COMMON_OCTOPUS' | 'COMMON_SQUID' | 'LONGARM_OCTOPUS';
 
 export const FISH_SPECIES_LABELS: Record<FishSpecies, string> = {
-  SAMCHI:            '삼치',
-  BANGEO:            '방어',
-  BUSSIRI:           '부시리',
-  JATBANGEO:         '잿방어',
-  MACKEREL:          '고등어',
-  TUNA:              '참치',
-  JEONGAENGI:        '전갱이',
-  FLOUNDER:          '광어',
-  ROCKFISH:          '우럭',
-  BLACK_SEA_BREAM:   '감성돔',
-  RED_SEA_BREAM:     '참돔',
-  OPALEYE:           '벵에돔',
-  STRIPED_BEAKFISH:  '돌돔',
-  SEA_BASS:          '농어',
-  CUTTLEFISH:        '갑오징어',
-  BIGFIN_REEF_SQUID: '무늬오징어',
-  WEBFOOT_OCTOPUS:   '쭈꾸미',
+  SAMCHI:               '삼치',
+  BANGEO:               '방어',
+  BUSSIRI:              '부시리',
+  JATBANGEO:            '잿방어',
+  MACKEREL:             '고등어',
+  TUNA:                 '참치',
+  JEONGAENGI:           '전갱이',
+  HAIRTAIL:             '갈치',
+  MULLET:               '숭어',
+  HALFBEAK:             '학꽁치',
+  SANDFISH:             '도루묵',
+  MAHI_MAHI:            '만새기',
+  FLOUNDER:             '광어',
+  ROCKFISH:             '우럭',
+  BLACK_SEA_BREAM:      '감성돔',
+  RED_SEA_BREAM:        '참돔',
+  OPALEYE:              '벵에돔',
+  STRIPED_BEAKFISH:     '돌돔',
+  SEA_BASS:             '농어',
+  GREENLING:            '노래미',
+  CONGER_EEL:           '붕장어',
+  GAJAMI:               '가자미',
+  LONGTAIL_OPALEYE:     '긴꼬리벵에돔',
+  MARBLED_ROCKFISH:     '쏨뱅이',
+  PIKE_CONGER:          '갯장어',
+  SURFPERCH:            '망상어',
+  GIZZARD_SHAD:         '전어',
+  SAND_WHITING:         '보리멸',
+  FILEFISH:             '쥐치',
+  GURNARD:              '성대',
+  FLATHEAD:             '양태',
+  GROUPER:              '능성어',
+  DAGEUMBARI:           '다금바리',
+  BOLLAK:               '볼락',
+  YEOLGI:               '열기',
+  CROAKER:              '조기',
+  RAY:                  '가오리',
+  COD:                  '대구',
+  BLACKTHROAT_SEAPERCH: '금태',
+  RED_SPOTTED_GROUPER:  '붉바리',
+  GIANT_SEABASS:        '돗돔',
+  MONKFISH:             '아귀',
+  SHARK:                '상어',
+  WRASSE:               '용치놀래기',
+  CUTTLEFISH:           '갑오징어',
+  BIGFIN_REEF_SQUID:    '무늬오징어',
+  WEBFOOT_OCTOPUS:      '쭈꾸미',
+  SWORDTIP_SQUID:       '한치',
+  COMMON_OCTOPUS:       '문어',
+  COMMON_SQUID:         '오징어',
+  LONGARM_OCTOPUS:      '낙지',
 };
 
 export const FISH_SPECIES_GROUPS: Record<FishSpecies, SpeciesGroup> = {
-  SAMCHI:            'MIGRATORY',
-  BANGEO:            'MIGRATORY',
-  BUSSIRI:           'MIGRATORY',
-  JATBANGEO:         'MIGRATORY',
-  MACKEREL:          'MIGRATORY',
-  TUNA:              'MIGRATORY',
-  JEONGAENGI:        'MIGRATORY',
-  FLOUNDER:          'RESIDENT',
-  ROCKFISH:          'RESIDENT',
-  BLACK_SEA_BREAM:   'RESIDENT',
-  RED_SEA_BREAM:     'RESIDENT',
-  OPALEYE:           'RESIDENT',
-  STRIPED_BEAKFISH:  'RESIDENT',
-  SEA_BASS:          'RESIDENT',
-  CUTTLEFISH:        'CEPHALOPOD',
-  BIGFIN_REEF_SQUID: 'CEPHALOPOD',
-  WEBFOOT_OCTOPUS:   'CEPHALOPOD',
+  SAMCHI:               'MIGRATORY',
+  BANGEO:               'MIGRATORY',
+  BUSSIRI:              'MIGRATORY',
+  JATBANGEO:            'MIGRATORY',
+  MACKEREL:             'MIGRATORY',
+  TUNA:                 'MIGRATORY',
+  JEONGAENGI:           'MIGRATORY',
+  HAIRTAIL:             'MIGRATORY',
+  MULLET:               'MIGRATORY',
+  HALFBEAK:             'MIGRATORY',
+  SANDFISH:             'MIGRATORY',
+  MAHI_MAHI:            'MIGRATORY',
+  FLOUNDER:             'RESIDENT',
+  ROCKFISH:             'RESIDENT',
+  BLACK_SEA_BREAM:      'RESIDENT',
+  RED_SEA_BREAM:        'RESIDENT',
+  OPALEYE:              'RESIDENT',
+  STRIPED_BEAKFISH:     'RESIDENT',
+  SEA_BASS:             'RESIDENT',
+  GREENLING:            'RESIDENT',
+  CONGER_EEL:           'RESIDENT',
+  GAJAMI:               'RESIDENT',
+  LONGTAIL_OPALEYE:     'RESIDENT',
+  MARBLED_ROCKFISH:     'RESIDENT',
+  PIKE_CONGER:          'RESIDENT',
+  SURFPERCH:            'RESIDENT',
+  GIZZARD_SHAD:         'RESIDENT',
+  SAND_WHITING:         'RESIDENT',
+  FILEFISH:             'RESIDENT',
+  GURNARD:              'RESIDENT',
+  FLATHEAD:             'RESIDENT',
+  GROUPER:              'RESIDENT',
+  DAGEUMBARI:           'RESIDENT',
+  BOLLAK:               'RESIDENT',
+  YEOLGI:               'RESIDENT',
+  CROAKER:              'RESIDENT',
+  RAY:                  'RESIDENT',
+  COD:                  'RESIDENT',
+  BLACKTHROAT_SEAPERCH: 'RESIDENT',
+  RED_SPOTTED_GROUPER:  'RESIDENT',
+  GIANT_SEABASS:        'RESIDENT',
+  MONKFISH:             'RESIDENT',
+  SHARK:                'RESIDENT',
+  WRASSE:               'RESIDENT',
+  CUTTLEFISH:           'CEPHALOPOD',
+  BIGFIN_REEF_SQUID:    'CEPHALOPOD',
+  WEBFOOT_OCTOPUS:      'CEPHALOPOD',
+  SWORDTIP_SQUID:       'CEPHALOPOD',
+  COMMON_OCTOPUS:       'CEPHALOPOD',
+  COMMON_SQUID:         'CEPHALOPOD',
+  LONGARM_OCTOPUS:      'CEPHALOPOD',
 };
+
+/**
+ * 앱 작성 화면에 칩으로 바로 깔리는 어종. 나머지는 카테고리별 "더보기" 화면에서 고른다.
+ * 저장·필터·지도는 둘 다 똑같이 동작한다 — 노출 위치만 다르다.
+ * 앱 `core/models/fish_species.dart` 의 _featuredSpecies 와 같은 목록을 유지한다.
+ */
+export const FEATURED_FISH_SPECIES: FishSpecies[] = [
+  'SAMCHI',
+  'BANGEO',
+  'BUSSIRI',
+  'JATBANGEO',
+  'MACKEREL',
+  'TUNA',
+  'JEONGAENGI',
+  'FLOUNDER',
+  'ROCKFISH',
+  'BLACK_SEA_BREAM',
+  'RED_SEA_BREAM',
+  'OPALEYE',
+  'STRIPED_BEAKFISH',
+  'SEA_BASS',
+  'CUTTLEFISH',
+  'BIGFIN_REEF_SQUID',
+  'WEBFOOT_OCTOPUS',
+];
+
+export function isFeaturedSpecies(code: FishSpecies): boolean {
+  return FEATURED_FISH_SPECIES.includes(code);
+}
 
 export const FISH_SPECIES_OPTIONS = Object.entries(FISH_SPECIES_LABELS) as [FishSpecies, string][];
 
