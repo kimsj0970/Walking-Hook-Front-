@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchAdminFishingZones, createFishingZone, updateFishingZone, deleteFishingZone,
-  type FishingZone, type ZoneType,
+  fetchAdminFishingZones, createFishingZone, updateFishingZone,
+  ZONE_TYPE_COLOR, ZONE_TYPE_LABEL,
+  type FishingZone, type ZoneType, type ZoneBounds,
 } from '../../api/fishingZoneApi';
 import { fetchPublicFishingPointsForMap, type FishingPointMapMarker } from '../../api/fishingPointApi';
 import MapTypeControl from '../../components/map/MapTypeControl';
@@ -51,7 +52,7 @@ function geoJsonToCoords(geoJson: string): Coord[] {
 }
 
 function zoneColor(zoneType: ZoneType) {
-  return zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+  return ZONE_TYPE_COLOR[zoneType] ?? '#64748B';
 }
 
 export default function FishingZoneManagementPage() {
@@ -84,8 +85,51 @@ export default function FishingZoneManagementPage() {
   const [editingZone, setEditingZone] = useState<FishingZone | null>(null);
   const [editVertices, setEditVertices] = useState<Coord[]>([]);
 
+  /*
+   * 표시 필터. 어장(FISHERY)은 전국 7천 건이라 기본으로 꺼 둔다.
+   * 켜면 화면 범위(bbox)로만 조회하며, 범위가 1.0도를 넘으면 서버가 알아서 뺀다.
+   * showHidden 은 "숨김"(active=false) 처리한 구역을 회색으로 다시 보여 주는 스위치다.
+   */
+  const [showProhibited, setShowProhibited] = useState(true);
+  const [showRestricted, setShowRestricted] = useState(true);
+  const [showFishery, setShowFishery] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
+  /** 그리기 전에 고르는 종류. 그리는 선 색과 저장 폼의 초기값이 여기에 따라간다. */
+  const [drawType, setDrawType] = useState<ZoneType>('PROHIBITED');
+  const [zoomedOutForFishery, setZoomedOutForFishery] = useState(false);
+
+  const showFisheryRef = useRef(false);
+  showFisheryRef.current = showFishery;
+
+  /**
+   * 구역 목록 재조회.
+   *
+   * 어장을 켠 상태면 지도에 보이는 범위만 받아 온다. 어장은 전국 7천 건이라
+   * 범위 없이 받으면 브라우저가 폴리곤을 다 그리지 못한다.
+   * 범위가 너무 넓으면 서버가 어장을 빼서 주므로, 그 사실을 안내로 띄우려고
+   * 요청 시점의 범위 폭을 함께 기억해 둔다.
+   */
   const loadZones = useCallback(async () => {
-    const list = await fetchAdminFishingZones().catch(() => []);
+    let bounds: ZoneBounds | undefined;
+    const map = kakaoMapRef.current;
+    if (showFisheryRef.current && map) {
+      const b = map.getBounds();
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      bounds = {
+        minLat: sw.getLat(), minLng: sw.getLng(),
+        maxLat: ne.getLat(), maxLng: ne.getLng(),
+      };
+      setZoomedOutForFishery(
+        bounds.maxLat - bounds.minLat > 1.0 || bounds.maxLng - bounds.minLng > 1.0,
+      );
+    } else {
+      setZoomedOutForFishery(false);
+    }
+    const list = await fetchAdminFishingZones({
+      includeFishery: showFisheryRef.current,
+      bounds,
+    }).catch(() => []);
     setZones(list);
   }, []);
 
@@ -98,30 +142,42 @@ export default function FishingZoneManagementPage() {
     zonePolysRef.current.forEach(p => p.setMap(null));
     zonePolysRef.current = [];
 
+    const typeShown: Record<ZoneType, boolean> = {
+      PROHIBITED: showProhibited,
+      RESTRICTED: showRestricted,
+      FISHERY: showFishery,
+    };
+
     zones.forEach(zone => {
-      if (!zone.active) return;
+      if (!typeShown[zone.zoneType]) return;
+      // 숨김(active=false) 구역은 토글을 켰을 때만, 회색 점선으로 구분해 그린다.
+      if (!zone.active && !showHidden) return;
       if (editingZone?.id === zone.id) return; // 수정 중인 구역은 편집 오버레이로 별도 렌더링
       const coords = geoJsonToCoords(zone.geoJson);
       if (coords.length < 3) return;
-      const color = zoneColor(zone.zoneType);
+      const hidden = !zone.active;
+      const color = hidden ? '#94A3B8' : zoneColor(zone.zoneType);
+      const fishery = zone.zoneType === 'FISHERY';
       const poly = new kakao.maps.Polygon({
         map: kakaoMapRef.current,
         path: coordsToKakaoPath(kakao, coords),
-        strokeWeight: 2,
+        strokeWeight: fishery ? 1 : 2,
         strokeColor: color,
         strokeOpacity: 0.9,
+        strokeStyle: hidden ? 'dash' : 'solid',
         fillColor: color,
-        fillOpacity: 0.2,
+        // 어장은 화면에 수백 개가 겹쳐 깔리므로 옅게 둬야 아래가 보인다.
+        fillOpacity: hidden ? 0.08 : (fishery ? 0.15 : 0.2),
       });
       const infoWindow = new kakao.maps.InfoWindow({
         content: `
           <div style="padding:12px 16px;width:240px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
             <strong style="font-size:14px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
-            <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${zone.zoneType === 'PROHIBITED' ? '낚시금지구역' : '낚시제한구역'}</div>
+            <div style="font-size:11px;color:#94A3B8;margin:3px 0 6px;">${ZONE_TYPE_LABEL[zone.zoneType] ?? ''}</div>
             ${zone.description ? `<p style="font-size:12px;color:#334155;margin:0 0 10px;line-height:1.5;">${escapeHtml(zone.description)}</p>` : ''}
             <div style="display:flex;gap:6px;">
               <button id="edit-${zone.id}" style="padding:5px 12px;background:#DBEAFE;color:#1D4ED8;border:1px solid #93C5FD;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">수정</button>
-              <button id="del-${zone.id}" style="padding:5px 12px;background:#FEE2E2;color:#DC2626;border:1px solid #FCA5A5;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">삭제</button>
+              <button id="del-${zone.id}" style="padding:5px 12px;background:${hidden ? '#DCFCE7' : '#FEE2E2'};color:${hidden ? '#15803D' : '#DC2626'};border:1px solid ${hidden ? '#86EFAC' : '#FCA5A5'};border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">${hidden ? '복구' : '숨김'}</button>
             </div>
           </div>`,
         removable: true,
@@ -141,8 +197,13 @@ export default function FishingZoneManagementPage() {
           const btn = document.getElementById(`del-${zone.id}`);
           if (btn) {
             btn.onclick = async () => {
-              if (!confirm(`"${zone.name}" 구역을 삭제하시겠습니까?`)) return;
-              await deleteFishingZone(zone.id);
+              // 물리 삭제하지 않는다. 삭제하면 이름이 사라져, 재기동 때
+              // ControlZoneSeedInitializer 가 "신규"로 판단해 시드에서 되살려 놓는다.
+              // active=false 로 두면 이름이 남아 시드가 건너뛰므로 숨김이 유지된다.
+              const next = !zone.active;
+              const verb = next ? '복구' : '숨김 처리';
+              if (!confirm(`"${zone.name}" 구역을 ${verb}하시겠습니까?`)) return;
+              await updateFishingZone(zone.id, { active: next });
               infoWindow.close();
               loadZones();
             };
@@ -152,7 +213,33 @@ export default function FishingZoneManagementPage() {
       zonePolysRef.current.push(poly);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zones, loadZones, editingZone]);
+  }, [zones, loadZones, editingZone, showProhibited, showRestricted, showFishery, showHidden]);
+
+  // ── 지도 초기화 ────────────────────────────────────────────────────
+  /* 어장 표시를 켜면 화면 범위로만 조회하므로, 지도를 움직일 때마다 다시 받아야 한다.
+     연속 조작에서 매번 쏘지 않도록 300ms 로 묶는다. */
+  useEffect(() => {
+    const kakao = (window as any).kakao; // eslint-disable-line
+    const map = kakaoMapRef.current;
+    if (!kakao?.maps || !map) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onIdle = () => {
+      if (!showFisheryRef.current) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { loadZones(); }, 300);
+    };
+    kakao.maps.event.addListener(map, 'idle', onIdle);
+    return () => {
+      if (timer) clearTimeout(timer);
+      kakao.maps.event.removeListener(map, 'idle', onIdle);
+    };
+  }, [mapStatus, loadZones]);
+
+  /* 어장 토글이 바뀌면 즉시 다시 받는다 (켤 때는 범위 조회, 끌 때는 전체 조회). */
+  useEffect(() => {
+    if (mapStatus === 'ready') loadZones();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showFishery]);
 
   // ── 지도 초기화 ────────────────────────────────────────────────────
   useEffect(() => {
@@ -383,7 +470,10 @@ export default function FishingZoneManagementPage() {
   }
 
   // ── 드로잉 모드 전환 ──────────────────────────────────────────────
+  /* 그리기를 시작하면 폼의 종류를 툴바에서 고른 값으로 맞춘다.
+     그려 놓고 종류를 다시 고르게 하면 어느 색으로 그려질지 모른 채 그리게 된다. */
   function startDraw(mode: DrawMode) {
+    setFormType(drawType);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     clearDrawing((window as any).kakao);
     clearEditState();
@@ -462,7 +552,20 @@ export default function FishingZoneManagementPage() {
     <div className={styles.wrap}>
       {/* 상단 컨트롤 바 */}
       <div className={styles.toolbar}>
-        <span className={styles.toolbarLabel}>낚시 금지구역 관리</span>
+        <span className={styles.toolbarLabel}>낚시 구역 관리</span>
+
+        {/* 그리기 전에 종류를 고른다. 그리는 선 색과 저장 폼의 초기 종류가 여기를 따라간다. */}
+        <select
+          className={styles.formSelect}
+          style={{ width: 'auto', minWidth: 150 }}
+          value={drawType}
+          onChange={e => setDrawType(e.target.value as ZoneType)}
+          disabled={drawMode !== 'none'}
+        >
+          <option value="PROHIBITED">🔴 낚시금지구역</option>
+          <option value="RESTRICTED">🟠 낚시제한구역</option>
+          <option value="FISHERY">🟡 어업권 설정 수면</option>
+        </select>
 
         <button
           className={`${styles.btnDraw} ${drawMode === 'rect' ? styles.active : ''}`}
@@ -491,11 +594,34 @@ export default function FishingZoneManagementPage() {
         <span className={styles.hint}>{hintText}</span>
       </div>
 
+      {/* 표시 필터 — 어장은 전국 7천 건이라 기본 꺼짐. 켜면 화면 범위로만 조회한다. */}
+      <div className={styles.legend} style={{ gap: 14, flexWrap: 'wrap' }}>
+        <span style={{ color: '#64748B', fontWeight: 600 }}>표시</span>
+        <label style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={showProhibited} onChange={e => setShowProhibited(e.target.checked)} /> 금지
+        </label>
+        <label style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={showRestricted} onChange={e => setShowRestricted(e.target.checked)} /> 제한
+        </label>
+        <label style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={showFishery} onChange={e => setShowFishery(e.target.checked)} /> 어장
+        </label>
+        <label style={{ cursor: 'pointer' }}>
+          <input type="checkbox" checked={showHidden} onChange={e => setShowHidden(e.target.checked)} /> 숨김 구역
+        </label>
+        {showFishery && zoomedOutForFishery && (
+          <span style={{ color: '#B45309' }}>· 범위가 넓어 어장은 빠졌습니다. 확대하세요</span>
+        )}
+        <span style={{ color: '#94A3B8' }}>· 표시된 구역 {zones.length}건</span>
+      </div>
+
       {/* 범례 */}
       <div className={styles.legend}>
         <span className={styles.legendRed}>■ 낚시금지구역</span>
         <span className={styles.legendOrange}>■ 낚시제한구역</span>
+        <span className={styles.legendYellow}>■ 어업권 설정 수면</span>
         <span className={styles.legendBlue}>● 낚시 포인트</span>
+        <span style={{ color: '#94A3B8' }}>┄ 숨김(비활성) 구역</span>
       </div>
 
       {/* 로딩/에러 */}
@@ -533,6 +659,7 @@ export default function FishingZoneManagementPage() {
               >
                 <option value="PROHIBITED">🔴 낚시금지구역</option>
                 <option value="RESTRICTED">🟠 낚시제한구역</option>
+                <option value="FISHERY">🟡 어업권 설정 수면</option>
               </select>
             </div>
 
