@@ -49,9 +49,16 @@ export default function App() {
             <Route path="/oauth/naver/callback" element={<OAuthCallbackPage />} />
             <Route path="/nickname" element={<PrivateRoute><NicknamePage /></PrivateRoute>} />
             <Route path="/my" element={<PrivateRoute><MyPage /></PrivateRoute>} />
-            <Route path="/map" element={<MapPage />} />
+            {/* 지도 데이터(포인트 좌표·낚시금지구역)는 로그인 필수 API 라 PrivateRoute 로 감싼다.
+                감싸는 진짜 이유는 리다이렉트가 아니라 "대기"다 — 이 페이지들은 window.open 으로
+                열리는 팝업이고, 팝업은 부모의 메모리 토큰을 물려받지 못해 AuthProvider 의
+                silentRefresh(httpOnly refresh 쿠키)로 토큰을 새로 받는다. 그 사이에 지도가
+                먼저 마운트되면 Authorization 헤더 없이 요청이 나가 401 이 된다.
+                PrivateRoute 는 isInitializing 동안 렌더를 미루므로 그 경합이 사라진다.
+                CCTV 는 정부 공개 데이터라 API 가 공개이므로 감싸지 않는다. */}
+            <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
             <Route path="/map/cctv" element={<CctvMapPage />} />
-            <Route path="/map/fishing-zones" element={<FishingZonesMapPage />} />
+            <Route path="/map/fishing-zones" element={<PrivateRoute><FishingZonesMapPage /></PrivateRoute>} />
             <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
             <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
             <Route path="/community" element={<CommunityPage />} />
