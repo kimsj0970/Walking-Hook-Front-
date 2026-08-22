@@ -35,3 +35,8 @@ dist-ssr
 # Claude Code 승인 목록. DB 비밀번호·공공데이터 API 키가 명령어 형태로 남는다.
 .claude/settings.local.json
 
+
+### 로컬 디버그 도구 (배포 금지) ###
+# public/ 에 두면 Vercel 이 사이트 루트로 그대로 서빙한다.
+# 카카오 JS 앱키가 하드코딩돼 있어 저장소·배포 양쪽에서 제외한다.
+public/wh-trace.html
