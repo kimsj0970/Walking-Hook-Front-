@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>WH 방파제 트레이스</title>
+<style>html,body{margin:0;padding:0;height:100%;overflow:hidden}
+#map{width:100vw;height:100vh}
+#hud{position:fixed;top:0;left:0;z-index:9999;background:rgba(0,0,0,.72);color:#fff;
+font:12px/1.5 monospace;padding:6px 10px;pointer-events:none;white-space:pre}
+</style></head><body>
+<div id="map"></div><div id="hud">loading…</div>
+<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=cba07604bc51517bd2e6f697cf15737a&autoload=false"></script>
+<script>
+kakao.maps.load(function () {
+  var map = new kakao.maps.Map(document.getElementById('map'), {
+    center: new kakao.maps.LatLng(35.05, 129.00), level: 3
+  });
+  map.setMapTypeId(kakao.maps.MapTypeId.SKYVIEW);
+  window.__map = map;
+  window.__lines = [];
+
+  function hud() {
+    var c = map.getCenter(), b = map.getBounds();
+    var sw = b.getSouthWest(), ne = b.getNorthEast();
+    document.getElementById('hud').textContent =
+      'center ' + c.getLat().toFixed(6) + ', ' + c.getLng().toFixed(6) +
+      '   level ' + map.getLevel() +
+      '\nviewport ' + window.innerWidth + 'x' + window.innerHeight +
+      '   SW ' + sw.getLat().toFixed(6) + ',' + sw.getLng().toFixed(6) +
+      '   NE ' + ne.getLat().toFixed(6) + ',' + ne.getLng().toFixed(6);
+  }
+  kakao.maps.event.addListener(map, 'idle', hud);
+  hud();
+
+  // 지도를 원하는 위치로
+  window.__goto = function (lat, lng, level) {
+    map.setLevel(level || 3);
+    map.setCenter(new kakao.maps.LatLng(lat, lng));
+    hud();
+    return 'ok';
+  };
+
+  /* 스크린샷 픽셀 -> 위경도.
+     스크린샷은 뷰포트를 축소해 찍히므로 실제 너비 비율로 되돌린 뒤 변환한다. */
+  window.__px2ll = function (pts, shotW, shotH) {
+    var sx = window.innerWidth / shotW, sy = window.innerHeight / shotH;
+    var proj = map.getProjection();
+    return pts.map(function (p) {
+      var ll = proj.coordsFromContainerPoint(new kakao.maps.Point(p[0] * sx, p[1] * sy));
+      return [ +ll.getLng().toFixed(6), +ll.getLat().toFixed(6) ];
+    });
+  };
+
+  // 확인용으로 지도에 그려 본다 ([[lng,lat],...])
+  window.__draw = function (coords, color) {
+    var line = new kakao.maps.Polyline({
+      map: map, strokeWeight: 4, strokeColor: color || '#FF2D55', strokeOpacity: 0.95,
+      path: coords.map(function (c) { return new kakao.maps.LatLng(c[1], c[0]); })
+    });
+    window.__lines.push(line);
+    return coords.length + ' pts drawn';
+  };
+  window.__clear = function () {
+    window.__lines.forEach(function (l) { l.setMap(null); });
+    window.__lines = [];
+    return 'cleared';
+  };
+});
+</script></body></html>
