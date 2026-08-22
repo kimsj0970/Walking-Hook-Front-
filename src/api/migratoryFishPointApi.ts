@@ -134,6 +134,8 @@ export async function fetchAllMigratoryFishPointMapMarkers(): Promise<MigratoryF
 export interface MigratoryPointVideo {
   id: string;
   url: string;
+  /** 영상 제목. 없을 수 있다 — 화면은 채널명으로 대체한다 */
+  title: string | null;
   channelName: string;
   /** yyyy-MM-dd */
   publishedOn: string;
@@ -144,6 +146,7 @@ export interface MigratoryPointVideo {
 
 export interface MigratoryPointVideoCreateRequest {
   url: string;
+  title?: string | null;
   channelName: string;
   publishedOn: string;
   startSeconds: number;
@@ -153,6 +156,8 @@ export interface MigratoryPointVideoCreateRequest {
 
 export interface MigratoryPointVideoUpdateRequest {
   url?: string;
+  /** 빈 문자열이면 제목을 지운다 (null 로는 "유지"와 구분되지 않는다) */
+  title?: string;
   channelName?: string;
   publishedOn?: string;
   startSeconds?: number;
