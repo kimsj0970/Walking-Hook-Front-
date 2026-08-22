@@ -12,7 +12,8 @@ import styles from './PointVideoManagerModal.module.css';
  * 조황 포인트에 연결된 유튜브 영상 관리 모달.
  *
  * 목록·연필 폼·지도 세 진입점이 모두 이 모달 하나를 띄운다.
- * 저장하는 건 URL·채널명·날짜·등장 구간뿐이며, 화면에는 "링크" 글자만 노출한다.
+ * 저장하는 건 URL·제목·채널명·날짜·등장 구간이며, 영상은 아웃링크로만 연결한다.
+ * 제목은 선택 — 비워 두면 사용자 화면에서 채널명이 대표 줄이 된다.
  */
 interface Props {
   pointId: string;
@@ -24,13 +25,16 @@ interface Props {
 
 interface FormState {
   url: string;
+  title: string;
   channelName: string;
   publishedOn: string;
   start: string;
   end: string;
 }
 
-const EMPTY_FORM: FormState = { url: '', channelName: '', publishedOn: '', start: '', end: '' };
+const EMPTY_FORM: FormState = {
+  url: '', title: '', channelName: '', publishedOn: '', start: '', end: '',
+};
 
 /** "2:05" / "1:02:05" / "125" → 초. 형식이 틀리면 null */
 function parseTime(value: string): number | null {
@@ -114,6 +118,7 @@ export default function PointVideoManagerModal({ pointId, pointName, onClose, on
     setError('');
     setForm({
       url: v.url,
+      title: v.title ?? '',
       channelName: v.channelName,
       publishedOn: v.publishedOn,
       start: formatTime(v.startSeconds),
@@ -144,6 +149,8 @@ export default function PointVideoManagerModal({ pointId, pointName, onClose, on
       if (editingId) {
         await updatePointVideo(editingId, {
           url: form.url.trim(),
+          // 빈 문자열을 그대로 보내는 게 "제목 지움" 이다 (undefined 면 기존 값이 유지된다)
+          title: form.title.trim(),
           channelName: form.channelName.trim(),
           publishedOn: form.publishedOn,
           startSeconds,
@@ -153,6 +160,7 @@ export default function PointVideoManagerModal({ pointId, pointName, onClose, on
       } else {
         await createPointVideo(pointId, {
           url: form.url.trim(),
+          title: form.title.trim() || null,
           channelName: form.channelName.trim(),
           publishedOn: form.publishedOn,
           startSeconds,
@@ -178,7 +186,7 @@ export default function PointVideoManagerModal({ pointId, pointName, onClose, on
   };
 
   const handleDelete = async (v: MigratoryPointVideo) => {
-    if (!window.confirm(`${v.channelName} 영상을 삭제할까요?`)) return;
+    if (!window.confirm(`${v.title || v.channelName} 영상을 삭제할까요?`)) return;
     setSaving(true);
     try {
       await deletePointVideo(v.id);
@@ -227,15 +235,22 @@ export default function PointVideoManagerModal({ pointId, pointName, onClose, on
               {videos.map((v) => (
                 <li key={v.id} className={`${styles.item} ${editingId === v.id ? styles.itemEditing : ''}`}>
                   <div className={styles.itemMain}>
-                    <span className={styles.channel}>{v.channelName}</span>
-                    <span className={styles.meta}>{v.publishedOn}</span>
-                    <span className={styles.section}>
-                      {formatTime(v.startSeconds)}
-                      {v.endSeconds != null ? ` ~ ${formatTime(v.endSeconds)}` : ''}
-                    </span>
-                    <a className={styles.link} href={v.url} target="_blank" rel="noreferrer noopener">
-                      링크
-                    </a>
+                    {v.title && (
+                      <span className={styles.videoTitle} title={v.title}>{v.title}</span>
+                    )}
+                    <div className={styles.metaRow}>
+                      <span className={v.title ? styles.channelSub : styles.channel}>
+                        {v.channelName}
+                      </span>
+                      <span className={styles.meta}>{v.publishedOn}</span>
+                      <span className={styles.section}>
+                        {formatTime(v.startSeconds)}
+                        {v.endSeconds != null ? ` ~ ${formatTime(v.endSeconds)}` : ''}
+                      </span>
+                      <a className={styles.link} href={v.url} target="_blank" rel="noreferrer noopener">
+                        링크
+                      </a>
+                    </div>
                   </div>
                   <div className={styles.itemActions}>
                     <button className={styles.smallBtn} onClick={() => handleEdit(v)} disabled={saving}>
@@ -262,6 +277,18 @@ export default function PointVideoManagerModal({ pointId, pointName, onClose, on
                 value={form.url}
                 onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
                 placeholder="https://youtu.be/... (공유 → 시작 시간 포함)"
+                disabled={saving}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.label}>영상 제목 (선택)</span>
+              <input
+                className={styles.input}
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="유튜브 제목을 그대로 붙여넣으세요"
+                maxLength={200}
                 disabled={saving}
               />
             </label>
