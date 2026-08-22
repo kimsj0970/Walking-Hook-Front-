@@ -134,8 +134,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 12px 14px;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   background: var(--color-bg);
@@ -147,8 +147,39 @@
   background: rgba(11, 61, 145, 0.04);
 }
 
-/* 채널명 · 날짜 · 구간을 한 줄로 — 좁은 화면에서만 접힌다 */
+/* 제목(있으면) 위, 채널명 · 날짜 · 구간이 아래. min-width:0 이 없으면 자식의 말줄임이 안 먹는다 */
 .itemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+/*
+ * 유튜브 제목은 100자까지 온다. 2줄에서 자르는 이유:
+ *  - 1줄이면 "기장 대변항 방파제 감성돔…" 처럼 정작 중요한 뒷부분이 잘린다
+ *  - 3줄 이상이면 카드 높이가 항목마다 달라져 목록이 훑어지지 않는다
+ * word-break: keep-all 로 한글은 어절 단위로 끊고,
+ * overflow-wrap: anywhere 로 끊을 자리가 없는 긴 영문·URL 토큰만 강제로 자른다.
+ * (keep-all 만 쓰면 긴 영문 한 덩어리가 카드를 밀어낸다)
+ */
+.videoTitle {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 채널명 · 날짜 · 구간을 한 줄로 — 좁은 화면에서만 접힌다 */
+.metaRow {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -156,7 +187,19 @@
   min-width: 0;
 }
 
+/* 제목이 있을 때 — 채널명은 보조 정보로 내린다 */
 .channel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* 제목이 없을 때 — 채널명이 대표 줄 역할을 한다 (제목 컬럼 생기기 전 데이터) */
+.channelStrong {
   font-size: 14px;
   font-weight: 700;
   color: var(--color-text);
