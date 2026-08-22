@@ -9,8 +9,11 @@ import styles from './PointVideoListModal.module.css';
 /**
  * 포인트에서 촬영된 유튜브 영상 목록 (사용자용).
  *
- * 채널명·게시일·등장 구간과 "링크" 글자만 노출하고 유튜브로 새 창을 띄운다.
+ * 영상 제목·채널명·게시일·등장 구간과 "링크" 글자만 노출하고 유튜브로 새 창을 띄운다.
  * 썸네일을 가져오거나 임베드로 재생하지 않는다 — 각 채널의 콘텐츠다.
+ *
+ * 제목은 길이가 제각각이라(유튜브 제목은 100자까지 간다) 2줄에서 자른다.
+ * 자르지 않으면 카드 높이가 항목마다 달라져 목록이 읽히지 않는다.
  */
 interface Props {
   pointId: string;
@@ -113,9 +116,19 @@ export default function PointVideoListModal({ pointId, pointName, onClose }: Pro
                       rel="noreferrer noopener"
                     >
                       <div className={styles.itemMain}>
-                        <span className={styles.channel}>{v.channelName}</span>
-                        <span className={styles.date}>{publishedLabel(v.publishedOn)}</span>
-                        <span className={styles.section}>이 포인트 등장 {sectionLabel(v)}</span>
+                        {/* 제목이 있으면 대표 줄. 없는 영상(컬럼 생기기 전 데이터)은 예전처럼 채널명이 대표 줄이 된다. */}
+                        {v.title && (
+                          <span className={styles.videoTitle} title={v.title}>
+                            {v.title}
+                          </span>
+                        )}
+                        <div className={styles.metaRow}>
+                          <span className={v.title ? styles.channel : styles.channelStrong}>
+                            {v.channelName}
+                          </span>
+                          <span className={styles.date}>{publishedLabel(v.publishedOn)}</span>
+                          <span className={styles.section}>이 포인트 등장 {sectionLabel(v)}</span>
+                        </div>
                       </div>
                       <span className={styles.link}>링크</span>
                     </a>
