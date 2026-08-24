@@ -97,18 +97,60 @@ const BADGE: Record<string, string> = {
   FISHERY: '🟡 어업권 설정 수면',
 };
 
+/**
+ * 한 프레임에 만들 폴리곤 수.
+ *
+ * 수백 개를 한 번에 만들면 그동안 메인 스레드가 멈춰 화면이 통째로 굳는다.
+ * 나눠 넣으면 총 시간은 비슷해도 구역이 순차적으로 채워져 체감이 전혀 다르다.
+ */
+const RENDER_CHUNK = 40;
+
+/** 지도에 올라간 카카오 Polygon. InfoWindow 는 화면 전체에서 하나만 쓴다. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface Overlay { poly: any; info: any }
+type ZonePolygon = any;
 
 /**
- * 구역 하나를 그린다. 실패하면 null.
+ * 클릭한 구역의 인포윈도우 HTML.
+ *
+ * <p>예전에는 이 문자열과 InfoWindow 객체를 <b>구역을 그릴 때마다 미리</b> 만들었다.
+ * InfoWindow 는 DOM 을 만드는 무거운 객체라, 화면에 구역이 수백 개면 숨겨진 DOM 트리가
+ * 그만큼 생겼고 그게 첫 로딩을 초 단위로 잡아먹었다. 이제 클릭한 순간에만 만든다
+ * (설명 파싱도 여기서만 돈다).
+ */
+function buildInfoContent(zone: FishingZone): string {
+  const color = ZONE_TYPE_COLOR[zone.zoneType] ?? '#64748B';
+  const fishery = zone.zoneType === 'FISHERY';
+  const { basis, fine } = parseZoneInfo(zone.description);
+  return `
+    <div style="padding:14px 16px;width:252px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
+      <strong style="font-size:14px;color:${color};display:block;line-height:1.4;">${escapeHtml(zone.name)}</strong>
+      <div style="font-size:11px;color:#94A3B8;margin:3px 0 2px;">${BADGE[zone.zoneType] ?? escapeHtml(ZONE_TYPE_LABEL[zone.zoneType] ?? '')}</div>
+      ${infoRow('근거', basis)}
+      ${infoRow('과태료', fine)}
+      ${fishery ? '<p style="font-size:11px;color:#B45309;margin:10px 0 0;line-height:1.45;">낚시금지 고시 구역은 아닙니다. 다만 어업권이 설정된 수면이라 양식 시설물·어구가 있어 진입 시 분쟁이 생길 수 있습니다.</p>' : ''}
+      <p style="font-size:11px;color:#94A3B8;margin:10px 0 0;padding-top:9px;border-top:1px solid #F1F5F9;line-height:1.5;">실제 규제 범위와 효력은 관할기관 고시 원문을 기준으로 합니다.</p>
+    </div>`;
+}
+
+/**
+ * 구역 하나를 폴리곤으로 그린다. 실패하면 null.
  *
  * <p>GeoJSON 링은 첫 줄이 외곽, 나머지가 구멍이다. 카카오 Polygon 은 path 에
  * 배열의 배열을 주면 구멍으로 처리하므로, 구멍이 있을 때만 그 형태로 넘긴다.
  * 링 마지막 점은 첫 점과 같은 닫는 점이라 빼고 넘긴다.
+ *
+ * <p>어장은 z 순서를 낮춰 금지·제한구역 아래에 깐다. 겹치는 곳에서 노란 어장이
+ * 빨간 금지구역을 덮으면 법적으로 중요한 쪽이 안 보인다.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createOverlay(kakao: any, map: any, zone: FishingZone): Overlay | null {
+function createPolygon(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  kakao: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map: any,
+  zone: FishingZone,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onClick: (zone: FishingZone, latLng: any) => void,
+): ZonePolygon | null {
   try {
     const parsed = JSON.parse(zone.geoJson);
     const rings: [number, number][][] = parsed.coordinates;
@@ -127,6 +169,7 @@ function createOverlay(kakao: any, map: any, zone: FishingZone): Overlay | null 
     const poly = new kakao.maps.Polygon({
       map,
       path,
+      zIndex: fishery ? 1 : 2,
       strokeWeight: fishery ? 1 : 2,
       strokeColor: color,
       strokeOpacity: fishery ? 0.7 : 0.9,
@@ -135,27 +178,9 @@ function createOverlay(kakao: any, map: any, zone: FishingZone): Overlay | null 
       fillOpacity: fishery ? 0.15 : 0.2,
     });
 
-    const { basis, fine } = parseZoneInfo(zone.description);
+    kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => onClick(zone, e.latLng));
 
-    const info = new kakao.maps.InfoWindow({
-      content: `
-        <div style="padding:14px 16px;width:252px;box-sizing:border-box;font-family:'Pretendard','Noto Sans KR',sans-serif;word-break:keep-all;overflow-wrap:break-word;white-space:normal;">
-          <strong style="font-size:14px;color:${color};display:block;line-height:1.4;">${escapeHtml(zone.name)}</strong>
-          <div style="font-size:11px;color:#94A3B8;margin:3px 0 2px;">${BADGE[zone.zoneType] ?? escapeHtml(ZONE_TYPE_LABEL[zone.zoneType] ?? '')}</div>
-          ${infoRow('근거', basis)}
-          ${infoRow('과태료', fine)}
-          ${fishery ? '<p style="font-size:11px;color:#B45309;margin:10px 0 0;line-height:1.45;">낚시금지 고시 구역은 아닙니다. 다만 어업권이 설정된 수면이라 양식 시설물·어구가 있어 진입 시 분쟁이 생길 수 있습니다.</p>' : ''}
-          <p style="font-size:11px;color:#94A3B8;margin:10px 0 0;padding-top:9px;border-top:1px solid #F1F5F9;line-height:1.5;">실제 규제 범위와 효력은 관할기관 고시 원문을 기준으로 합니다.</p>
-        </div>`,
-      removable: true,
-    });
-
-    kakao.maps.event.addListener(poly, 'click', (e: { latLng: unknown }) => {
-      info.setPosition(e.latLng);
-      info.open(map);
-    });
-
-    return { poly, info };
+    return poly;
   } catch {
     return null;   // GeoJSON 파싱 실패 시 무시
   }
@@ -171,7 +196,7 @@ export default function FishingZonesMapPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
 
-  const overlaysRef = useRef<Map<string, Overlay>>(new Map());
+  const overlaysRef = useRef<Map<string, ZonePolygon>>(new Map());
   const reqSeqRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -207,20 +232,51 @@ export default function FishingZonesMapPage() {
             map.setCenter(map.getCenter());
           });
 
-          /** 화면에 없는 구역은 지우고 새로 들어온 것만 만든다. 이미 그린 건 손대지 않는다. */
-          const sync = (zones: FishingZone[]) => {
+          // 화면 전체에서 InfoWindow 는 이것 하나뿐이다. 클릭할 때 내용만 갈아끼운다.
+          const infoWindow = new kakao.maps.InfoWindow({ content: '', removable: true });
+          let openZoneId: string | null = null;
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const openInfo = (zone: FishingZone, latLng: any) => {
+            infoWindow.setContent(buildInfoContent(zone));
+            infoWindow.setPosition(latLng);
+            infoWindow.open(map);
+            openZoneId = zone.id;
+          };
+
+          /**
+           * 화면에 없는 구역은 지우고 새로 들어온 것만 만든다. 이미 그린 건 손대지 않는다.
+           *
+           * 새로 만드는 일은 RENDER_CHUNK 개씩 나눠 프레임에 흘린다. 늦게 도착한 응답으로
+           * 시작된 작업은 seq 로 걸러 중간에 멈춘다 — 안 그러면 지도를 빠르게 움직일 때
+           * 예전 화면의 폴리곤이 계속 올라온다.
+           */
+          const sync = (zones: FishingZone[], seq: number) => {
             const next = new Set(zones.map(z => z.id));
-            overlays.forEach((ov, id) => {
+            overlays.forEach((poly, id) => {
               if (next.has(id)) return;
-              ov.info.close();
-              ov.poly.setMap(null);
+              if (openZoneId === id) {
+                infoWindow.close();
+                openZoneId = null;
+              }
+              poly.setMap(null);
               overlays.delete(id);
             });
-            zones.forEach(zone => {
-              if (overlays.has(zone.id)) return;
-              const ov = createOverlay(kakao, map, zone);
-              if (ov) overlays.set(zone.id, ov);
-            });
+
+            const pending = zones.filter(z => !overlays.has(z.id));
+            if (pending.length === 0) return;
+
+            let i = 0;
+            const step = () => {
+              if (cancelled || seq !== reqSeqRef.current) return;
+              const end = Math.min(i + RENDER_CHUNK, pending.length);
+              for (; i < end; i++) {
+                const poly = createPolygon(kakao, map, pending[i], openInfo);
+                if (poly) overlays.set(pending[i].id, poly);
+              }
+              if (i < pending.length) requestAnimationFrame(step);
+            };
+            requestAnimationFrame(step);
           };
 
           const reload = () => {
@@ -246,7 +302,7 @@ export default function FishingZonesMapPage() {
             fetchFishingZones(bounds, controller.signal)
               .then(zones => {
                 if (cancelled || seq !== reqSeqRef.current) return;
-                sync(zones);
+                sync(zones, seq);
                 setStatus('ready');
               })
               .catch(() => {
@@ -277,7 +333,7 @@ export default function FishingZonesMapPage() {
       cancelled = true;
       if (timerRef.current) clearTimeout(timerRef.current);
       abortRef.current?.abort();
-      overlays.forEach(ov => { ov.info.close(); ov.poly.setMap(null); });
+      overlays.forEach(poly => poly.setMap(null));
       overlays.clear();
     };
   }, [navigate]);
