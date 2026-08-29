@@ -18,6 +18,8 @@ interface PostFormModalProps {
   initialPhotoUrls?: string[];
   /** undefined = 무제한, number = 내용 최대 글자 수 */
   maxContentLength?: number;
+  /** 사진 영역 아래 안내 문구. 비워 두면 공개 게시판용 기본 문구를 쓴다. */
+  photoNotice?: string;
 }
 
 export default function PostFormModal({
@@ -33,6 +35,7 @@ export default function PostFormModal({
   boardType,
   initialPhotoUrls = [],
   maxContentLength,
+  photoNotice,
 }: PostFormModalProps) {
   const [title,     setTitle]     = useState(initialTitle);
   const [content,   setContent]   = useState(initialContent);
@@ -124,6 +127,7 @@ export default function PostFormModal({
                 boardType={boardType}
                 maxPhotos={maxPhotos ?? undefined}
                 disabled={loading}
+                notice={photoNotice}
               />
             </div>
           )}
