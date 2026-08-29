@@ -661,8 +661,6 @@ export default function HomePage() {
                 onClick={() => navigate('/guide')}
               >
                 <span className={styles.allPointsCardShimmer} />
-                {/* 다른 카드는 전부 로그인이 필요해서, 이 카드만 다르다는 것을 눌러보기 전에 알려 준다. */}
-                <span className={styles.guideCardBadge}>로그인 없이 열람</span>
                 <span className={styles.allPointsCardIcon}>📖</span>
                 <div className={styles.allPointsCardBody}>
                   <span className={styles.allPointsCardTitle}>낚시 가이드</span>
@@ -670,7 +668,9 @@ export default function HomePage() {
                     물때 보는 법 · 출조 판단 · 안전 수칙
                   </p>
                 </div>
-                <span className={styles.allPointsCardCta}>읽기 →</span>
+                {/* 다른 카드는 전부 로그인이 필요하다. 이 카드만 다르다는 것을 별도 배지가 아니라
+                    버튼 문구 자체로 알린다 — 떠 있는 배지 하나가 카드 안에서 갈 곳을 못 찾았다. */}
+                <span className={styles.allPointsCardCta}>로그인 없이 읽기 →</span>
               </button>
             </div>
 
