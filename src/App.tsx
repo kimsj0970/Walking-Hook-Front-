@@ -7,6 +7,7 @@ import AgeConsentModal from './components/common/AgeConsentModal';
 import TermsReconsentModal from './components/common/TermsReconsentModal';
 import ScrollToTop from './components/common/ScrollToTop';
 import AnalyticsTracker from './components/common/AnalyticsTracker';
+import AnchorAdSlot from './components/common/AnchorAdSlot';
 import HomePage from './pages/HomePage';
 import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import NicknamePage from './pages/NicknamePage';
@@ -23,6 +24,8 @@ import FreePostPage from './pages/FreePostPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
 import AccountDeletionPage from './pages/AccountDeletionPage';
+import GuideListPage from './pages/GuideListPage';
+import GuideDetailPage from './pages/GuideDetailPage';
 import LoginPage from './pages/LoginPage';
 import './App.css';
 
@@ -65,6 +68,9 @@ export default function App() {
             <Route path="/notices" element={<NoticePage />} />
             <Route path="/catch-posts" element={<CatchPostPage />} />
             <Route path="/free-posts" element={<FreePostPage />} />
+            {/* 공개 가이드 — 로그인 없이 읽힌다. 검색엔진·광고 심사가 보는 화면. */}
+            <Route path="/guide" element={<GuideListPage />} />
+            <Route path="/guide/:slug" element={<GuideDetailPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             {/* Play Console 데이터 안전 설문의 "계정 삭제 요청 URL" 로 제출한다. 로그인 없이
@@ -73,6 +79,8 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
           </Routes>
           <Footer />
+          {/* 앱의 앵커 배너와 같은 자리. Routes 바깥이라 화면을 옮겨도 유지된다. */}
+          <AnchorAdSlot />
           <TermsReconsentModal />
           <AgeConsentModal />
         </NicknameGuard>
