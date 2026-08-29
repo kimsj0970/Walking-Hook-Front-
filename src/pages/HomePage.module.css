@@ -1752,25 +1752,8 @@
   border-color: rgba(0, 180, 216, 0.85);
 }
 
-.guideCardBadge {
-  position: absolute;
-  top: 10px;
-  right: 14px;
-  padding: 3px 9px;
-  border-radius: 9999px;
-  background: rgba(0, 180, 216, 0.14);
-  border: 1px solid rgba(0, 180, 216, 0.38);
-  color: #7FDCF0;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-/* 배지가 '읽기 →' 와 겹치지 않도록 카드 위쪽에 여유를 준다. */
-.guideCard { padding-top: 22px; }
-
-@media (max-width: 480px) {
-  .guideCardBadge { top: 8px; right: 10px; font-size: 10px; padding: 2px 7px; }
-}
+/* '로그인 없이 열람' 배지는 없앴다. position:absolute 로 오른쪽 위에 붙이려 했지만
+   위쪽의 `.allPointsCard > *:not(.allPointsCardShimmer) { position: relative }` 가
+   선택자 특정도(0,2,0 > 0,1,0)에서 이겨 배지가 그냥 첫 번째 플렉스 아이템이 됐다.
+   그래서 아이콘 왼쪽에 세로 중앙으로 떠 있었다. 지금은 그 정보를 CTA 문구
+   ('로그인 없이 읽기 →')가 직접 말하므로 배지도, 배지용 padding-top 도 필요 없다. */
