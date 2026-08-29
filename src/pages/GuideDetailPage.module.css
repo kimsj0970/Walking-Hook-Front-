@@ -1,0 +1,383 @@
+.page {
+  width: 100%;
+  background: var(--color-bg);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(var(--header-height) + 28px) 24px 64px;
+}
+
+/* ─── breadcrumb ─── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.breadcrumb button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary-light);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.breadcrumb button:hover { text-decoration: underline; }
+.crumbDivider { color: var(--color-text-light); }
+.crumbCurrent { color: var(--color-text-muted); }
+
+/* ─── 본문 ─── */
+.article {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 40px;
+}
+
+.articleHead {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.5px;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  margin-bottom: 14px;
+}
+
+.summary {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-light);
+}
+.metaDot { color: var(--color-border); }
+
+.section { margin-top: 34px; }
+
+.heading {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-primary);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  margin-bottom: 14px;
+  padding-left: 14px;
+  border-left: 4px solid var(--color-accent);
+}
+
+.para {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.para + .para { margin-top: 14px; }
+
+/* ─── 표 ─── */
+.tableWrap {
+  margin-top: 18px;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 420px;
+}
+
+.table th {
+  background: var(--color-surface-2);
+  color: var(--color-primary);
+  font-weight: 700;
+  text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 11px 14px;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-border-light);
+  word-break: keep-all;
+}
+
+.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr:nth-child(even) { background: rgba(248, 250, 255, 0.7); }
+
+/* ─── 리스트 ─── */
+.list {
+  margin-top: 16px;
+  padding-left: 4px;
+  list-style: none;
+}
+.list li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.list li + li { margin-top: 6px; }
+.list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+/* ─── 강조 박스 ─── */
+.callout {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-left: 4px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  line-height: 1.75;
+  color: #7c4a03;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ─── 출처 ─── */
+.sources {
+  margin-top: 38px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border-light);
+}
+.sourcesLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-light);
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+.sources ul { list-style: none; }
+.sources li + li { margin-top: 4px; }
+.sources a {
+  font-size: 13.5px;
+  color: var(--color-primary-light);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(21, 101, 192, 0.3);
+}
+.sources a:hover { border-color: var(--color-primary-light); }
+
+/* ─── 다른 가이드 ─── */
+.more { margin-top: 44px; }
+.moreTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 14px;
+}
+.moreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.moreCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 16px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  font-family: inherit;
+}
+.moreCard:hover {
+  border-color: rgba(11, 61, 145, 0.28);
+  box-shadow: var(--shadow-sm);
+}
+.moreIcon { font-size: 20px; flex-shrink: 0; }
+.moreCardTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ─── 없는 슬러그 ─── */
+.notFound {
+  text-align: center;
+  font-size: 16px;
+  color: var(--color-text-muted);
+  padding: 60px 0 20px;
+}
+.backBtn {
+  display: block;
+  margin: 0 auto;
+  padding: 10px 22px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+@media (max-width: 480px) {
+  .main { padding: calc(var(--header-height) + 20px) 16px 48px; }
+  .article { padding: 24px 20px; border-radius: var(--radius-md); }
+  .title { font-size: 24px; }
+  .summary { font-size: 15px; }
+  .heading { font-size: 18px; }
+  .para { font-size: 15.5px; }
+  .moreGrid { grid-template-columns: 1fr; }
+}
+
+/* ─── 참고 영상 ───────────────────────────────────────────────
+   썸네일은 유튜브 주소를 가리킬 뿐 서버에 복제하지 않는다. */
+.videos { margin-top: 20px; }
+
+.video {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.video + .video { margin-top: 10px; }
+.video:hover {
+  border-color: rgba(11, 61, 145, 0.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.videoThumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 160px;
+  height: 90px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-border-light);
+}
+.videoThumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* 밝은 썸네일에서도 읽히도록 어두운 원을 깔고 흰 삼각형을 얹는다. */
+.videoPlay {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+}
+.videoPlay::after {
+  content: '';
+  position: absolute;
+  left: 13px; top: 10px;
+  border-style: solid;
+  border-width: 7px 0 7px 11px;
+  border-color: transparent transparent transparent #fff;
+}
+
+.videoBadge {
+  position: absolute;
+  right: 6px; bottom: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.videoNoThumb {
+  flex-shrink: 0;
+  width: 160px; height: 90px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-border-light);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-light);
+  font-size: 20px;
+}
+
+.videoBody { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+.videoTitle {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.videoChannel { font-size: 13px; color: var(--color-text-muted); }
+.videoNote {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.videoLink {
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+}
+
+.videoDisclaimer {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 480px) {
+  .video { flex-direction: column; gap: 10px; }
+  .videoThumb, .videoNoThumb { width: 100%; height: auto; aspect-ratio: 16 / 9; }
+}
