@@ -22,6 +22,12 @@ import {
 } from '../api/inquiryApi';
 import styles from './InquiryPage.module.css';
 
+// 1:1 문의는 작성자와 운영진만 본다. 공개 게시판용 기본 문구
+// ("다른 사용자에게 공개됩니다")를 그대로 두면 사실과 반대라 첨부를 망설이게 된다.
+// 앱(lib/features/inquiry/inquiry_write_page.dart)과 같은 문구를 쓴다.
+const INQUIRY_PHOTO_NOTICE =
+  '최대 3장까지 업로드 가능합니다.\n해당 게시물은 다른 사용자들에게 공개되지 않습니다.';
+
 type View = 'list' | 'detail';
 
 export default function InquiryPage() {
@@ -399,6 +405,7 @@ export default function InquiryPage() {
         contentPlaceholder="문의 내용을 자세히 입력해 주세요."
         maxPhotos={3}
         boardType="INQUIRY"
+        photoNotice={INQUIRY_PHOTO_NOTICE}
         maxContentLength={1000}
       />
       <PostFormModal
@@ -413,6 +420,7 @@ export default function InquiryPage() {
         initialTitle={detail?.title}
         initialContent={detail?.content}
         initialPhotoUrls={detail?.photoUrls}
+        photoNotice={INQUIRY_PHOTO_NOTICE}
         maxContentLength={1000}
       />
     </div>
