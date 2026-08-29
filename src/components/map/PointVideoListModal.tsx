@@ -4,13 +4,15 @@ import {
   type MigratoryPointVideo,
 } from '../../api/migratoryFishPointApi';
 import Pagination from '../common/Pagination';
+import { formatVideoTime, youtubeThumbnail } from '../../lib/youtube';
 import styles from './PointVideoListModal.module.css';
 
 /**
  * 포인트에서 촬영된 유튜브 영상 목록 (사용자용).
  *
- * 영상 제목·채널명·게시일·등장 구간과 "링크" 글자만 노출하고 유튜브로 새 창을 띄운다.
- * 썸네일을 가져오거나 임베드로 재생하지 않는다 — 각 채널의 콘텐츠다.
+ * 영상 제목·채널명·게시일·등장 구간과 썸네일을 노출하고, 누르면 유튜브로 새 창을 띄운다.
+ * 임베드로 재생하지 않는다 — 각 채널의 콘텐츠다. 썸네일도 유튜브가 주는 주소를
+ * 그대로 가리킬 뿐 우리 서버에 복제하지 않는다.
  *
  * 제목은 길이가 제각각이라(유튜브 제목은 100자까지 간다) 2줄에서 자른다.
  * 자르지 않으면 카드 높이가 항목마다 달라져 목록이 읽히지 않는다.
@@ -21,22 +23,37 @@ interface Props {
   onClose: () => void;
 }
 
-/** 초 → "2:05" (1시간 이상이면 "1:02:05") */
-function formatTime(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
-  return `${h > 0 ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`;
-}
-
 function sectionLabel(v: MigratoryPointVideo): string {
-  const start = formatTime(v.startSeconds);
-  return v.endSeconds != null ? `${start} ~ ${formatTime(v.endSeconds)}` : `${start} 부터`;
+  const start = formatVideoTime(v.startSeconds);
+  return v.endSeconds != null ? `${start} ~ ${formatVideoTime(v.endSeconds)}` : `${start} 부터`;
 }
 
 function publishedLabel(value: string): string {
   return value.replaceAll('-', '.');
+}
+
+
+/**
+ * 항목 오른쪽 썸네일.
+ *
+ * 이미지를 못 받아오면(삭제된 영상 등) 아예 감춘다 — 깨진 이미지 아이콘이 남는 것보다 낫다.
+ * 항목 전체가 이미 링크라 alt 는 비워 스크린리더가 같은 내용을 두 번 읽지 않게 한다.
+ */
+function VideoThumbnail({ url, startSeconds }: { url: string; startSeconds: number }) {
+  const [failed, setFailed] = useState(false);
+  const src = youtubeThumbnail(url);
+  if (!src || failed) return null;
+
+  return (
+    <span className={styles.thumb}>
+      <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} />
+      <span className={styles.thumbPlay} aria-hidden="true" />
+      {/* 등장 시작 시각. 0초는 "영상 처음부터"라 굳이 표시하지 않는다 */}
+      {startSeconds > 0 && (
+        <span className={styles.thumbBadge}>{formatVideoTime(startSeconds)}</span>
+      )}
+    </span>
+  );
 }
 
 /** 한 페이지에 보여줄 개수. 모달 높이 안에서 스크롤 없이 읽히는 선 */
@@ -131,6 +148,7 @@ export default function PointVideoListModal({ pointId, pointName, onClose }: Pro
                         </div>
                       </div>
                       <span className={styles.link}>링크</span>
+                      <VideoThumbnail url={v.url} startSeconds={v.startSeconds} />
                     </a>
                   </li>
                 ))}
