@@ -9,13 +9,19 @@ interface PhotoUploaderProps {
   /** undefined = no limit, positive number = max count */
   maxPhotos?: number;
   disabled?: boolean;
+  /**
+   * 사진 영역 아래 안내 문구. 비워 두면 "다른 사용자에게 공개됩니다" 기본 문구를 쓴다.
+   * 1:1 문의처럼 **공개되지 않는** 게시판은 반드시 자기 문구를 넘겨야 한다 —
+   * 기본 문구를 그대로 두면 사실과 반대되는 안내가 된다. (앱의 PhotoUploader 와 동일)
+   */
+  notice?: string;
 }
 
 const LONG_PRESS_MS = 450;   // 모바일: 길게 눌러 드래그 진입
 const TOUCH_CANCEL_PX = 10;  // 길게 누르는 동안 이만큼 움직이면 스크롤로 판단
 const MOUSE_DRAG_PX = 4;     // 데스크톱: 이만큼 움직이면 드래그 시작
 
-export default function PhotoUploader({ value, onChange, boardType, maxPhotos, disabled }: PhotoUploaderProps) {
+export default function PhotoUploader({ value, onChange, boardType, maxPhotos, disabled, notice }: PhotoUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -211,7 +217,11 @@ export default function PhotoUploader({ value, onChange, boardType, maxPhotos, d
       {value.length > 1 && (
         <p className={styles.hint}>사진을 길게 누르거나 드래그하면 순서를 바꿀 수 있습니다.</p>
       )}
-      <p className={styles.notice}>업로드한 사진은 다른 사용자에게 공개됩니다.</p>
+      <p className={styles.notice}>
+        {(notice ?? '업로드한 사진은 다른 사용자에게 공개됩니다.')
+          .split('\n')
+          .map((line, i) => <span key={i} className={styles.noticeLine}>{line}</span>)}
+      </p>
 
       <input
         ref={inputRef}
