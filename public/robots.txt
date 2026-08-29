@@ -1,0 +1,18 @@
+# Walking Hook — 크롤링 규칙
+# 공개 콘텐츠(가이드·공지·커뮤니티)는 열고, 개인 화면과 인증 경로는 막는다.
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /my
+Disallow: /nickname
+Disallow: /inquiry
+Disallow: /oauth
+Disallow: /login
+Disallow: /account-deletion
+
+# AdSense 심사·광고 크롤러는 콘텐츠를 읽어야 문맥 광고가 매칭된다.
+User-agent: Mediapartners-Google
+Allow: /
+
+Sitemap: https://walking-hook-front.vercel.app/sitemap.xml
