@@ -653,6 +653,27 @@ export default function HomePage() {
               </button>
             </div>
 
+            {/* 낚시 가이드 — 이 화면에서 유일하게 로그인 없이 들어갈 수 있는 카드다.
+                비로그인 방문자와 검색엔진이 콘텐츠로 넘어가는 통로라 로그인 게이트를 걸지 않는다. */}
+            <div className={styles.migratoryRow}>
+              <button
+                className={`${styles.allPointsCard} ${styles.guideCard}`}
+                onClick={() => navigate('/guide')}
+              >
+                <span className={styles.allPointsCardShimmer} />
+                {/* 다른 카드는 전부 로그인이 필요해서, 이 카드만 다르다는 것을 눌러보기 전에 알려 준다. */}
+                <span className={styles.guideCardBadge}>로그인 없이 열람</span>
+                <span className={styles.allPointsCardIcon}>📖</span>
+                <div className={styles.allPointsCardBody}>
+                  <span className={styles.allPointsCardTitle}>낚시 가이드</span>
+                  <p className={styles.allPointsCardDesc}>
+                    물때 보는 법 · 출조 판단 · 안전 수칙
+                  </p>
+                </div>
+                <span className={styles.allPointsCardCta}>읽기 →</span>
+              </button>
+            </div>
+
             {/* 낙뢰 경고 */}
             {conditionsResult?.hasLightning && (
               <div className={styles.lightningBanner}>
