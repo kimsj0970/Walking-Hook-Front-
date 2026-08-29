@@ -25,6 +25,20 @@ export default function Header() {
             <span className={styles.logoText}>Walking Hook</span>
           </button>
 
+          {/* 공개 메뉴 — 로그인 여부와 무관하게 보인다.
+              비로그인 방문자와 검색엔진이 콘텐츠로 들어오는 유일한 통로라 지우면 안 된다. */}
+          <nav className={styles.nav}>
+            <button className={styles.navBtn} onClick={() => navigate('/guide')}>
+              가이드
+            </button>
+            <button className={styles.noticeBtn} onClick={() => navigate('/community')}>
+              커뮤니티
+            </button>
+            <button className={styles.noticeBtn} onClick={() => navigate('/notices')}>
+              공지사항
+            </button>
+          </nav>
+
           {/* 우측 메뉴 */}
           <div className={styles.right}>
             {isLoggedIn ? (
