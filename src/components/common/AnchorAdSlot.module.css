@@ -1,0 +1,29 @@
+/* 앱의 앵커 배너와 같은 규칙: 광고 크기 딱 그만큼만 쓰고 위아래 여백을 두지 않는다.
+   본문과의 구분은 헤어라인 한 줄로 끝낸다. */
+
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;              /* 헤더(100)보다 아래, 모달보다 아래 */
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 12px rgba(11, 61, 145, 0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.spacer {
+  flex: none;
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 480px) {
+  .bar { height: 52px; }
+  .spacer { height: calc(52px + env(safe-area-inset-bottom, 0px)); }
+}
