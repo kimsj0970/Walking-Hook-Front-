@@ -20,6 +20,15 @@ export default function Footer() {
         </div>
 
         <div className={styles.links}>
+          <button className={styles.link} onClick={() => navigate('/guide')}>
+            낚시 가이드
+          </button>
+          <button className={styles.link} onClick={() => navigate('/community')}>
+            커뮤니티
+          </button>
+          <button className={styles.link} onClick={() => navigate('/notices')}>
+            공지사항
+          </button>
           <button className={styles.link} onClick={() => navigate('/terms')}>
             이용약관
           </button>
