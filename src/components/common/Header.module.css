@@ -46,6 +46,14 @@
   letter-spacing: -0.3px;
 }
 
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 20px;
+  margin-right: auto;
+}
+
 .right {
   display: flex;
   align-items: center;
@@ -189,6 +197,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .nav { margin-left: 12px; gap: 4px; }
+  .navBtn, .noticeBtn { padding: 6px 10px; font-size: 12px; }
+}
+
+@media (max-width: 640px) {
+  /* 좁은 화면에서는 헤더가 넘치므로 감춘다. 대신 푸터에 같은 링크가 있다. */
+  .nav { display: none; }
 }
 
 @media (max-width: 480px) {
