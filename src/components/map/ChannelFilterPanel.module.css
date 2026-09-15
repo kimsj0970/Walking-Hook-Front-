@@ -1,0 +1,155 @@
+/* 지도 위에 겹쳐 뜨는 유튜버 목록. 지도 컨트롤(z-index 3)보다 위. */
+.panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 264px;
+  z-index: 4;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  box-shadow: 4px 0 18px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 좁은 화면에서는 지도를 반쯤 가리는 것보다 전부 덮는 편이 읽힌다 */
+@media (max-width: 560px) {
+  .panel {
+    right: 0;
+    width: auto;
+    border-right: none;
+  }
+}
+
+.head {
+  padding: 12px 14px 4px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.desc {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 3px 0 0;
+  word-break: keep-all;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search {
+  margin: 8px 14px;
+  flex-shrink: 0;
+}
+
+.search input {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.row:first-child {
+  border-top: none;
+}
+
+.row.selected {
+  background: rgba(11, 61, 145, 0.08);
+}
+
+.radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  flex: none;
+}
+
+.row.selected .radio {
+  border-color: #0b3d91;
+  background: radial-gradient(circle, #0b3d91 0 4px, transparent 4px);
+}
+
+.name {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.moreBtn {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: transparent;
+  color: #0b3d91;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.state {
+  padding: 18px 14px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
