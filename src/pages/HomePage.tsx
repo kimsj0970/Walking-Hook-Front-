@@ -17,6 +17,8 @@ import { useFishRegulations } from '../hooks/useFishRegulations';
 import { getCatchPostsPage, type CatchPostListItem } from '../api/catchPostApi';
 import { getFreePostsPage, type FreePostListItem } from '../api/freePostApi';
 import { getThisMonthTopCatch, type TopCatch } from '../api/topCatchApi';
+import { fetchFishIdQuota, type FishIdQuota } from '../api/fishIdApi';
+import { setPostLoginRedirect } from '../lib/postLoginRedirect';
 import {
   fetchAllMigratoryFishPointMapMarkers,
   fetchMigratoryFishPointDetail,
@@ -33,6 +35,7 @@ import {
   ThermoIcon, WaveIcon, WindIcon, TideCycleIcon, FlowIcon, SunIcon, SunCloudIcon,
   CloudIcon, RainIcon, SnowIcon, UmbrellaIcon, SunriseIcon, SunsetIcon,
   MoonPhaseIcon, TrophyIcon, BoltIcon, AlertIcon, CameraIcon, CommentIcon, LikeIcon,
+  ChevronRightIcon,
 } from '../components/common/Icons';
 import styles from './HomePage.module.css';
 
@@ -219,6 +222,8 @@ type PointGroup = { code: string; displayName: string; points: FishingPointMapMa
 
 export default function HomePage() {
   const { isLoggedIn, isAdmin } = useAuth();
+  /** 오늘 남은 판별 횟수 — 진입 카드의 배지에만 쓴다. 실패하면 배지를 그리지 않는다. */
+  const [fishIdQuota, setFishIdQuota] = useState<FishIdQuota | null>(null);
   const navigate = useNavigate();
   // 오늘 금어기인 어종 수. 정적 데이터라 매 렌더 계산해도 부담이 없다.
   useFishRegulations(); // 서버 규제 도착 시 리렌더 — 아래 계산이 새 값을 읽는다
@@ -386,6 +391,37 @@ export default function HomePage() {
   const hasPrecip = conditionsResult?.precipitationType && conditionsResult.precipitationType !== '없음';
 
   /** 로그인 필요한 진입 공통 게이트 — 퀵 메뉴에서 쓴다. */
+  /* 남은 판별 횟수. 홈은 비로그인도 열리므로 로그인 상태에서만 부른다.
+     실패는 삼킨다 — 배지 하나 때문에 홈에 에러를 띄울 이유가 없다. */
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setFishIdQuota(null);
+      return;
+    }
+    let alive = true;
+    fetchFishIdQuota()
+      .then((q) => { if (alive) setFishIdQuota(q); })
+      .catch(() => { if (alive) setFishIdQuota(null); });
+    return () => { alive = false; };
+  }, [isLoggedIn]);
+
+  /**
+   * 사진 어종판별 진입.
+   *
+   * 다른 퀵메뉴와 달리 로그인 모달을 띄우지 않고 **로그인 화면으로 보낸다.**
+   * 판별은 계정당 하루 횟수를 깎고 사용자의 한 뼘(기준자)을 쓰기 때문에
+   * 비로그인으로는 한 걸음도 못 간다 — 모달에서 닫으면 제자리인 것보다,
+   * 로그인 화면에서 끝내고 원래 자리로 돌아오는 편이 짧다.
+   */
+  const openFishId = () => {
+    if (!isLoggedIn) {
+      setPostLoginRedirect('/fish-id');
+      navigate('/login');
+      return;
+    }
+    navigate('/fish-id');
+  };
+
   const requireLogin = (run: () => void) => {
     if (!isLoggedIn) {
       setLoginToast(true);
@@ -398,7 +434,7 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
-      <Header />
+      <Header onDark />
       {loginToast && (
         <div style={{
           position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
@@ -414,7 +450,12 @@ export default function HomePage() {
       <main className={styles.main}>
         {/* ─── Hero ─── */}
         <section className={styles.hero}>
-          <div className={styles.heroInner}>
+          {/* 상단 딥블루 밴드 — 헤더와 이어지는 색면.
+              높이를 CSS 로 고정하거나 JS 로 재지 않고 **내용이 정하게** 둔다.
+              포인트 이름이 길어 칩이 두 줄이 되거나 에러 배너가 떠도 곡선이 따라온다. */}
+          <div className={styles.heroBandWrap}>
+            <div className={styles.heroBand}>
+              <div className={styles.heroInner}>
             {topCatch?.hasData && (
               <button
                 className={styles.topCatchBanner}
@@ -491,6 +532,43 @@ export default function HomePage() {
                 낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.
               </p>
             )}
+              </div>
+            </div>
+          </div>
+
+          {/* 밴드 아래 — 밝은 바탕 위의 흰 카드들 */}
+          <div className={styles.heroRest}>
+            <div className={styles.heroInner}>
+
+
+            {/* 사진 어종판별 진입 — 퀵메뉴 타일 하나로는 묻혀서 전용 카드로 뺐다.
+                자리는 앱(home_page.dart 의 _FishIdCtaCard)과 같게 맞춘다.
+                바로 위 "지도 보기"가 채운 딥블루라, 여기는 틴트로 톤을 낮춰 서로 안 싸우게 한다. */}
+            <button
+              type="button"
+              className={styles.fishIdCta}
+              onClick={openFishId}
+            >
+              <span className={styles.fishIdCtaIcon}><CameraIcon size={24} /></span>
+              <span className={styles.fishIdCtaBody}>
+                <span className={styles.fishIdCtaTitleRow}>
+                  <span className={styles.fishIdCtaTitle}>사진으로 어종 판별</span>
+                  {isLoggedIn && fishIdQuota && !fishIdQuota.unlimited && (
+                    <span
+                      className={`${styles.fishIdCtaBadge} ${
+                        fishIdQuota.remaining === 0 ? styles.fishIdCtaBadgeOut : ''
+                      }`}
+                    >
+                      {fishIdQuota.remaining === 0
+                        ? '오늘 소진'
+                        : `${fishIdQuota.remaining}회 남음`}
+                    </span>
+                  )}
+                </span>
+                <span className={styles.fishIdCtaDesc}>가져가도 되는 크기인지 바로 확인</span>
+              </span>
+              <span className={styles.fishIdCtaChevron}><ChevronRightIcon size={20} /></span>
+            </button>
 
             {/* 서비스 퀵 메뉴 — 기존의 큰 진입 카드들(어종 현황·어종 포인트·CCTV·
                 금지구역·가이드·금어기·채비)을 아이콘 바 하나로 압축했다.
@@ -498,11 +576,6 @@ export default function HomePage() {
             <div className={styles.quickNavBox}>
             <div className={styles.quickNavTitle}>바로가기</div>
             <div className={styles.quickNav}>
-              <button type="button" className={styles.quickItem}
-                onClick={() => requireLogin(() => navigate('/fish-id'))}>
-                <span className={styles.quickIcon}><CameraIcon size={20} /></span>
-                <span className={styles.quickLabel}>어종 판별</span>
-              </button>
               <button type="button" className={styles.quickItem}
                 onClick={() => requireLogin(() => setMigratoryMapOpen(true))}>
                 <span className={styles.quickIcon}><FishIcon size={20} /></span>
@@ -660,6 +733,7 @@ export default function HomePage() {
 
             </div>
 
+            </div>
           </div>
         </section>
 
