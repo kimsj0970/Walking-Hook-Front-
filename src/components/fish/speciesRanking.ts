@@ -113,7 +113,10 @@ export function buildRanking(results: SpeciesAnalysis[] | null): SpeciesRanking 
   let headline: string;
   if (hasClearLeader) headline = '오늘 가장 기대되는 어종';
   else if (allLow) headline = '오늘은 어느 어종도 기대가 낮습니다';
-  else headline = `오늘은 ${leaders.map((e) => e.meta.name).join(' · ')}이 비슷합니다`;
+  else {
+    const names = leaders.map((e) => e.meta.name).join(' · ');
+    headline = `오늘은 ${names}${iGa(leaders[leaders.length - 1].meta.name)} 비슷합니다`;
+  }
 
   return {
     ranked: list,
@@ -163,4 +166,18 @@ export function probabilityLabel(score: number): string {
   if (score >= 50) return '좋음';
   if (score >= 25) return '보통';
   return '낮음';
+}
+
+/**
+ * 앞 단어의 받침에 따라 '이/가' 를 고른다.
+ *
+ * 어종 이름은 받침이 있는 것("우럭", "감성돔")과 없는 것("농어", "광어")이 섞여 있어
+ * 조사를 하나로 고정하면 "광어이 비슷합니다" 같은 문장이 나간다.
+ * 한글 음절은 (코드 - 0xAC00) % 28 === 0 이면 받침이 없다.
+ */
+function iGa(word: string): string {
+  if (!word) return '가';
+  const code = word.charCodeAt(word.length - 1);
+  if (code < 0xac00 || code > 0xd7a3) return '가';
+  return (code - 0xac00) % 28 === 0 ? '가' : '이';
 }
