@@ -1,0 +1,323 @@
+.page {
+  width: 100%;
+  background: var(--color-bg);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: calc(var(--header-height) + 40px) 20px 64px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+}
+
+.desc {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+}
+
+/* ── 해역 토글 ──────────────────────────────────────────────
+   흰 배경 위 흰 알약은 아래 카드와 구분이 안 돼 버튼으로 안 읽힌다.
+   트랙은 연한 남색 면으로 깔고 선택된 쪽만 진한 남색으로 꽉 채운다. */
+
+/* ── 해역 ───────────────────────────────────────────────
+   토글을 없앴다. 그림이 하나뿐인데 해역을 골라 바꾸면, 고르지 않은 쪽에는
+   반드시 틀린 그림이 남는다(로드 그림에 862 가 박혀 있었다).
+   해역 성격은 여기서 한 번만 말하고, 숫자는 항목마다 나란히 놓는다. */
+
+.seas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sea {
+  padding: 11px 12px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.seaName {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #fff;
+}
+
+/* 서해는 뻘·조류, 동해는 맑은 물 — 두 색이 섞이지 않게 계열을 갈라 둔다. */
+.west { background: #B45309; }
+.east { background: #0E7490; }
+
+.seaText {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+/* ── 항목의 해역별 값 ────────────────────────────────────── */
+
+.vals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.val {
+  min-width: 0;
+  padding: 7px 10px;
+  background: #f8faff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+}
+
+.valSea {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: none !important;
+}
+
+.val .west { color: #B45309; }
+.val .east { color: #0E7490; }
+
+.valNum {
+  display: block;
+  margin-top: 1px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: var(--color-primary, #0b3d91);
+}
+
+/* 해역이 갈리지 않는 항목(매듭). */
+.oneValue {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-primary, #0b3d91);
+}
+
+.oneNote {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.scope {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: #94a3b8;
+}
+
+/* ── 장비 한 항목 ───────────────────────────────────────── */
+
+.spec {
+  padding: 14px 16px 16px;
+  margin-bottom: 10px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.specLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--color-text-muted);
+}
+
+/* 그림은 폭 360 기준으로 그렸다. 더 넓은 화면에서는 그대로 확대돼도 벡터라 깨지지 않는다. */
+.art {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 10px 0 0;
+  border-radius: 8px;
+}
+
+.specWhy {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+}
+
+.specBrand {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+/* ── 합사만 쓰지 않는 이유 ──────────────────────────────── */
+
+.reasons {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.reasonsTitle {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--color-text, #0f172a);
+}
+
+.reasonList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.reasonNo {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reason b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text, #0f172a);
+}
+
+.reason em {
+  display: block;
+  margin-top: 2px;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #94a3b8;
+}
+
+/* ── 매듭 영상 ──────────────────────────────────────────── */
+
+.video {
+  display: block;
+  margin-top: 10px;
+  text-decoration: none;
+}
+
+.thumb {
+  position: relative;
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f172a;
+  aspect-ratio: 16 / 9;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.play::after {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 14px;
+  border-style: solid;
+  border-width: 11px 0 11px 18px;
+  border-color: transparent transparent transparent #fff;
+}
+
+.at {
+  position: absolute;
+  right: 9px;
+  bottom: 9px;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.74);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.videoTitle {
+  display: block;
+  margin-top: 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-weight: 700;
+  color: var(--color-text, #0f172a);
+}
+
+.videoCh {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── 해역 주의 ──────────────────────────────────────────── */
+
+.footer {
+  margin-top: 24px;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #94a3b8;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: calc(var(--header-height) + 24px) 16px 48px;
+  }
+
+  .title {
+    font-size: 26px;
+  }
+}
