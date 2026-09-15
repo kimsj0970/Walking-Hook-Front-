@@ -71,15 +71,23 @@ interface FormState {
   action: string;
 }
 
+/** 사진 어종판별(/fish-id)에서 넘어올 때 미리 채워줄 값 */
+export interface CatchPostPrefill {
+  species?: string[];
+  fishSizeCm?: string;
+  photoUrls?: string[];
+}
+
 interface PostFormModalProps {
   open: boolean;
   editTarget: CatchPostDetail | null;
   points: MigratoryFishPointMapMarker[];
+  prefill?: CatchPostPrefill | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormModalProps) {
+function PostFormModal({ open, editTarget, points, prefill, onClose, onSaved }: PostFormModalProps) {
   const [form, setForm] = useState<FormState>({
     title: '', content: '', species: [], caughtAt: todayStr(),
     selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [],
@@ -176,7 +184,15 @@ function PostFormModal({ open, editTarget, points, onClose, onSaved }: PostFormM
         action: editTarget.action ?? '',
       });
     } else {
-      setForm({ title: '', content: '', species: [], caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '', photoUrls: [], lure: '', fishSizeCm: '', action: '' });
+      setForm({
+        title: '', content: '',
+        species: prefill?.species ?? [],
+        caughtAt: todayStr(), selectedProvince: '', migratoryPointId: '', selectedPointName: '',
+        photoUrls: prefill?.photoUrls ?? [],
+        lure: '',
+        fishSizeCm: prefill?.fishSizeCm ?? '',
+        action: '',
+      });
     }
     setSpeciesDraft('');
     setSpeciesError('');
@@ -658,6 +674,8 @@ export default function CatchPostPage() {
   const [totalElements, setTotalElements] = useState(0);
 
   const [modalOpen, setModalOpen] = useState(false);
+  // 사진 어종판별에서 넘어온 프리필(사진·어종·크기). 모달을 닫으면 비운다.
+  const [prefill, setPrefill] = useState<CatchPostPrefill | null>(null);
   const [editingPost, setEditingPost] = useState<CatchPostDetail | null>(null);
 
   const [points, setPoints] = useState<MigratoryFishPointMapMarker[]>([]);
@@ -816,13 +834,15 @@ export default function CatchPostPage() {
   }, [dateDropOpen]);
 
   useEffect(() => {
-    const state = location.state as { openPostId?: string; openWrite?: boolean } | null;
+    const state = location.state as { openPostId?: string; openWrite?: boolean; prefill?: CatchPostPrefill } | null;
     if (state?.openPostId) {
       openDetail(state.openPostId);
       window.history.replaceState({}, document.title);
     } else if (state?.openWrite) {
-      // 커뮤니티 홈의 "글쓰기"에서 넘어온 경우 — 작성 폼(어종 입력이 있는 쪽)을 바로 띄운다.
+      // 커뮤니티 홈의 "글쓰기" 또는 사진 어종판별 결과에서 넘어온 경우 —
+      // 작성 폼(어종 입력이 있는 쪽)을 바로 띄우고, 판별 결과가 있으면 미리 채운다.
       setEditingPost(null);
+      setPrefill(state.prefill ?? null);
       setModalOpen(true);
       window.history.replaceState({}, document.title);
     }
@@ -1312,7 +1332,8 @@ export default function CatchPostPage() {
         open={modalOpen}
         editTarget={editingPost}
         points={points}
-        onClose={() => setModalOpen(false)}
+        prefill={prefill}
+        onClose={() => { setModalOpen(false); setPrefill(null); }}
         onSaved={handleSaved}
       />
       {browseMapOpen && (
