@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getMyInfoApi, type UserInfoResponse } from '../api/authApi';
+import { getMyInfoApi, updateMeasureReferenceApi, type UserInfoResponse } from '../api/authApi';
 import { fetchBlockedUsers, unblockUser, type BlockedUser } from '../api/blockApi';
 import styles from './MyPage.module.css';
 
@@ -20,6 +20,34 @@ export default function MyPage() {
   const [infoError, setInfoError] = useState(false);
 
   const [editMode, setEditMode] = useState(false);
+
+  // 내 한 뼘 — 사진 어종판별의 크기 기준자. 여기서 언제든 고칠 수 있다.
+  const [spanEdit, setSpanEdit] = useState(false);
+  const [spanInput, setSpanInput] = useState('');
+  const [spanSaving, setSpanSaving] = useState(false);
+  const [spanError, setSpanError] = useState('');
+
+  const handleSpanSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cm = Number(spanInput);
+    if (!Number.isFinite(cm) || cm < 10 || cm > 30) {
+      setSpanError('10 ~ 30cm 사이로 입력해 주세요.');
+      return;
+    }
+    setSpanSaving(true);
+    setSpanError('');
+    try {
+      const mm = Math.round(cm * 10);
+      await updateMeasureReferenceApi(mm);
+      setUserInfo((prev) => (prev ? { ...prev, handSpanMm: mm } : prev));
+      setSpanEdit(false);
+    } catch {
+      setSpanError('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setSpanSaving(false);
+    }
+  };
+
   const [newNick, setNewNick] = useState(nickname ?? '');
   const [nickError, setNickError] = useState('');
   const [nickLoading, setNickLoading] = useState(false);
@@ -152,6 +180,58 @@ export default function MyPage() {
               <InfoRow label="출생연도" value={userInfo.birthyear || '없음'} />
               <InfoRow label="연령대" value={userInfo.age || '없음'} />
               <InfoRow label="포인트" value={`${userInfo.point.toLocaleString()} P`} highlight />
+
+              {/* 내 한 뼘 — 어종판별에서 사진 속 물고기 크기를 재는 기준자 */}
+              {!spanEdit ? (
+                <div className={styles.infoRow}>
+                  <span className={styles.infoLabel}>내 한 뼘</span>
+                  <span className={styles.spanValueRow}>
+                    <span className={styles.infoValue}>
+                      {userInfo.handSpanMm != null ? `${(userInfo.handSpanMm / 10).toFixed(1)}cm` : '미등록'}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.spanEditBtn}
+                      onClick={() => {
+                        setSpanInput(userInfo.handSpanMm != null ? String(userInfo.handSpanMm / 10) : '');
+                        setSpanError('');
+                        setSpanEdit(true);
+                      }}
+                    >
+                      {userInfo.handSpanMm != null ? '변경' : '등록'}
+                    </button>
+                  </span>
+                </div>
+              ) : (
+                <form className={styles.spanForm} onSubmit={handleSpanSave}>
+                  <p className={styles.spanNote}>
+                    엄지 끝부터 검지 또는 중지 끝까지의 직선 거리입니다. 어종판별에서 사진 속 물고기
+                    크기를 재는 기준자로 쓰입니다.
+                  </p>
+                  <div className={styles.spanInputRow}>
+                    <input
+                      className={styles.editInput}
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      autoFocus
+                      placeholder="예: 19"
+                      value={spanInput}
+                      onChange={(e) => setSpanInput(e.target.value)}
+                    />
+                    <span className={styles.spanUnit}>cm</span>
+                  </div>
+                  {spanError && <p className={styles.error}>{spanError}</p>}
+                  <div className={styles.editBtnRow}>
+                    <button type="button" className={styles.cancelBtn} onClick={() => setSpanEdit(false)}>
+                      취소
+                    </button>
+                    <button type="submit" className={styles.saveBtn} disabled={spanSaving}>
+                      {spanSaving ? '저장 중...' : '저장'}
+                    </button>
+                  </div>
+                </form>
+              )}
             </>
           ) : infoError ? (
             <p className={styles.infoError}>정보를 불러오지 못했습니다. 새로고침 해주세요.</p>
