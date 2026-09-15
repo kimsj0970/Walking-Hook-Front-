@@ -23,6 +23,24 @@ const DEFAULT_END_HOUR = 24;
 const START_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
 const END_HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i + 1);
 
+/** 갱신 간격 후보 1~12시간. 1시간 미만은 서버의 warmCache 신선도(50분)에 걸려 무시되므로 없다 */
+const DEFAULT_INTERVAL_HOURS = 1;
+const INTERVAL_HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
+
+/**
+ * 호출 1건당 대략적인 원화 비용.
+ *
+ * 2026-08 실측(539건 / $1.64)에서 나온 값이라 프롬프트 길이가 바뀌면 같이 바뀐다.
+ * 정확한 청구액이 아니라 "설정을 바꾸면 얼마나 달라지는가"를 가늠하는 용도다.
+ */
+const WON_PER_CALL = 4.2;
+
+/**
+ * 서버가 캐시 수명에 더하는 여유분(분). 백엔드 AiCacheWindow.INTERVAL_BUFFER 와 같은 값.
+ * 갱신이 완료 시점 기준으로 재예약되므로 캐시는 갱신 간격보다 조금 길어야 한다.
+ */
+const CACHE_BUFFER_MINUTES = 30;
+
 const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}시`;
 
 /** 06시~24시처럼 동작 구간을 사람이 읽는 문구로. 자정을 넘는 구간도 표기 */
@@ -30,6 +48,25 @@ const formatWindow = (startHour: number, endHour: number) =>
   startHour < endHour
     ? `${formatHour(startHour)}~${formatHour(endHour)}`
     : `${formatHour(startHour)}~다음날 ${formatHour(endHour)}`;
+
+/** 동작 시간(시). 자정을 넘는 구간도 계산 */
+const windowLength = (startHour: number, endHour: number) =>
+  startHour < endHour ? endHour - startHour : 24 - startHour + endHour;
+
+/**
+ * 현재 설정으로 한 달에 몇 번 LLM 을 부르고 얼마가 나가는지 어림한다.
+ * 포인트마다 (동작 시간 ÷ 간격) 번씩 도는 구조라 셋을 곱하면 된다.
+ */
+const estimateMonthly = (
+  startHour: number,
+  endHour: number,
+  intervalHours: number,
+  pointCount: number,
+) => {
+  const perPointPerDay = windowLength(startHour, endHour) / intervalHours;
+  const calls = Math.round(perPointPerDay * pointCount * 30);
+  return { calls, won: Math.round(calls * WON_PER_CALL) };
+};
 
 export default function PointManagementPage() {
   const [points, setPoints] = useState<FishingPointSummary[]>([]);
@@ -53,11 +90,14 @@ export default function PointManagementPage() {
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleStartHour, setScheduleStartHour] = useState(DEFAULT_START_HOUR);
   const [scheduleEndHour, setScheduleEndHour] = useState(DEFAULT_END_HOUR);
+  const [scheduleIntervalHours, setScheduleIntervalHours] = useState(DEFAULT_INTERVAL_HOURS);
+  const [schedulePointCount, setSchedulePointCount] = useState(0);
 
-  // 시간대 선택 다이얼로그 (스케줄러 켜기 클릭 시 오픈)
+  // 설정 다이얼로그 (스케줄러 켜기 / 설정 변경 클릭 시 오픈)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [draftStartHour, setDraftStartHour] = useState(DEFAULT_START_HOUR);
   const [draftEndHour, setDraftEndHour] = useState(DEFAULT_END_HOUR);
+  const [draftIntervalHours, setDraftIntervalHours] = useState(DEFAULT_INTERVAL_HOURS);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,6 +121,8 @@ export default function PointManagementPage() {
         setScheduleRunning(status.running);
         setScheduleStartHour(status.startHour);
         setScheduleEndHour(status.endHour);
+        setScheduleIntervalHours(status.intervalHours);
+        setSchedulePointCount(status.pointCount);
       })
       .catch(() => {});
   }, []);
@@ -88,9 +130,7 @@ export default function PointManagementPage() {
   /** 켜져 있으면 즉시 중지, 꺼져 있으면 시간대 선택 다이얼로그를 연다 */
   const handleScheduleToggle = async () => {
     if (!scheduleRunning) {
-      setDraftStartHour(scheduleStartHour);
-      setDraftEndHour(scheduleEndHour);
-      setScheduleDialogOpen(true);
+      openScheduleDialog();
       return;
     }
 
@@ -106,20 +146,32 @@ export default function PointManagementPage() {
     }
   };
 
+  /** 현재 적용된 값을 draft 에 채워 다이얼로그를 연다 — 켜기와 설정 변경이 같은 화면을 쓴다 */
+  const openScheduleDialog = () => {
+    setDraftStartHour(scheduleStartHour);
+    setDraftEndHour(scheduleEndHour);
+    setDraftIntervalHours(scheduleIntervalHours);
+    setScheduleDialogOpen(true);
+  };
+
   const handleScheduleStart = async () => {
     if (draftStartHour === draftEndHour) {
       showToast('시작 시각과 종료 시각이 같을 수 없습니다.');
       return;
     }
+    const wasRunning = scheduleRunning;
     setScheduleLoading(true);
     try {
-      await startAiSchedule(draftStartHour, draftEndHour);
+      // 실행 중이어도 서버가 새 설정으로 다시 시작한다 — 끄고 켤 필요 없다
+      await startAiSchedule(draftStartHour, draftEndHour, draftIntervalHours);
       setScheduleRunning(true);
       setScheduleStartHour(draftStartHour);
       setScheduleEndHour(draftEndHour);
+      setScheduleIntervalHours(draftIntervalHours);
       setScheduleDialogOpen(false);
       showToast(
-        `AI 캐싱 스케줄러가 시작되었습니다. (매일 ${formatWindow(draftStartHour, draftEndHour)}, 1시간 간격, 포인트당 35초 간격)`,
+        `${wasRunning ? '설정이 변경되었습니다' : 'AI 캐싱 스케줄러가 시작되었습니다'}. ` +
+          `(매일 ${formatWindow(draftStartHour, draftEndHour)}, ${draftIntervalHours}시간 간격)`,
       );
     } catch {
       showToast('스케줄러 상태 변경에 실패했습니다.');
@@ -212,17 +264,37 @@ export default function PointManagementPage() {
           </span>
           <span className={styles.schedulerStatus}>
             {scheduleRunning
-              ? `실행 중 — 매일 ${formatWindow(scheduleStartHour, scheduleEndHour)}에만 1시간마다 전체 포인트 AI 분석 자동 갱신`
-              : '중지됨 — 켜기를 누르면 동작 시간대를 고를 수 있습니다'}
+              ? `실행 중 — 매일 ${formatWindow(scheduleStartHour, scheduleEndHour)}에만 ` +
+                `${scheduleIntervalHours}시간마다 전체 포인트 AI 분석 자동 갱신` +
+                (schedulePointCount > 0
+                  ? ` · 포인트 ${schedulePointCount}곳 · 월 약 ${estimateMonthly(
+                      scheduleStartHour,
+                      scheduleEndHour,
+                      scheduleIntervalHours,
+                      schedulePointCount,
+                    ).won.toLocaleString()}원`
+                  : '')
+              : '중지됨 — 켜기를 누르면 동작 시간대와 갱신 간격을 고를 수 있습니다'}
           </span>
         </div>
-        <button
-          className={`${styles.schedulerBtn} ${scheduleRunning ? styles.schedulerBtnOff : styles.schedulerBtnOn}`}
-          onClick={handleScheduleToggle}
-          disabled={scheduleLoading}
-        >
-          {scheduleLoading ? '처리 중...' : scheduleRunning ? '스케줄러 끄기' : '스케줄러 켜기'}
-        </button>
+        <div className={styles.schedulerActions}>
+          {scheduleRunning && (
+            <button
+              className={styles.schedulerSettingsBtn}
+              onClick={openScheduleDialog}
+              disabled={scheduleLoading}
+            >
+              설정 변경
+            </button>
+          )}
+          <button
+            className={`${styles.schedulerBtn} ${scheduleRunning ? styles.schedulerBtnOff : styles.schedulerBtnOn}`}
+            onClick={handleScheduleToggle}
+            disabled={scheduleLoading}
+          >
+            {scheduleLoading ? '처리 중...' : scheduleRunning ? '스케줄러 끄기' : '스케줄러 켜기'}
+          </button>
+        </div>
       </div>
 
       <div className={styles.pageHeader}>
@@ -340,10 +412,13 @@ export default function PointManagementPage() {
       {scheduleDialogOpen && (
         <div className={styles.dialogOverlay} onClick={() => !scheduleLoading && setScheduleDialogOpen(false)}>
           <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
-            <h3 className={styles.dialogTitle}>스케줄러 동작 시간대</h3>
+            <h3 className={styles.dialogTitle}>
+              {scheduleRunning ? '스케줄러 설정 변경' : '스케줄러 동작 설정'}
+            </h3>
             <p className={styles.dialogBody}>
               매일 선택한 시간대에만 AI 분석 갱신이 돌아갑니다.<br />
-              시간대 밖에서는 다음날 시작 시각까지 대기하며, 끄기 전까지 계속 유지됩니다.
+              시간대 밖에서는 다음날 시작 시각까지 대기하며, 끄기 전까지 계속 유지됩니다.<br />
+              <strong>동작 시간을 줄이거나 갱신 간격을 늘릴수록 AI 비용이 내려갑니다.</strong>
             </p>
             <div className={styles.hourPicker}>
               <label className={styles.hourField}>
@@ -374,11 +449,47 @@ export default function PointManagementPage() {
                 </select>
               </label>
             </div>
+            <div className={styles.hourPicker}>
+              <label className={styles.hourField}>
+                <span className={styles.hourLabel}>갱신 간격</span>
+                <select
+                  className={styles.hourSelect}
+                  value={draftIntervalHours}
+                  onChange={(e) => setDraftIntervalHours(Number(e.target.value))}
+                  disabled={scheduleLoading}
+                >
+                  {INTERVAL_HOUR_OPTIONS.map((h) => (
+                    <option key={h} value={h}>{h}시간마다</option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <p className={styles.hourHint}>
               {draftStartHour === draftEndHour
                 ? '시작 시각과 종료 시각이 같을 수 없습니다.'
-                : `${formatWindow(draftStartHour, draftEndHour)} 동안 동작합니다.`}
+                : `${formatWindow(draftStartHour, draftEndHour)} 동안 ` +
+                  `${draftIntervalHours}시간마다 동작합니다. ` +
+                  `분석 결과는 ${draftIntervalHours}시간 ${CACHE_BUFFER_MINUTES}분 동안 재사용됩니다.`}
             </p>
+            {draftStartHour !== draftEndHour && schedulePointCount > 0 && (
+              <p className={styles.hourHint}>
+                포인트 {schedulePointCount}곳 기준 — 월 약{' '}
+                {estimateMonthly(
+                  draftStartHour,
+                  draftEndHour,
+                  draftIntervalHours,
+                  schedulePointCount,
+                ).calls.toLocaleString()}
+                회 호출, 약{' '}
+                {estimateMonthly(
+                  draftStartHour,
+                  draftEndHour,
+                  draftIntervalHours,
+                  schedulePointCount,
+                ).won.toLocaleString()}
+                원 (실측 단가 기반 어림값)
+              </p>
+            )}
             <div className={styles.dialogActions}>
               <button
                 className={styles.cancelBtn}
@@ -392,7 +503,11 @@ export default function PointManagementPage() {
                 onClick={handleScheduleStart}
                 disabled={scheduleLoading || draftStartHour === draftEndHour}
               >
-                {scheduleLoading ? '시작 중...' : '스케줄러 켜기'}
+                {scheduleLoading
+                  ? '적용 중...'
+                  : scheduleRunning
+                    ? '설정 저장'
+                    : '스케줄러 켜기'}
               </button>
             </div>
           </div>
