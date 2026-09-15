@@ -10,7 +10,9 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
+  /* 홈만 한 톤 눕힌다 — 흰 카드가 떠 보이려면 바탕이 흰색이면 안 된다.
+     다른 페이지는 기존 --color-bg 를 그대로 쓴다. */
+  background: #E9EEF8;
 }
 
 .main {
@@ -21,9 +23,67 @@
 /* ─── Hero ─── */
 .hero {
   position: relative;
-  background: var(--color-surface);
-  padding: 44px 24px 40px;
+  background: transparent;
+  padding: 0;
+}
+
+/* ─── 딥블루 상단 밴드 ───
+   헤더부터 포인트 칩까지를 하나의 색면으로 잡아 "흰 종이" 감각을 끊는다.
+   높이는 내용이 정한다 — 칩이 두 줄이 되거나 에러 배너가 떠도 곡선이 따라온다. */
+.heroBandWrap {
+  position: relative;
+}
+
+/* 뒤 물결 — 밴드보다 15px 더 내려온 더 깊은 타원.
+   가운데만 초승달처럼 비쳐 수면처럼 읽힌다. bottom 을 음수로 잡았기 때문에
+   밴드 높이를 몰라도 항상 그만큼만 삐져나온다. */
+.heroBandWrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: -15px;
+  left: 0;
+  background: rgba(42, 99, 214, 0.22);
+  border-radius: 0 0 50% 50% / 0 0 78px 78px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.heroBand {
+  position: relative;
+  z-index: 1;
+  padding: 28px 16px 34px;
+  background: linear-gradient(
+    180deg,
+    #0E3078 0%,
+    #143A93 38%,
+    #1A47AC 70%,
+    #2A63D6 100%
+  );
+  border-radius: 0 0 50% 50% / 0 0 30px 30px;
   overflow: hidden;
+}
+
+/* 수면 좌우로 퍼지는 옅은 빛 */
+.heroBand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(56% 30% at 14% 103%, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 74%),
+    radial-gradient(56% 30% at 86% 103%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 74%);
+  pointer-events: none;
+}
+
+.heroBand > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 밴드 아래 — 밝은 바탕 위의 흰 카드들 */
+.heroRest {
+  padding: 0 16px 24px;
 }
 
 .heroInner {
@@ -107,20 +167,22 @@
 .heroTitle {
   font-size: clamp(28px, 4.2vw, 44px);
   font-weight: 800;
-  color: var(--color-text);
+  color: #FFFFFF;
+  text-shadow: 0 1px 12px rgba(6, 24, 66, 0.35);
   line-height: 1.25;
   margin-bottom: 12px;
   letter-spacing: -0.8px;
 }
 
 .heroAccent {
-  color: var(--color-primary);
+  color: #A6CCFF;
 }
 
 .heroDesc {
   font-size: clamp(14px, 1.8vw, 16px);
   font-weight: 400;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 8px rgba(6, 24, 66, 0.28);
   line-height: 1.7;
   margin-bottom: 22px;
 }
@@ -142,7 +204,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   padding: 8px 8px 8px 16px;
-  box-shadow: var(--shadow-sm);
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 26px rgba(6, 26, 76, 0.30);
   max-width: 480px;
   margin: 0 auto;
 }
@@ -203,12 +266,12 @@
   margin-top: 12px;
   display: inline-block;
   padding: 7px 18px;
-  background: var(--color-primary-tint);
-  border: 1px solid #D5E2FA;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.48);
   border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: #FFFFFF;
   letter-spacing: 0.01em;
 }
 
@@ -217,8 +280,105 @@
   margin-top: 12px;
   font-size: 13.5px;
   font-weight: 500;
-  color: var(--color-text-light);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.01em;
+}
+
+/* ─── 사진 어종판별 진입 카드 ───
+   퀵메뉴 타일 하나로는 나머지 7개에 묻혀서 전용 카드로 승격했다.
+   자리는 앱(_FishIdCtaCard)과 같은 곳 — 포인트 칩 아래, 바로가기 위.
+   바로 위 "지도 보기"가 채운 딥블루라 여기는 틴트로 톤을 낮춘다. 둘 다 진하면 서로 죽인다. */
+.fishIdCta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border: 1px solid #CFDCF3;
+  border-radius: 16px;
+  box-shadow: 0 2px 4px rgba(16, 40, 90, 0.06), 0 10px 26px rgba(16, 40, 90, 0.10);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.fishIdCta:hover {
+  border-color: #9DBAF0;
+  box-shadow: 0 4px 12px rgba(29, 79, 191, 0.14);
+  transform: translateY(-1px);
+}
+
+.fishIdCta:active {
+  transform: translateY(0);
+}
+
+/* 흰 타일 — 틴트 위에서 아이콘이 사진 한 장처럼 떠 보이게 한다. */
+.fishIdCtaIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid #CFDCF3;
+  color: var(--color-primary);
+}
+
+.fishIdCtaBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fishIdCtaTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fishIdCtaTitle {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.2px;
+}
+
+/* 남은 횟수 — "지금 눌러도 되나"를 누르기 전에 알려 준다. */
+.fishIdCtaBadge {
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  border: 1px solid #D5E2FA;
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.fishIdCtaBadgeOut {
+  border-color: #FECACA;
+  color: #B91C1C;
+}
+
+.fishIdCtaDesc {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.fishIdCtaChevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  color: var(--color-text-light);
 }
 
 /* ─── 서비스 퀵 메뉴 ───
@@ -228,8 +388,9 @@
   margin-top: 20px;
   padding: 10px 6px 6px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border: 1px solid #DCE4F1;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(16, 40, 90, 0.05), 0 6px 18px rgba(16, 40, 90, 0.06);
   text-align: left;
 }
 
@@ -339,8 +500,9 @@
   margin-top: 20px;
   padding: 12px;
   border-radius: 18px;
-  background: #EEF3FE;               /* 연한 파랑 틴트 — 묶음은 구분되고 글자 대비는 살린다 */
-  border: 1px solid #BFD0F0;
+  background: linear-gradient(180deg, #E4EDFC 0%, #DCE8FB 100%);
+  border: 1px solid #C4D6F4;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .dashPanelTitle {
@@ -381,10 +543,11 @@
   align-items: center;
   gap: 5px;
   background: #FFFFFF;
-  border: 1px solid #CFDCF3;
+  border: 1px solid #DCE6F7;
   border-radius: 12px;
   padding: 12px 10px;
   min-height: 92px;
+  box-shadow: 0 1px 2px rgba(16, 40, 90, 0.05);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -686,9 +849,12 @@
 .tackleShopBtn:hover { opacity: 0.85; }
 
 @media (max-width: 480px) {
-  .hero { padding: 28px 16px 32px; }
-  .section { padding: 24px 16px 28px; }
+  .heroBand { padding: 24px 16px 30px; }
+  .section { padding: 9px 12px; }
+  .sectionInner { padding: 16px 14px 18px; border-radius: 16px; }
   .quickNavBox { padding: 8px 2px 4px; border-radius: 14px; }
+  .fishIdCta { padding: 11px 12px; gap: 10px; }
+  .fishIdCtaIcon { width: 48px; height: 48px; }
   .sectionHeader { margin-bottom: 16px; }
   .conditionCards { gap: 6px; }
   .conditionCard { padding: 12px 8px; min-width: 0; min-height: 88px; }
@@ -697,19 +863,52 @@
   .mapBtn { width: 100%; justify-content: center; }
 }
 
+/* 넓은 화면에서는 색면이 커지므로 곡선을 더 깊게 판다.
+   좁은 화면과 같은 30px 로 두면 1280px 폭에서는 거의 직선으로 보인다. */
+@media (min-width: 900px) {
+  .heroBand {
+    padding: 34px 24px 28px;
+    border-radius: 0 0 50% 50% / 0 0 58px 58px;
+  }
+  .heroBandWrap::after {
+    bottom: -22px;
+    border-radius: 0 0 50% 50% / 0 0 150px 150px;
+  }
+  .heroRest {
+    padding: 0 24px 28px;
+  }
+  .fishIdCta {
+    margin-top: 34px;
+  }
+  .section {
+    padding: 14px 24px;
+  }
+  .sectionInner {
+    padding: 22px 26px 24px;
+    border-radius: 20px;
+  }
+}
+
 /* ─── 섹션 공통 ─── */
+/* 섹션 자체는 투명한 자리이고, 내용은 흰 카드로 떠오른다.
+   구분선을 긋는 대신 바탕과 카드의 밝기 차로 나눈다. */
 .section {
-  padding: 32px 24px 36px;
-  border-top: 1px solid var(--color-border);   /* 흰 배경에서 섹션 경계가 보이도록 */
+  padding: 11px 16px;
+  background: transparent;
 }
 
 .sectionAlt {
-  background: var(--color-surface);
+  background: transparent;
 }
 
 .sectionInner {
   max-width: 1080px;
   margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid #DCE4F1;
+  border-radius: 18px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 1px 2px rgba(16, 40, 90, 0.05), 0 6px 18px rgba(16, 40, 90, 0.06);
 }
 
 /* 어종 패널과 AI 분석 이유는 앱과 픽셀 단위로 같은 그림이어야 해서
