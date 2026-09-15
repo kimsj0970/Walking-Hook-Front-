@@ -1,0 +1,368 @@
+/* 연한 파랑 틴트 패널 위의 흰 카드 — .sunRow / .tideTimeline 과 같은 언어다.
+   글자는 진하게, 포인트는 딥블루 하나. */
+
+.block {
+  background: #FFFFFF;
+  border: 1px solid #CFDCF3;
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.blockHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.blockTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.blockNote {
+  font-size: 11px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── ① 시간별 ─── */
+
+.hourRow {
+  display: flex;
+  gap: 5px;
+}
+
+.hourCell {
+  flex: 1 1 0;
+  min-width: 0;              /* 좁은 화면에서 칸이 밀려나지 않게 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 2px;
+  background: #F4F7FD;
+  border: 1px solid #DCE5F4;
+  border-radius: 10px;
+}
+
+.hourTime {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.hourIcon {
+  line-height: 1;
+  display: flex;
+  color: var(--color-primary);
+}
+
+.hourTemp {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.hourWind {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* 12m/s 를 넘는 시각만 붉게 — 바람이 언제 꺾이는지가 이것만으로 보인다. */
+.hourWindHot {
+  color: #DC2626;
+}
+
+/* 강수량·파고 줄. 풍속과 같은 크기지만 색을 한 단계 죽여 풍속이 먼저 읽히게 한다. */
+.hourSub {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--color-text-light);
+  word-break: keep-all;
+}
+
+/* 두 줄로 흐를 수 있는 표기("1mm 미만")가 하나라도 있으면 여섯 칸 모두 두 줄 자리를 잡는다. */
+.hourSubTall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5em;
+}
+
+/* 비가 실제로 오는 시각만 살린다 — 나머지 칸의 "—" 와 구분된다. */
+.hourRain {
+  color: var(--color-primary);
+}
+
+/* ─── ② 오늘 – 모레 ─── */
+
+.dailyToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dailyToggle .blockNote {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.chevron {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--color-text-light);
+  transition: transform 0.18s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dayTabs {
+  display: flex;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 4px;
+  background: #EEF3FE;
+  border-radius: 12px;
+}
+
+.dayTab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.dayTabActive {
+  background: var(--color-primary);
+}
+
+.dayTabLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.dayTabActive .dayTabLabel {
+  color: #FFFFFF;
+}
+
+.dayTabSub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.dayTabActive .dayTabSub {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.halfRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.halfCard {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 11px 10px;
+  background: #F4F7FD;
+  border: 1px solid #DCE5F4;
+  border-radius: 12px;
+}
+
+.halfHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.halfWhen {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.halfBadge {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.halfBadgeBad {
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+
+.halfMain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.halfIcon {
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  color: var(--color-primary);
+}
+
+.halfMainText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.halfTemp {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 좁은 화면(390px)에서 "구름많음 · 강수 20%" 가 한 줄에 안 들어간다.
+   말줄임으로 잘라 버리면 강수확률이 통째로 사라지므로 두 줄까지 흘려보낸다. */
+.halfSky {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+}
+
+.halfDivider {
+  height: 1px;
+  margin: 8px 0 7px;
+  background: var(--color-border);
+}
+
+.metricRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.metricRow + .metricRow {
+  margin-top: 5px;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.metricValue {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metricValueHot {
+  color: #DC2626;
+}
+
+.dayFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  padding: 9px 11px;
+  background: #F4F7FD;
+  border: 1px solid #DCE5F4;
+  border-radius: 12px;
+}
+
+.dayFooterTide {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* 만조가 비면 이 문구만 남아 왼쪽으로 붙는다 — 오른쪽 정렬을 강제하지 않는다. */
+.dayFooterNote {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+/* 좁은 화면에서는 여섯 칸이 44px 안팎까지 줄어든다. 글자를 한 단계 낮춰 잘림을 막는다. */
+@media (max-width: 460px) {
+  .halfSky {
+    min-height: 2.7em;
+  }
+}
+
+@media (max-width: 380px) {
+  .block {
+    padding: 12px 12px;
+  }
+  .hourRow {
+    gap: 4px;
+  }
+  .hourCell {
+    padding: 7px 1px;
+  }
+  .hourTime {
+    font-size: 10px;
+  }
+  .hourTemp {
+    font-size: 11px;
+  }
+  .hourWind,
+  .hourSub {
+    font-size: 9px;
+  }
+  .halfRow {
+    gap: 6px;
+  }
+  .halfCard {
+    padding: 10px 8px;
+  }
+}
