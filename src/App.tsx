@@ -23,8 +23,13 @@ import CatchPostPage from './pages/CatchPostPage';
 import FreePostPage from './pages/FreePostPage';
 import PrivacyPage from './pages/PrivacyPage';
 import TermsPage from './pages/TermsPage';
+import OpenDataPage from './pages/OpenDataPage';
 import AccountDeletionPage from './pages/AccountDeletionPage';
 import GuideListPage from './pages/GuideListPage';
+import FishRegulationPage from './pages/FishRegulationPage';
+import FishIdPage from './pages/FishIdPage';
+import SpeciesComparePage, { SpeciesCompareListPage } from './pages/SpeciesComparePage';
+import TacklePage from './pages/TacklePage';
 import GuideDetailPage from './pages/GuideDetailPage';
 import LoginPage from './pages/LoginPage';
 import './App.css';
@@ -69,10 +74,16 @@ export default function App() {
             <Route path="/catch-posts" element={<CatchPostPage />} />
             <Route path="/free-posts" element={<FreePostPage />} />
             {/* 공개 가이드 — 로그인 없이 읽힌다. 검색엔진·광고 심사가 보는 화면. */}
+            <Route path="/regulations" element={<FishRegulationPage />} />
+            <Route path="/fish-id" element={<PrivateRoute><FishIdPage /></PrivateRoute>} />
+            <Route path="/compare" element={<SpeciesCompareListPage />} />
+            <Route path="/compare/:id" element={<SpeciesComparePage />} />
+            <Route path="/tackle" element={<TacklePage />} />
             <Route path="/guide" element={<GuideListPage />} />
             <Route path="/guide/:slug" element={<GuideDetailPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/open-data" element={<OpenDataPage />} />
             {/* Play Console 데이터 안전 설문의 "계정 삭제 요청 URL" 로 제출한다. 로그인 없이
                 접근할 수 있어야 하므로 PrivateRoute 로 감싸면 안 된다. */}
             <Route path="/account-deletion" element={<AccountDeletionPage />} />
