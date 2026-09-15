@@ -244,6 +244,60 @@ export const TIDE_FLOW_LABELS: Record<TideFlowPhase, string> = {
   UNKNOWN:      '—',
 };
 
+/**
+ * GET /fishing-points/{id}/conditions 의 `hourly[]` — 기상청 초단기예보 한 시점.
+ *
+ * 관측값은 여기 들어오지 않는다. 계기 타일이 "지금"을 맡고 이 배열은 미래만 맡는다.
+ * 예보 풍속은 육상 5km 격자 기준이라 해상 실측과 계통이 달라, 한 줄에 섞으면 값이 튄다.
+ */
+export interface HourlyForecast {
+  /** "HH:mm" — 날짜 없음. 오늘 안의 시각이다. */
+  time: string;
+  sky: string | null;
+  precipitationType: string | null;
+  precipitationProbability: number | null;
+  temperature: number | null;
+  windSpeed: number | null;
+  windDirection: string | null;
+  /** 초단기예보에는 파고가 없다. 서버가 단기예보 WAV 로 채우며, 없으면 null. */
+  waveHeight: number | null;
+  /**
+   * 초단기예보 RN1 원문. 기상청이 "1.0mm 미만" 같은 범주형 문자열을 주기도 해서
+   * 서버가 숫자로 바꾸지 않고 그대로 넘긴다. 강수가 없으면 null.
+   */
+  precipitation: string | null;
+}
+
+/**
+ * `daily[]` — 단기예보를 오전/오후 반일로 집계한 한 칸. 하루에 두 개.
+ *
+ * 범위(min~max)는 서버가 그 반일에 해당하는 시각 칸들에서 집계한 값이다.
+ * 수온은 예보 소스가 없어 여기 없다.
+ */
+export interface DailyForecast {
+  /** "yyyy-MM-dd" */
+  date: string;
+  afternoon: boolean;
+  sky: string | null;
+  precipitationProbability: number | null;
+  tempMin: number | null;
+  tempMax: number | null;
+  windSpeedMin: number | null;
+  windSpeedMax: number | null;
+  waveHeightMin: number | null;
+  waveHeightMax: number | null;
+  fishingIndex: string | null;
+  /** 단기예보 PCP 원문. 그 반일에서 가장 센 값 하나. 강수가 없으면 null. */
+  precipitation: string | null;
+  /**
+   * 몇물 / 만조 시각 — 서버가 아직 오늘 하루치 조석만 계산해서 각각 null, [] 로 온다.
+   * 내일·모레를 채우려면 TideService 를 날짜별로 부르는 작업이 따로 필요하다.
+   * 값이 없을 때는 자리를 비우지 말고 아예 감춘다.
+   */
+  waterNumber: string | null;
+  highTides: string[];
+}
+
 export interface FishingConditionsResult {
   pointName: string;
   stationName: string | null;
@@ -277,6 +331,9 @@ export interface FishingConditionsResult {
   tideSourceLabel: string | null;
   sunriseTime: string | null;
   sunsetTime: string | null;
+  /** 비어 있으면 서버가 null 로 보낸다(빈 배열이 아니다) — 화면에서 블록 자체를 감춘다. */
+  hourly: HourlyForecast[] | null;
+  daily: DailyForecast[] | null;
 }
 
 export interface FishingAnalysisResult {
@@ -302,6 +359,10 @@ export interface AiScheduleStatus {
   running: boolean;
   startHour: number;
   endHour: number;
+  /** 동일 포인트를 다시 갱신하기까지의 간격(시간). 1~12 */
+  intervalHours: number;
+  /** 스케줄러 대상 포인트 수 — 예상 호출량 계산용 */
+  pointCount: number;
 }
 
 export async function getAiScheduleStatus(): Promise<AiScheduleStatus> {
@@ -309,8 +370,16 @@ export async function getAiScheduleStatus(): Promise<AiScheduleStatus> {
   return data.data as AiScheduleStatus;
 }
 
-export async function startAiSchedule(startHour: number, endHour: number): Promise<void> {
-  await api.post('/admin/fish-points/ai-schedule/start', { startHour, endHour });
+/**
+ * 스케줄러 시작 — 이미 실행 중이면 서버가 새 설정으로 다시 시작하므로
+ * "설정 변경"에도 그대로 쓴다. 끄고 다시 켤 필요 없다.
+ */
+export async function startAiSchedule(
+  startHour: number,
+  endHour: number,
+  intervalHours: number,
+): Promise<void> {
+  await api.post('/admin/fish-points/ai-schedule/start', { startHour, endHour, intervalHours });
 }
 
 export async function stopAiSchedule(): Promise<void> {
