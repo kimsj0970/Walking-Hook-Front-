@@ -54,7 +54,10 @@ export const FISH_SPECIES_LABELS: Record<FishSpecies, string> = {
   OPALEYE:              '벵에돔',
   STRIPED_BEAKFISH:     '돌돔',
   SEA_BASS:             '농어',
-  GREENLING:            '노래미',
+  // 법령이 규정한 것은 쥐노래미(Hexagrammos otakii)뿐이다.
+  // 노래미(H. agrammus)는 규제가 없는 별개 종이라 표시명을 구분한다.
+  // 상수 이름(GREENLING)은 DB·백엔드와 맞물려 있으므로 그대로 둔다.
+  GREENLING:            '쥐노래미',
   CONGER_EEL:           '붕장어',
   GAJAMI:               '가자미',
   LONGTAIL_OPALEYE:     '긴꼬리벵에돔',
