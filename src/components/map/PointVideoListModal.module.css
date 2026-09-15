@@ -318,3 +318,30 @@
   line-height: 1.6;
   color: var(--color-text-light, var(--color-text-muted));
 }
+
+/* 지도에서 고른 유튜버를 헤더에 다시 적어 준다 — 목록이 왜 짧은지 설명이 된다 */
+.channelPill {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(11, 61, 145, 0.1);
+  color: #0b3d91;
+  font-size: 11px;
+  font-weight: 700;
+  word-break: keep-all;
+}
+
+.otherChannelBtn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: #0b3d91;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
