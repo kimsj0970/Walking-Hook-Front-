@@ -20,6 +20,17 @@ import styles from './PointVideoListModal.module.css';
 interface Props {
   pointId: string;
   pointName: string;
+  /**
+   * 지도에서 고른 유튜버. 주면 그 채널 영상만 보여준다.
+   * null 이면 지금까지처럼 전체.
+   */
+  channelName?: string | null;
+  /**
+   * 이 포인트에 붙어 있는 "다른 채널" 영상 수.
+   * 마커가 들고 있는 totalVideoCount - videoCount 로 계산돼 넘어온다(추가 요청 없음).
+   * 0 이면 "더 보기" 안내를 띄우지 않는다.
+   */
+  otherChannelCount?: number;
   onClose: () => void;
 }
 
@@ -61,17 +72,25 @@ const PAGE_SIZE = 5;
 /** 페이지 번호를 5개씩 묶어 ‹ › 로 다음 묶음(6~10)으로 넘어간다 */
 const BLOCK_SIZE = 5;
 
-export default function PointVideoListModal({ pointId, pointName, onClose }: Props) {
+export default function PointVideoListModal({
+  pointId, pointName, channelName = null, otherChannelCount = 0, onClose,
+}: Props) {
   const [videos, setVideos] = useState<MigratoryPointVideo[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  /**
+   * 모달 안에서만 채널 필터를 푼다 — "다른 채널 영상 N개 더 보기".
+   * 지도의 필터는 그대로 둔다. 영상 몇 개 보려고 지도가 통째로 바뀌면 놀란다.
+   */
+  const [showAllChannels, setShowAllChannels] = useState(false);
+  const activeChannel = showAllChannels ? null : channelName;
 
   useEffect(() => {
     let cancelled = false;
     setStatus('loading');
-    fetchPointVideosPublic(pointId, page, PAGE_SIZE)
+    fetchPointVideosPublic(pointId, page, PAGE_SIZE, activeChannel)
       .then((result) => {
         if (cancelled) return;
         setVideos(result.content ?? []);
@@ -81,7 +100,10 @@ export default function PointVideoListModal({ pointId, pointName, onClose }: Pro
       })
       .catch(() => { if (!cancelled) setStatus('error'); });
     return () => { cancelled = true; };
-  }, [pointId, page]);
+  }, [pointId, page, activeChannel]);
+
+  /** 채널 필터를 풀면 첫 페이지부터 다시 본다 — 3페이지에 있다가 풀리면 엉뚱한 곳이 열린다 */
+  const showEveryChannel = () => { setShowAllChannels(true); setPage(0); };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -96,6 +118,9 @@ export default function PointVideoListModal({ pointId, pointName, onClose }: Pro
           <div>
             <h3 className={styles.title}>이 포인트가 나오는 영상</h3>
             <p className={styles.subtitle}>{pointName}</p>
+            {activeChannel && (
+              <span className={styles.channelPill}>{activeChannel} 영상만</span>
+            )}
           </div>
           <button className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
         </div>
@@ -112,8 +137,19 @@ export default function PointVideoListModal({ pointId, pointName, onClose }: Pro
           {status === 'ready' && videos.length === 0 && totalElements === 0 && (
             <div className={styles.stateBox}>
               <div>
-                <p className={styles.emptyTitle}>등록된 영상이 없습니다</p>
-                <p className={styles.emptyDesc}>이 포인트가 나오는 영상이 확인되면 이곳에 추가됩니다.</p>
+                <p className={styles.emptyTitle}>
+                  {activeChannel ? `${activeChannel} 영상이 없습니다` : '등록된 영상이 없습니다'}
+                </p>
+                <p className={styles.emptyDesc}>
+                  {activeChannel
+                    ? '지도 필터를 바꾸는 사이 영상이 내려갔을 수 있습니다.'
+                    : '이 포인트가 나오는 영상이 확인되면 이곳에 추가됩니다.'}
+                </p>
+                {activeChannel && otherChannelCount > 0 && (
+                  <button type="button" className={styles.otherChannelBtn} onClick={showEveryChannel}>
+                    이 포인트의 다른 채널 영상 {otherChannelCount}개 보기
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -159,6 +195,15 @@ export default function PointVideoListModal({ pointId, pointName, onClose }: Pro
                 onPageChange={setPage}
                 blockSize={BLOCK_SIZE}
               />
+              {/*
+                고른 유튜버 것만 보여주되, 다른 채널 영상이 있다는 사실은 남겨 둔다.
+                완전히 감추면 그 포인트에 다른 영상이 있다는 것 자체를 알 수 없다.
+              */}
+              {activeChannel && otherChannelCount > 0 && (
+                <button type="button" className={styles.otherChannelBtn} onClick={showEveryChannel}>
+                  이 포인트의 다른 채널 영상 {otherChannelCount}개 더 보기 ▾
+                </button>
+              )}
               <p className={styles.disclaimer}>
                 각 영상은 해당 채널의 콘텐츠이며, 워킹훅과 제휴 관계가 없습니다.
                 노출을 원하지 않는 채널은 문의하기로 알려주시면 바로 내리겠습니다.
