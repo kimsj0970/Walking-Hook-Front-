@@ -70,6 +70,38 @@
   color: var(--color-text-muted);
 }
 
+/* 켜기/끄기 + 설정 변경 버튼을 한 줄로 묶는다 */
+.schedulerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 실행 중일 때만 보이는 보조 버튼 — 주 동작(켜기/끄기)보다 약하게 */
+.schedulerSettingsBtn {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.schedulerSettingsBtn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.schedulerSettingsBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .schedulerBtn {
   padding: 8px 18px;
   border-radius: var(--radius-sm);
