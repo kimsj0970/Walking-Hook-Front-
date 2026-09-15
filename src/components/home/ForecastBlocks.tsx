@@ -40,7 +40,10 @@ export function HourlyForecastStrip({ items }: { items: HourlyForecast[] | null 
 
   // ⚠ 줄을 켤지는 칸마다가 아니라 스트립 전체로 정한다. 칸별로 정하면 비 오는 칸만
   // 한 줄 길어져 기온·풍속이 칸마다 다른 높이에 놓인다 — 가로로 읽을 수가 없다.
-  const showPrecip = slots.some(h => h.precipitation != null);
+  // 강수량은 비가 올 때만이 아니라 항상 보여 준다. 줄이 통째로 사라지면 사용자는
+  // "비 안 옴"이 아니라 "이 화면은 강수를 안 알려 준다"로 읽는다.
+  // 기상청 RN1 은 강수 없음을 null 로 주므로 그때는 0mm 로 적는다.
+  const showPrecip = true;
   const showWave = slots.some(h => h.waveHeight != null);
   // "1mm 미만" 은 좁은 기기에서 두 줄로 흐른다. 그 칸만 길어지면 옆 칸과 풍속 줄이
   // 어긋나므로, 한 칸이라도 흐를 수 있으면 여섯 칸 모두 두 줄 자리를 잡아 둔다.
@@ -90,7 +93,7 @@ function HourCell({ item, showPrecip, showWave, precipTwoLine }: {
           precipTwoLine ? styles.hourSubTall : '',
           item.precipitation ? styles.hourRain : '',
         ].filter(Boolean).join(' ')}>
-          {shortPrecipitation(item.precipitation) ?? '—'}
+          {shortPrecipitation(item.precipitation) ?? '0mm'}
         </span>
       )}
       {/* 12m/s 를 넘는 시각만 붉게. 언제 꺾이는지가 이것만으로 보인다. */}
