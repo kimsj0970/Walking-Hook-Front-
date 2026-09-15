@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { oauthLogin, requestAccountRecoveryApi, isRecoveryAvailable } from '../api/authApi';
+import { takePostLoginRedirect } from '../lib/postLoginRedirect';
 import { useAuth } from '../context/AuthContext';
 
 export default function OAuthCallbackPage() {
@@ -68,11 +69,14 @@ export default function OAuthCallbackPage() {
 
         const { accessToken, nickName, role, needsAgeAgreement, needsTermsAgreement } = result;
         login(accessToken, nickName, role, needsAgeAgreement, needsTermsAgreement);
-        // 닉네임 없으면 닉네임 설정 페이지로
+        // 로그인 때문에 가로막혔던 자리(예: /fish-id). 없으면 홈.
+        // 어느 분기로 가든 한 번은 비워야 다음 로그인에 묵은 값이 안 따라붙는다.
+        const back = takePostLoginRedirect();
+        // 닉네임 없으면 닉네임 설정 페이지로 — 온보딩이 먼저다.
         if (!nickName) {
           navigate('/nickname', { replace: true });
         } else {
-          navigate('/', { replace: true });
+          navigate(back ?? '/', { replace: true });
         }
       })
       .catch((err: unknown) => {
@@ -91,6 +95,7 @@ export default function OAuthCallbackPage() {
           default:
             alert('로그인에 실패했습니다. 다시 시도해 주세요.');
         }
+        takePostLoginRedirect();   // 실패했으니 돌아갈 자리도 버린다
         navigate('/');
       });
   }, []);
