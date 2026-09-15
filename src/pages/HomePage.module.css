@@ -1,3 +1,11 @@
+/* ─────────────────────────────────────────────────────────────
+   A안 딥블루 미니멀.
+   - 포인트 색은 --color-primary(딥블루) 하나만 쓴다.
+   - 히어로의 남색 그라데이션·네온 카드(시안/그린/바이올렛/레드)를 전부 걷어내고
+     흰 배경 + 연한 보더 카드로 통일했다.
+   - 진입 카드들은 퀵 메뉴(.quickNav) 하나로 압축됐다.
+   ───────────────────────────────────────────────────────────── */
+
 .page {
   min-height: 100vh;
   display: flex;
@@ -13,16 +21,9 @@
 /* ─── Hero ─── */
 .hero {
   position: relative;
-  background: linear-gradient(160deg, #0B3D91 0%, #1565C0 55%, #0096C7 100%);
-  padding: 64px 24px 80px;
+  background: var(--color-surface);
+  padding: 44px 24px 40px;
   overflow: hidden;
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
 .heroInner {
@@ -32,30 +33,6 @@
   text-align: center;
 }
 
-.heroBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: var(--radius-full);
-  padding: 6px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.9);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-bottom: 24px;
-}
-
-.heroBadgeDot {
-  width: 6px;
-  height: 6px;
-  background: #4ADE80;
-  border-radius: 50%;
-  animation: pulse 2s ease-in-out infinite;
-}
-
 /* ─── 이번 달 최대어 배너 ─── */
 .topCatchBanner {
   position: relative;
@@ -63,21 +40,20 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, rgba(120, 53, 15, 0.55) 0%, rgba(180, 83, 9, 0.45) 55%, rgba(120, 53, 15, 0.55) 100%);
-  border: 1px solid rgba(251, 191, 36, 0.5);
+  background: #FFF7ED;
+  border: 1px solid #FDE1B0;
   border-radius: var(--radius-full);
   padding: 7px 16px 7px 12px;
   margin-bottom: 16px;
   cursor: pointer;
   font-family: inherit;
   transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
-  box-shadow: 0 2px 14px rgba(0,0,0,0.18);
 }
 
 .topCatchBanner:hover {
   transform: translateY(-1px);
-  border-color: rgba(251, 191, 36, 0.85);
-  box-shadow: 0 4px 20px rgba(251,191,36,0.2);
+  border-color: #F7C873;
+  box-shadow: 0 4px 14px rgba(217, 151, 6, 0.15);
 }
 
 .topCatchBanner > * { position: relative; z-index: 1; }
@@ -85,21 +61,22 @@
 .topCatchBannerShimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg, transparent 38%, rgba(255,215,130,0.25) 50%, transparent 62%);
+  background: linear-gradient(105deg, transparent 38%, rgba(251, 211, 141, 0.28) 50%, transparent 62%);
   background-size: 200% 100%;
   animation: shimmerSweep 3.2s linear infinite;
   pointer-events: none;
 }
 
 .topCatchTrophy {
-  font-size: 16px;
+  display: inline-flex;
+  color: #B45309;
   line-height: 1;
 }
 
 .topCatchLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #FDE68A;
+  color: #B45309;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
@@ -107,13 +84,13 @@
 .topCatchDivider {
   width: 1px;
   height: 12px;
-  background: rgba(253, 230, 138, 0.35);
+  background: #F1D5A8;
 }
 
 .topCatchNickname {
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255,255,255,0.92);
+  color: var(--color-text);
   white-space: nowrap;
   max-width: 120px;
   overflow: hidden;
@@ -123,76 +100,279 @@
 .topCatchSize {
   font-size: 13px;
   font-weight: 800;
-  color: #FDE68A;
+  color: #B45309;
   white-space: nowrap;
 }
 
 .heroTitle {
-  font-size: clamp(30px, 4.5vw, 48px);
+  font-size: clamp(28px, 4.2vw, 44px);
   font-weight: 800;
-  color: #fff;
-  line-height: 1.2;
-  margin-bottom: 14px;
-  letter-spacing: -0.5px;
+  color: var(--color-text);
+  line-height: 1.25;
+  margin-bottom: 12px;
+  letter-spacing: -0.8px;
 }
 
 .heroAccent {
-  color: #7DD3FC;
+  color: var(--color-primary);
 }
 
 .heroDesc {
-  font-size: clamp(14px, 1.8vw, 17px);
+  font-size: clamp(14px, 1.8vw, 16px);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--color-text-muted);
   line-height: 1.7;
-  margin-bottom: 24px;
-}
-
-/* ─── 특징 하이라이트 ─── */
-.heroFeatures {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 28px;
-}
-
-.heroFeatureItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: var(--radius-full);
-  font-size: 13px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(4px);
-  letter-spacing: 0.01em;
-}
-
-.heroFeatureItem::before {
-  content: '✓';
-  font-size: 11px;
-  font-weight: 900;
-  color: #4ADE80;
+  margin-bottom: 22px;
 }
 
 /* ─── 구분선 ─── */
 .heroDivider {
   width: 100%;
   height: 1px;
-  background: rgba(255, 255, 255, 0.15);
-  margin: 20px 0 24px;
+  background: var(--color-border);
+  margin: 20px 0 22px;
+}
+
+/* ─── 위치 선택 바 ─── */
+.locationBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 8px 8px 8px 16px;
+  box-shadow: var(--shadow-sm);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.locationIcon {
+  display: inline-flex;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.locationSelect {
+  flex: 1;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 8px 12px;
+  cursor: pointer;
+  outline: none;
+  min-width: 0;
+}
+
+.locationSelect option,
+.locationSelect optgroup {
+  background: #fff;
+  color: var(--color-text);
+}
+
+.locationSelect:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mapBtn {
+  padding: 9px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.mapBtn:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(29, 79, 191, 0.25);
+}
+
+/* ─── 현재 선택 포인트 칩 ─── */
+.currentPointChip {
+  margin-top: 12px;
+  display: inline-block;
+  padding: 7px 18px;
+  background: var(--color-primary-tint);
+  border: 1px solid #D5E2FA;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.01em;
+}
+
+/* ─── 미선택 안내 문구 ─── */
+.selectPrompt {
+  margin-top: 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--color-text-light);
+  letter-spacing: 0.01em;
+}
+
+/* ─── 서비스 퀵 메뉴 ───
+   기존의 큰 진입 카드들(어종 현황·어종 포인트·CCTV·금지구역·금어기·채비·가이드)을
+   아이콘 바 하나로 압축했다. 홈 세로 길이를 줄이는 것이 목적. */
+.quickNavBox {
+  margin-top: 20px;
+  padding: 10px 6px 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  text-align: left;
+}
+
+.quickNavTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.quickNavTitle::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+.quickNav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 2px;
+  justify-items: center;
+}
+
+.quickItem {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.quickItem:hover {
+  transform: translateY(-2px);
+}
+
+.quickItem:hover .quickIcon {
+  box-shadow: 0 6px 16px rgba(29, 79, 191, 0.35);
+}
+
+/* 진입 아이콘 — 흰 히어로 위에서 바로 눈에 들어오도록 채운 블루 타일로 포인트를 준다. */
+.quickIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #3B6FE0 0%, #1D4FBF 100%);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(29, 79, 191, 0.25);
+  transition: box-shadow 0.15s;
+}
+
+.quickBadge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-surface);
+  box-sizing: content-box;
+}
+
+.quickLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+  line-height: 1.3;
+  min-height: 2.6em;       /* 두 줄 라벨과 높이를 맞춰 줄이 가지런하게 */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+@media (max-width: 560px) {
+  .quickNav { gap: 8px 2px; }
+  .quickIcon { width: 44px; height: 44px; border-radius: 14px; }
+}
+
+/* ─── 계기판 묶음 패널 ───
+   페이지·히어로는 흰색을 유지하고, 계기판(조건 카드·일출일몰·조석·예보) 묶음만
+   딥 네이비 패널로 감싸 포인트를 준다. 내부 카드들은 반투명 글래스. */
+.dashPanel {
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #EEF3FE;               /* 연한 파랑 틴트 — 묶음은 구분되고 글자 대비는 살린다 */
+  border: 1px solid #BFD0F0;
+}
+
+.dashPanelTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.dashPanelTitle::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+/* 패널 안 블록들은 위쪽 간격만 가진다 — 아래 여백이 패널 padding 과 겹쳐 죽은 공간이 생기지 않게. */
+.dashPanel > * + * {
+  margin-top: 10px;
 }
 
 /* ─── 수온/풍속/물때 카드 ─── */
 .conditionCards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: 8px;
 }
 
 .conditionCard {
@@ -200,17 +380,17 @@
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  background: rgba(255, 255, 255, 0.13);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
-  padding: 14px 12px;
-  min-height: 100px;
-  backdrop-filter: blur(8px);
-  transition: background 0.2s;
+  background: #FFFFFF;
+  border: 1px solid #CFDCF3;
+  border-radius: 12px;
+  padding: 12px 10px;
+  min-height: 92px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .conditionCard:hover {
-  background: rgba(255, 255, 255, 0.2);
+  border-color: #B9CDF5;
+  box-shadow: 0 2px 8px rgba(29, 79, 191, 0.1);
 }
 
 .conditionCardClickable {
@@ -229,8 +409,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
-  color: rgba(255, 255, 255, 0.85);
+  background: #EAECF0;
+  color: #667085;
   font-size: 9px;
   font-weight: 700;
   margin-left: 4px;
@@ -243,30 +423,40 @@
   animation: pulse 1.8s ease-in-out infinite;
 }
 
-/* 강수 카드 — 7번째로 혼자 나타날 때 3열 전체 */
-.conditionCardFull {
-  grid-column: 1 / -1;
+.conditionCardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: 2px;
 }
 
-.conditionCardIcon {
-  font-size: 22px;
+.conditionCardIcon svg {
+  width: 19px;
+  height: 19px;
 }
 
 .conditionCardLabel {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-muted);
 }
 
 .conditionCardValue {
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.3px;
 }
 
 .conditionCardDesc {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
   text-align: center;
   line-height: 1.3;
   margin-top: 2px;
@@ -274,7 +464,7 @@
 
 .conditionCardSource {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--color-text-light);
   margin-top: 4px;
   line-height: 1.3;
   text-align: center;
@@ -286,16 +476,28 @@
   gap: 6px;
 }
 
-.waterMoonEmoji {
-  font-size: 26px;
+.waterMoonIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
   line-height: 1;
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  margin-bottom: 2px;
+}
+
+.waterMoonIcon svg {
+  width: 20px;
+  height: 20px;
 }
 
 .waterNumberValue {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
-  color: #fff;
+  color: var(--color-text);
   letter-spacing: 0.03em;
 }
 
@@ -303,53 +505,24 @@
 .conditionCardSkeleton {
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-light);
   letter-spacing: 0.02em;
   animation: pulse 1.4s ease-in-out infinite;
 }
 
-/* ─── 풍향 나침반 ─── */
-.windCompass {
-  position: relative;
-  width: 52px;
-  height: 52px;
+/* ─── 낙뢰 경고 배너 ─── */
+.lightningBanner {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2px;
-}
-
-.windNeedle {
-  width: 38px;
-  height: 38px;
-  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  filter: drop-shadow(0 0 4px rgba(255, 59, 59, 0.5));
-}
-
-.windDirN, .windDirS, .windDirW, .windDirE {
-  position: absolute;
-  font-size: 7.5px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.35);
-  line-height: 1;
-  pointer-events: none;
-}
-.windDirN { top: 1px;    left: 50%; transform: translateX(-50%); }
-.windDirS { bottom: 1px; left: 50%; transform: translateX(-50%); }
-.windDirW { left: 1px;   top: 50%;  transform: translateY(-50%); }
-.windDirE { right: 1px;  top: 50%;  transform: translateY(-50%); }
-
-
-/* ─── 낙뢰 경고 배너 ─── */
-.lightningBanner {
-  background: #FEF08A;
-  border: 1.5px solid #FACC15;
+  gap: 7px;
+  background: #FEF9C3;
+  border: 1.5px solid #FDE047;
   border-radius: 12px;
   padding: 10px 18px;
   font-size: 13px;
   font-weight: 700;
   color: #713F12;
-  margin-bottom: 16px;
   text-align: center;
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -360,12 +533,10 @@
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-top: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1px solid #CFDCF3;
+  border-radius: 12px;
   padding: 12px 24px;
-  margin-bottom: 16px;
 }
 
 .sunItem {
@@ -377,20 +548,21 @@
 }
 
 .sunIcon {
-  font-size: 20px;
+  display: inline-flex;
+  color: #D97706;
   line-height: 1;
 }
 
 .sunLabel {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .sunTime {
   font-size: 16px;
   font-weight: 800;
-  color: #FDE047;
+  color: var(--color-text);
   letter-spacing: 0.5px;
 }
 
@@ -399,28 +571,15 @@
   width: 48px;
   height: 16px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-border-light);
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
 .sunDivider {
   width: 1px;
   height: 32px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border);
   margin: 0 16px;
-}
-
-/* ─── 어종 스켈레톤 ─── */
-.fishSkeleton {
-  height: 160px;
-  background: linear-gradient(90deg,
-    rgba(0,0,0,0.06) 25%,
-    rgba(0,0,0,0.10) 50%,
-    rgba(0,0,0,0.06) 75%
-  );
-  background-size: 200% 100%;
-  border-radius: 16px;
-  animation: shimmer 1.4s infinite;
 }
 
 @keyframes shimmer {
@@ -428,44 +587,45 @@
   100% { background-position: -200% 0; }
 }
 
+@keyframes shimmerSweep {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
 /* ─── AI 분석 이유 본문 ─── */
 .reasonSummary {
   flex: 1;
+  min-width: 0;
   font-size: 12px;
   color: var(--color-text-muted);
-  font-style: italic;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .reasonBody {
-  margin-top: 14px;
-  border-top: 1px solid var(--color-border);
-  padding-top: 14px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .reasonSection {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .reasonSectionTitle {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--color-text);
 }
 
 .reasonSectionText {
-  font-size: 14px;
-  color: var(--color-text);
-  line-height: 1.75;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.55;
   margin: 0;
 }
 
@@ -475,24 +635,37 @@
   padding-top: 8px;
   border-top: 1px dashed var(--color-border);
   font-size: 11px;
-  color: var(--color-text-muted, #94a3b8);
+  color: var(--color-text-muted);
   text-align: right;
 }
 
 /* ─── 샌드웍스 링크 ─── */
 .tackleShopLink {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.06);
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--color-surface-2);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-border);
 }
 
 .tackleShopLabel {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 11.5px;
+  color: var(--color-text-light);
+}
+
+@media (max-width: 460px) {
+  .tackleShopLink {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .tackleShopBtn {
+    justify-content: center;
+  }
 }
 
 .tackleShopBtn {
@@ -512,161 +685,22 @@
 
 .tackleShopBtn:hover { opacity: 0.85; }
 
-/* ─── 위치 선택 바 ─── */
-.locationBar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: var(--radius-full);
-  padding: 8px 8px 8px 16px;
-  backdrop-filter: blur(8px);
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-.locationIcon {
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.locationSelect {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-full);
-  color: #fff;
-  font-size: 13px;
-  padding: 7px 12px;
-  cursor: pointer;
-  outline: none;
-  min-width: 0;
-}
-
-.locationSelect option {
-  background: #0B3D91;
-  color: #fff;
-}
-
-.locationSelect:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Option 1: 밝은 청록색 */
-.mapBtn {
-  padding: 9px 20px;
-  background: #00D9FF;
-  color: #0B3D91;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-
-.mapBtn:hover {
-  background: #00E8FF;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 217, 255, 0.4);
-}
-
-/* ─── 현재 선택 포인트 칩 ─── */
-.currentPointChip {
-  margin-top: 12px;
-  display: inline-block;
-  padding: 8px 20px;
-  background: rgba(255, 255, 255, 0.22);
-  border: 1.5px solid rgba(255, 255, 255, 0.45);
-  border-radius: var(--radius-full);
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.01em;
-}
-
-/* ─── 미선택 안내 문구 ─── */
-.selectPrompt {
-  margin-top: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #7DD3FC;
-  letter-spacing: 0.01em;
-}
-
-/* Option 2: 주황색 (아래 주석 제거하고 위 주석 처리)
-.mapBtn {
-  padding: 9px 20px;
-  background: #FF7A3D;
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-
-.mapBtn:hover {
-  background: #FF8A50;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 122, 61, 0.4);
-}
-*/
-
-/* Option 3: 초록색 (아래 주석 제거하고 위 주석 처리)
-.mapBtn {
-  padding: 9px 20px;
-  background: #4ADE80;
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-
-.mapBtn:hover {
-  background: #5FE291;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(74, 222, 128, 0.4);
-}
-*/
-
 @media (max-width: 480px) {
-  .conditionCards { gap: 8px; }
-  .conditionCard { padding: 14px 18px; min-width: 90px; }
+  .hero { padding: 28px 16px 32px; }
+  .section { padding: 24px 16px 28px; }
+  .quickNavBox { padding: 8px 2px 4px; border-radius: 14px; }
+  .sectionHeader { margin-bottom: 16px; }
+  .conditionCards { gap: 6px; }
+  .conditionCard { padding: 12px 8px; min-width: 0; min-height: 88px; }
+  .dashPanel { padding: 10px; border-radius: 16px; }
   .locationBar { flex-wrap: wrap; border-radius: 20px; padding: 10px 12px; }
   .mapBtn { width: 100%; justify-content: center; }
 }
 
-/* 물결 */
-.waveWrap {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  line-height: 0;
-}
-
-.wave {
-  width: 100%;
-  height: 60px;
-  display: block;
-}
-
 /* ─── 섹션 공통 ─── */
 .section {
-  padding: 56px 24px;
+  padding: 32px 24px 36px;
+  border-top: 1px solid var(--color-border);   /* 흰 배경에서 섹션 경계가 보이도록 */
 }
 
 .sectionAlt {
@@ -678,11 +712,17 @@
   margin: 0 auto;
 }
 
+/* 어종 패널과 AI 분석 이유는 앱과 픽셀 단위로 같은 그림이어야 해서
+   넓은 화면에서도 폰 폭으로 묶어 가운데 둔다. */
+.narrowInner {
+  max-width: 480px;
+}
+
 .sectionHeader {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
 }
 
@@ -697,6 +737,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  margin-left: auto;
 }
 
 .sectionPointName {
@@ -710,36 +751,39 @@
   color: var(--color-text-muted);
 }
 
-/* ─── 어종 그리드 ─── */
-.fishGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-@media (max-width: 520px) {
-  .fishGrid {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-}
-
-/* 안내 배너 */
-.noticeBanner {
+/* ─── 커뮤니티 탭 ─── */
+.boardTabs {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #FFF7ED;
-  border: 1px solid #FED7AA;
-  border-radius: var(--radius-md);
-  padding: 14px 18px;
-  font-size: 13px;
-  color: #92400E;
-  line-height: 1.5;
+  gap: 6px;
 }
 
-.noticeIcon { font-size: 16px; flex-shrink: 0; }
+.boardTab {
+  padding: 8px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.boardTab:hover {
+  border-color: #D0D5DD;
+  color: var(--color-text);
+}
+
+.boardTabActive {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.boardTabActive:hover {
+  border-color: var(--color-primary);
+  color: #fff;
+}
 
 /* ─── 출조 경고 배너 ─── */
 .outingBanner {
@@ -764,341 +808,20 @@
   color: #7F1D1D;
 }
 
-.outingIcon { font-size: 20px; flex-shrink: 0; }
+.outingIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
 
 /* ─── 포인트 미선택 안내 ─── */
 .hintBox {
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
+  background: var(--color-primary-tint);
+  border: 1px solid #BFD0F0;
   border-radius: var(--radius-md);
   padding: 16px 20px;
   font-size: 14px;
-  color: #1E40AF;
+  color: var(--color-primary-dark);
   margin-bottom: 20px;
-}
-
-/* ─── 실시간 회유성 정보(지도) 카드 + 전체 포인트 보기 버튼 ─── */
-.migratoryRow {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  width: 100%;
-  margin-top: 28px;
-}
-
-.migratoryCard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #080E24 0%, #0D1535 60%, #0A1A40 100%);
-  border: 1.5px solid rgba(34, 211, 238, 0.5);
-  border-radius: 16px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
-  box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
-  animation: migratoryPulseRing 2.8s ease-in-out infinite;
-  text-align: left;
-}
-
-.migratoryCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(34, 211, 238, 0.85);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.55), 0 0 20px rgba(34,211,238,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.migratoryCard:hover .migratoryCardFish {
-  animation: fishWiggle 0.5s ease-in-out;
-}
-
-@keyframes migratoryPulseRing {
-  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(34,211,238,0.5); }
-  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(34,211,238,0); }
-}
-
-@keyframes fishWiggle {
-  0%   { transform: rotate(0deg) scale(1); }
-  25%  { transform: rotate(-12deg) scale(1.15); }
-  75%  { transform: rotate(10deg) scale(1.15); }
-  100% { transform: rotate(0deg) scale(1); }
-}
-
-/* 시머 스윕 */
-.migratoryCardShimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 38%, rgba(34,211,238,0.07) 50%, transparent 62%);
-  background-size: 200% 100%;
-  animation: shimmerSweep 3s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes shimmerSweep {
-  0%   { background-position: 200% center; }
-  100% { background-position: -200% center; }
-}
-
-.migratoryCard > *:not(.migratoryCardShimmer) { position: relative; z-index: 1; }
-
-.migratoryCardFish {
-  font-size: 30px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.migratoryCardBody {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.migratoryCardTop {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.migratoryCardLive {
-  font-size: 10px;
-  font-weight: 800;
-  color: #4ADE80;
-  letter-spacing: 0.1em;
-  flex-shrink: 0;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-.migratoryCardTitle {
-  font-size: 15px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.migratoryCardDesc {
-  margin: 0;
-  font-size: 12px;
-  color: rgba(255,255,255,0.55);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.migratoryCardCta {
-  flex-shrink: 0;
-  padding: 6px 14px;
-  background: rgba(34,211,238,0.15);
-  border: 1px solid rgba(34,211,238,0.5);
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #67E8F9;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.migratoryCard:hover .migratoryCardCta {
-  background: rgba(34,211,238,0.28);
-  border-color: rgba(34,211,238,0.8);
-}
-
-/* ─── 모든 낚시 포인트 보기 버튼 ─── */
-.allPointsCard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex: 1 1 0;
-  min-width: 0;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #062B24 0%, #0B4A3B 60%, #0C5C45 100%);
-  border: 1.5px solid rgba(52, 211, 153, 0.5);
-  border-radius: 16px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
-  box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
-  animation: allPointsPulseRing 2.8s ease-in-out infinite;
-  text-align: left;
-}
-
-.allPointsCard:hover {
-  transform: translateY(-2px);
-  border-color: rgba(52, 211, 153, 0.85);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.45), 0 0 20px rgba(52,211,153,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-
-.allPointsCard:hover .allPointsCardIcon {
-  animation: fishWiggle 0.5s ease-in-out;
-}
-
-@keyframes allPointsPulseRing {
-  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(52,211,153,0.5); }
-  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(52,211,153,0); }
-}
-
-/* 시머 스윕 */
-.allPointsCardShimmer {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 38%, rgba(52,211,153,0.09) 50%, transparent 62%);
-  background-size: 200% 100%;
-  animation: shimmerSweep 3s linear infinite;
-  pointer-events: none;
-}
-
-.allPointsCard > *:not(.allPointsCardShimmer) { position: relative; z-index: 1; }
-
-.allPointsCardIcon {
-  font-size: 30px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.allPointsCardBody {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.allPointsCardTitle {
-  font-size: 15px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.allPointsCardDesc {
-  margin: 0;
-  font-size: 12px;
-  color: rgba(255,255,255,0.55);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.allPointsCardCta {
-  flex-shrink: 0;
-  padding: 6px 14px;
-  background: rgba(52,211,153,0.15);
-  border: 1px solid rgba(52,211,153,0.5);
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #6EE7B7;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.allPointsCard:hover .allPointsCardCta {
-  background: rgba(52,211,153,0.28);
-  border-color: rgba(52,211,153,0.8);
-}
-
-/* ── 색 변형 ── 기존 시안(회유성)·에메랄드(모든포인트)와 한 세트로 어울리도록
-   동일한 "딥 다크 베이스 + 400톤 액센트(보더·글로우·펄스링·시머·CTA)" 구조를 그대로 따른다.
-   CCTV = 바이올렛-400 #A78BFA / 낚시금지구역 = 레드-400 #F87171 */
-.cctvCard {
-  background: linear-gradient(135deg, #12082E 0%, #1E1145 60%, #2A1860 100%);
-  border-color: rgba(167,139,250,0.5);
-  box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
-  animation: cctvPulseRing 2.8s ease-in-out infinite;
-}
-.cctvCard:hover {
-  border-color: rgba(167,139,250,0.85);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.5), 0 0 22px rgba(167,139,250,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-@keyframes cctvPulseRing {
-  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(167,139,250,0.5); }
-  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(167,139,250,0); }
-}
-.cctvCard .allPointsCardShimmer {
-  background: linear-gradient(105deg, transparent 38%, rgba(167,139,250,0.11) 50%, transparent 62%);
-}
-.cctvCard .allPointsCardCta {
-  background: rgba(167,139,250,0.16);
-  border-color: rgba(167,139,250,0.5);
-  color: #C4B5FD;
-}
-.cctvCard:hover .allPointsCardCta {
-  background: rgba(167,139,250,0.30);
-  border-color: rgba(167,139,250,0.85);
-}
-
-.zoneCard {
-  background: linear-gradient(135deg, #250810 0%, #3D111C 60%, #511823 100%);
-  border-color: rgba(248,113,113,0.5);
-  box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
-  animation: zonePulseRing 2.8s ease-in-out infinite;
-}
-.zoneCard:hover {
-  border-color: rgba(248,113,113,0.85);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.5), 0 0 22px rgba(248,113,113,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-@keyframes zonePulseRing {
-  0%, 100% { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 0 rgba(248,113,113,0.5); }
-  50%       { box-shadow: 0 4px 28px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 7px rgba(248,113,113,0); }
-}
-.zoneCard .allPointsCardShimmer {
-  background: linear-gradient(105deg, transparent 38%, rgba(248,113,113,0.11) 50%, transparent 62%);
-}
-.zoneCard .allPointsCardCta {
-  background: rgba(248,113,113,0.16);
-  border-color: rgba(248,113,113,0.5);
-  color: #FCA5A5;
-}
-.zoneCard:hover .allPointsCardCta {
-  background: rgba(248,113,113,0.30);
-  border-color: rgba(248,113,113,0.85);
-}
-
-/* 모바일에서도 세로로 쌓지 않고 가로 2열 유지 — 카드 내부 여백/폰트를 줄여 글자 깨짐 방지 */
-@media (max-width: 560px) {
-  .migratoryRow {
-    gap: 8px;
-  }
-  .migratoryCard,
-  .allPointsCard {
-    padding: 12px 10px;
-    gap: 8px;
-  }
-  .migratoryCardFish,
-  .allPointsCardIcon {
-    font-size: 22px;
-  }
-  .migratoryCardTop {
-    gap: 5px;
-  }
-  .migratoryCardLive {
-    font-size: 9px;
-  }
-  .migratoryCardTitle,
-  .allPointsCardTitle {
-    font-size: 12.5px;
-  }
-  .migratoryCardDesc,
-  .allPointsCardDesc {
-    font-size: 10.5px;
-  }
-  .migratoryCardCta,
-  .allPointsCardCta {
-    display: none;
-  }
 }
 
 /* ─── 에러 배너 ─── */
@@ -1162,7 +885,10 @@
   text-align: center;
 }
 
-.impossibleIcon { font-size: 48px; }
+.impossibleIcon {
+  display: inline-flex;
+  color: #B91C1C;
+}
 
 .impossibleTitle {
   font-size: 18px;
@@ -1185,43 +911,39 @@
 }
 
 .reasonCard {
-  border: 1px solid var(--color-border);
-  border-left: 4px solid;
+  border-left: 4px solid;   /* 색은 어종색으로 인라인 지정된다 */
   border-radius: var(--radius-md);
-  padding: 14px 18px;
+  padding: 12px 14px;
   cursor: pointer;
   background: var(--color-surface);
-  transition: box-shadow 0.15s, background 0.15s;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s;
 }
 
 .reasonCard:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .reasonCardActive {
-  background: #F8FAFF;
+  box-shadow: var(--shadow-md);
 }
 
 .reasonHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .reasonSpecies {
   font-size: 15px;
-  font-weight: 700;
-  flex: 1;
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 .reasonScore {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  padding: 2px 10px;
+  font-weight: 800;
+  color: var(--color-text);
 }
 
 .reasonToggle {
@@ -1229,96 +951,12 @@
   color: var(--color-text-muted);
 }
 
-.reasonText {
-  margin-top: 12px;
-  font-size: 14px;
-  color: var(--color-text);
-  line-height: 1.75;
-  border-top: 1px solid var(--color-border);
-  padding-top: 12px;
-}
-
-/* ─── 빈 상태 ─── */
-.emptyState {
-  text-align: center;
-  padding: 60px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.emptyIcon {
-  font-size: 52px;
-  animation: wave 2.5s ease-in-out infinite;
-}
-
-.emptyTitle {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.emptyDesc {
-  font-size: 14px;
-  color: var(--color-text-muted);
-  line-height: 1.7;
-  max-width: 320px;
-}
-
-.emptyBtn {
-  margin-top: 8px;
-  padding: 12px 28px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.emptyBtn:hover {
-  background: var(--color-primary-light);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(11, 61, 145, 0.3);
-}
-
-/* ─── 푸터 ─── */
-.footer {
-  background: var(--color-primary-dark);
-  padding: 24px;
-}
-
-.footerInner {
-  max-width: 1080px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.footerLogo {
-  font-size: 14px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.9);
-}
-
-.footerCopy {
-  font-size: 12px;
-  color: rgba(255,255,255,0.45);
-}
-
 /* ─── 조석 타임라인 ─── */
 .tideTimeline {
-  margin-top: 16px;
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 14px;
-  padding: 14px 18px;
+  background: #FFFFFF;
+  border: 1px solid #CFDCF3;
+  border-radius: 12px;
+  padding: 14px 16px;
 }
 
 .tideTimelineHeader {
@@ -1330,18 +968,18 @@
 
 .tideTimelineTitle {
   font-size: 13px;
-  font-weight: 600;
-  color: rgba(255,255,255,0.9);
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .tideTimelineStation {
   font-size: 11px;
-  color: rgba(255,255,255,0.45);
+  color: var(--color-text-light);
 }
 
 .tideTimelineSkeleton {
   height: 36px;
-  background: rgba(255,255,255,0.1);
+  background: var(--color-border-light);
   border-radius: 8px;
   animation: pulse 1.5s ease-in-out infinite;
 }
@@ -1349,7 +987,7 @@
 .tideTimelineEmpty {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255,255,255,0.7);
+  color: var(--color-text-muted);
   padding: 24px 0;
   display: block;
   text-align: center;
@@ -1361,57 +999,11 @@
   height: auto;
 }
 
-.tideEvents {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tideEvent {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: rgba(255,255,255,0.9);
-  transition: opacity 0.2s;
-}
-
-.tideEventPast {
-  opacity: 0.45;
-}
-
-.tideEventIcon {
-  font-size: 10px;
-  color: #00D9FF;
-}
-
-.tideEvent:not(.tideEventPast) .tideEventIcon {
-  color: #00D9FF;
-  filter: drop-shadow(0 0 4px #00D9FF88);
-}
-
-.tideEventLabel {
-  font-weight: 600;
-  font-size: 11px;
-}
-
-.tideEventTime {
-  color: rgba(255,255,255,0.7);
-}
-
-.tideEventHeight {
-  font-size: 11px;
-  color: rgba(255,255,255,0.55);
-}
-
 /* ─── 조건 설명 바텀시트 ─── */
 .infoOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(16, 24, 40, 0.45);
   z-index: 1000;
   display: flex;
   align-items: flex-end;
@@ -1427,7 +1019,7 @@
 .infoSheet {
   width: 100%;
   max-width: 480px;
-  background: #1a2744;
+  background: var(--color-surface);
   border-radius: 22px 22px 0 0;
   padding: 12px 20px 32px;
   animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
@@ -1443,7 +1035,7 @@
 .infoSheetHandle {
   width: 40px;
   height: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border);
   border-radius: 2px;
   margin: 0 auto 18px;
 }
@@ -1459,7 +1051,7 @@
 .infoSheetTitle {
   font-size: 17px;
   font-weight: 800;
-  color: #fff;
+  color: var(--color-text);
   margin: 0;
   letter-spacing: -0.01em;
 }
@@ -1470,8 +1062,8 @@
   height: 28px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
@@ -1483,12 +1075,12 @@
 }
 
 .infoSheetCloseIcon:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border-light);
 }
 
 .infoSheetSubtitle {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--color-text-muted);
   line-height: 1.55;
   margin: 0 0 18px;
 }
@@ -1505,7 +1097,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-muted);
 }
 
 .infoLegendDotCurrent,
@@ -1517,11 +1109,11 @@
 }
 
 .infoLegendDotCurrent {
-  background: #38bdf8;
+  background: var(--color-primary);
 }
 
 .infoLegendDotBest {
-  background: #4ade80;
+  background: #16A34A;
 }
 
 .infoRowList {
@@ -1535,27 +1127,27 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--color-surface-2);
   border-radius: 10px;
   padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border-light);
 }
 
 .infoRowHighlight {
-  background: rgba(74, 222, 128, 0.12);
-  border-color: rgba(74, 222, 128, 0.25);
+  background: #F0FDF4;
+  border-color: #BBF7D0;
 }
 
 /* 현재 포인트의 수치가 속한 구간 */
 .infoRowCurrent {
-  background: rgba(56, 189, 248, 0.14);
-  border-color: rgba(56, 189, 248, 0.55);
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+  background: var(--color-primary-tint);
+  border-color: #A8C2F5;
+  box-shadow: 0 0 0 1px rgba(29, 79, 191, 0.25);
 }
 
 /* 현재 구간이면서 적정 구간이면 초록 배경 유지 + 파란 테두리 */
 .infoRowHighlight.infoRowCurrent {
-  background: rgba(74, 222, 128, 0.16);
+  background: #F0FDF4;
 }
 
 .infoRowCurrentBadge {
@@ -1564,8 +1156,8 @@
   flex-shrink: 0;
   padding: 3px 9px;
   border-radius: 999px;
-  background: #38bdf8;
-  color: #0b1a2e;
+  background: var(--color-primary);
+  color: #fff;
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
@@ -1574,37 +1166,37 @@
 .infoRowLabel {
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text);
   white-space: nowrap;
   min-width: 90px;
   flex-shrink: 0;
 }
 
 .infoRowHighlight .infoRowLabel {
-  color: #4ade80;
+  color: #15803D;
 }
 
 .infoRowCurrent .infoRowLabel {
-  color: #7dd3fc;
+  color: var(--color-primary);
 }
 
 .infoRowHighlight.infoRowCurrent .infoRowLabel {
-  color: #4ade80;
+  color: #15803D;
 }
 
 .infoRowDesc {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--color-text-muted);
   line-height: 1.4;
 }
 
 .infoSheetClose {
   width: 100%;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  border: none;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -1612,10 +1204,10 @@
 }
 
 .infoSheetClose:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-border-light);
 }
 
-/* ── 회유성 미리보기 목록 ── */
+/* ── 게시판 미리보기 목록 ── */
 .previewList {
   display: flex;
   flex-direction: column;
@@ -1636,8 +1228,8 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .previewCard:hover {
-  border-color: rgba(11, 61, 145, 0.25);
-  box-shadow: 0 2px 8px rgba(11, 61, 145, 0.07);
+  border-color: #C4D4F5;
+  box-shadow: var(--shadow-sm);
 }
 
 .previewMain {
@@ -1667,7 +1259,7 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  background: rgba(11, 61, 145, 0.08);
+  background: var(--color-primary-tint);
   color: var(--color-primary);
   flex-shrink: 0;
   white-space: nowrap;
@@ -1699,18 +1291,7 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  background: rgba(34, 139, 34, 0.1);
-  color: #276827;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.previewNoPointBadge {
-  padding: 2px 9px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  background: var(--color-bg);
+  background: var(--color-surface-2);
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
   flex-shrink: 0;
@@ -1718,6 +1299,9 @@
 }
 
 .previewMetaIcon {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 12px;
   color: var(--color-text-muted);
 }
@@ -1727,33 +1311,17 @@
   color: var(--color-text-muted);
 }
 
-/* 낚시 가이드 카드 — 로그인 없이 열리는 유일한 카드.
-   LIVE 성격이 아니라 펄스 링을 넣지 않았다(계속 깜빡이면 급한 정보로 오인된다). */
-.guideCard {
-  background: linear-gradient(135deg, #06243F 0%, #0B3D91 60%, #1565C0 100%);
-  border-color: rgba(0, 180, 216, 0.5);
-  box-shadow: 0 4px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
-  animation: none;
-}
-.guideCard:hover {
-  border-color: rgba(0, 180, 216, 0.85);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.45), 0 0 20px rgba(0,180,216,0.24), inset 0 1px 0 rgba(255,255,255,0.08);
-}
-.guideCard .allPointsCardShimmer {
-  background: linear-gradient(105deg, transparent 38%, rgba(0,180,216,0.12) 50%, transparent 62%);
-}
-.guideCard .allPointsCardCta {
-  background: rgba(0, 180, 216, 0.16);
-  border-color: rgba(0, 180, 216, 0.5);
-  color: #7FDCF0;
-}
-.guideCard:hover .allPointsCardCta {
-  background: rgba(0, 180, 216, 0.30);
-  border-color: rgba(0, 180, 216, 0.85);
+/* 게시판·공지 섹션 — 히어로(700px)와 같은 중앙 컬럼으로 묶는다.
+   1080px 컨테이너에 그대로 두면 탭·제목이 왼쪽 끝에 붙어 가운데 정렬된
+   나머지 화면과 따로 논다. */
+.boardInner {
+  max-width: 700px;
 }
 
-/* '로그인 없이 열람' 배지는 없앴다. position:absolute 로 오른쪽 위에 붙이려 했지만
-   위쪽의 `.allPointsCard > *:not(.allPointsCardShimmer) { position: relative }` 가
-   선택자 특정도(0,2,0 > 0,1,0)에서 이겨 배지가 그냥 첫 번째 플렉스 아이템이 됐다.
-   그래서 아이콘 왼쪽에 세로 중앙으로 떠 있었다. 지금은 그 정보를 CTA 문구
-   ('로그인 없이 읽기 →')가 직접 말하므로 배지도, 배지용 padding-top 도 필요 없다. */
+/* 퀵 메뉴에서 두 줄이 필요한 라벨("모든 낚시 포인트 & 유튜버 포인트") */
+.quickLabelWrap {
+  white-space: nowrap;      /* 줄바꿈은 마크업의 <br> 한 번만 — 자동 줄바꿈으로 3줄이 되지 않게 */
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: -0.4px;
+}
