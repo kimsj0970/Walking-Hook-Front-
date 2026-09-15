@@ -5,19 +5,22 @@
 }
 
 :root {
-  --color-primary: #0B3D91;
-  --color-primary-light: #1565C0;
-  --color-primary-dark: #072a6b;
-  --color-accent: #00B4D8;
-  --color-accent-dark: #0096C7;
-  --color-bg: #EFF6FF;
+  /* A안 딥블루 미니멀 — 포인트 색은 딥블루 하나만 쓴다.
+     accent 도 파랑 계열로 묶어 화면에 다른 색이 끼어들지 않게 한다. */
+  --color-primary: #1D4FBF;
+  --color-primary-light: #4A76D8;
+  --color-primary-dark: #16409E;
+  --color-accent: #4A76D8;
+  --color-accent-dark: #1D4FBF;
+  --color-primary-tint: #EEF3FE;
+  --color-bg: #F8FAFC;
   --color-surface: #FFFFFF;
-  --color-surface-2: #F8FAFF;
-  --color-text: #0F172A;
-  --color-text-muted: #64748B;
-  --color-text-light: #94A3B8;
-  --color-border: #E2E8F0;
-  --color-border-light: #F1F5F9;
+  --color-surface-2: #F8FAFC;
+  --color-text: #101828;
+  --color-text-muted: #667085;
+  --color-text-light: #98A2B3;
+  --color-border: #D5DAE3;   /* 흰 화면에서 구획선이 보이도록 한 단계 진하게 */
+  --color-border-light: #E4E8EF;
   --color-success: #10B981;
   --color-danger: #EF4444;
   --color-warning: #F59E0B;
@@ -28,10 +31,10 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 3px rgba(11, 61, 145, 0.06), 0 1px 2px rgba(11, 61, 145, 0.04);
-  --shadow-md: 0 4px 12px rgba(11, 61, 145, 0.08), 0 2px 4px rgba(11, 61, 145, 0.05);
-  --shadow-lg: 0 12px 32px rgba(11, 61, 145, 0.12), 0 4px 8px rgba(11, 61, 145, 0.06);
-  --shadow-xl: 0 24px 48px rgba(11, 61, 145, 0.16), 0 8px 16px rgba(11, 61, 145, 0.08);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.07), 0 2px 4px rgba(16, 24, 40, 0.04);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.1), 0 4px 8px rgba(16, 24, 40, 0.05);
+  --shadow-xl: 0 24px 48px rgba(16, 24, 40, 0.14), 0 8px 16px rgba(16, 24, 40, 0.07);
 
   --header-height: 64px;
 
