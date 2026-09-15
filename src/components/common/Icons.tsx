@@ -352,3 +352,8 @@ export function FlowIcon(p: IconProps = {}) {
     p,
   );
 }
+
+/** 오른쪽 꺾쇠 — 진입 카드의 "누르면 넘어간다" 신호 */
+export function ChevronRightIcon(p: IconProps = {}) {
+  return base(<path d="M9 5l7 7-7 7" />, { strokeWidth: 2, ...p });
+}
