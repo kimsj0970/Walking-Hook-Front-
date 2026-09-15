@@ -268,11 +268,18 @@ export interface UserInfoResponse {
   nicknameChangedAt?: string | null;
   age?: string | null;
   birthyear?: string | null;
+  /** 내 한 뼘(mm) — 사진 어종판별의 크기 기준자. 미등록이면 null. */
+  handSpanMm?: number | null;
 }
 
 export async function getMyInfoApi(): Promise<UserInfoResponse> {
   const { data } = await api.get('/user/mypage');
   return data.data as UserInfoResponse;
+}
+
+/** 내 한 뼘(mm) 등록·수정 — 사진 어종판별의 크기 기준자. */
+export async function updateMeasureReferenceApi(handSpanMm: number): Promise<void> {
+  await api.patch('/user/measure-reference', { handSpanMm });
 }
 
 export default api;
