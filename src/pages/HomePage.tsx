@@ -1,26 +1,42 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
-import FishProbabilityCard, { FISH_LIST, type FishData } from '../components/fish/FishProbabilityCard';
+import SpeciesPanel from '../components/fish/SpeciesPanel';
 import {
   fetchProvinces, fetchFishingPointsByProvince, fetchConditions, analyzeFishingPoint,
   type ProvinceItem, type FishingPointMapMarker,
   type FishingConditionsResult, type FishingAnalysisResult,
-  type SpeciesAnalysis, type TideEvent, type TidePoint, TIDE_FLOW_LABELS,
+  type TideEvent, type TidePoint, TIDE_FLOW_LABELS,
 } from '../api/fishingPointApi';
 import { useAuth } from '../context/AuthContext';
 import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
 import AdSlot from '../components/common/AdSlot';
+import { speciesClosedThisMonth } from '../data/fishRegulations';
+import { useFishRegulations } from '../hooks/useFishRegulations';
 import { getCatchPostsPage, type CatchPostListItem } from '../api/catchPostApi';
 import { getFreePostsPage, type FreePostListItem } from '../api/freePostApi';
 import { getThisMonthTopCatch, type TopCatch } from '../api/topCatchApi';
-import { fetchAllMigratoryFishPointMapMarkers, type MigratoryFishPointMapMarker } from '../api/migratoryFishPointApi';
+import {
+  fetchAllMigratoryFishPointMapMarkers,
+  fetchMigratoryFishPointDetail,
+  fetchMigratoryPointChannels,
+  type MigratoryFishPointMapMarker,
+  type MigratoryPointChannelList,
+} from '../api/migratoryFishPointApi';
 import MapTypeControl from '../components/map/MapTypeControl';
+import { HourlyForecastStrip, DailyForecastCard } from '../components/home/ForecastBlocks';
 import PointVideoListModal from '../components/map/PointVideoListModal';
+import ChannelFilterPanel from '../components/map/ChannelFilterPanel';
+import {
+  HookIcon, PinIcon, FishIcon, CctvIcon, BanIcon, BookIcon, RulerIcon,
+  ThermoIcon, WaveIcon, WindIcon, TideCycleIcon, FlowIcon, SunIcon, SunCloudIcon,
+  CloudIcon, RainIcon, SnowIcon, UmbrellaIcon, SunriseIcon, SunsetIcon,
+  MoonPhaseIcon, TrophyIcon, BoltIcon, AlertIcon, CameraIcon, CommentIcon, LikeIcon,
+} from '../components/common/Icons';
 import styles from './HomePage.module.css';
 
-const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> = {
+const FISH_META: Record<string, { id: string; colorFrom: string; colorTo: string }> = {
   '광어':   { id: 'flatfish',   colorFrom: '#0077B6', colorTo: '#0096C7' },
   '감성돔': { id: 'blackporgy', colorFrom: '#5A189A', colorTo: '#7B2FBE' },
   '우럭':   { id: 'rockfish',   colorFrom: '#005F73', colorTo: '#0A9396' },
@@ -28,25 +44,29 @@ const FISH_META: Record<string, Pick<FishData, 'id' | 'colorFrom' | 'colorTo'>> 
 };
 
 
-const SKY_ICON: Record<string, string> = {
-  '맑음': '☀️', '구름많음': '⛅', '흐림': '☁️',
-};
+/** 하늘 상태 → 선 아이콘. 강수형태가 있으면 그것이 하늘상태를 이긴다. */
+function SkyGlyph({ sky, pty, size = 22 }: { sky: string | null; pty?: string | null; size?: number }) {
+  if (pty && pty !== '없음') {
+    if (pty === '눈') return <SnowIcon size={size} />;
+    return <RainIcon size={size} />;
+  }
+  if (sky === '맑음') return <SunIcon size={size} />;
+  if (sky === '흐림') return <CloudIcon size={size} />;
+  return <SunCloudIcon size={size} />;
+}
 
-const PTY_ICON: Record<string, string> = {
-  '비': '🌧', '소나기': '🌦', '비·눈': '🌨', '눈': '❄️',
-};
-
-function getWaterMoonIcon(waterNumber: string | null | undefined): string {
-  if (!waterNumber) return '🌙';
-  if (waterNumber === '조금') return '🌑';
-  if (waterNumber.includes('사리')) return '🌕';
+/** 몇 물 → 달 위상(0=조금·그믐, 1=사리·보름). MoonPhaseIcon 에 넣는다. */
+function getWaterMoonPhase(waterNumber: string | null | undefined): number {
+  if (!waterNumber) return 0.5;
+  if (waterNumber === '조금' || waterNumber === '무시') return 0.05;
+  if (waterNumber.includes('사리')) return 1;
   const match = waterNumber.match(/^(\d+)물/);
-  if (!match) return '';
+  if (!match) return 0.5;
   const n = parseInt(match[1]);
-  if (n <= 2) return '🌒';
-  if (n <= 4) return '🌓';
-  if (n <= 6) return '🌔';
-  return '🌕';
+  if (n <= 2) return 0.3;
+  if (n <= 4) return 0.5;
+  if (n <= 6) return 0.75;
+  return 0.95;
 }
 
 function formatDateTime(iso: string) {
@@ -72,7 +92,7 @@ type ConditionInfoKey = '파고' | '풍속' | '물때' | '조류' | '몇물' | '
 
 const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string; rows: InfoRow[] }> = {
   파고: {
-    title: '🌊 파고 (파도 높이)',
+    title: '파고 (파도 높이)',
     subtitle: '파도가 높을수록 물이 탁해져 물고기 경계심이 낮아지지만, 너무 높으면 채비 컨트롤이 어렵고 위험해요.',
     rows: [
       { label: '0 ~ 0.3m', desc: '잔잔함 · 물이 맑아 물고기 경계심이 높아져요. 광어·우럭 루어엔 불리하지 않지만 감성돔은 입질 적어요', max: 0.3 },
@@ -85,7 +105,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     ],
   },
   풍속: {
-    title: '💨 풍속 (바람 세기)',
+    title: '풍속 (바람 세기)',
     subtitle: '바람이 약할수록 캐스팅이 쉽고, 강해질수록 루어 비행 거리와 방향 컨트롤이 어려워져요.',
     rows: [
       { label: '0 ~ 1.5 m/s (실바람)', desc: '캐스팅 완벽 · 단 물이 잔잔해 물고기 경계심이 높아질 수 있어요', max: 1.5 },
@@ -98,7 +118,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     ],
   },
   물때: {
-    title: '🔄 물때 (조석 세기)',
+    title: '물때 (조석 세기)',
     subtitle: '한 달 동안 조류의 세기가 변하는 주기예요. 음력 15일(보름)·30일(그믐) 전후 사리, 음력 8일·23일 전후 조금이에요.',
     rows: [
       { label: '대조기', desc: '조류가 가장 강한 기간 · 농어·감성돔·돌돔 등 포식성 어종 활성 최고', highlight: true },
@@ -107,7 +127,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     ],
   },
   조류: {
-    title: '🌊 조류 흐름 (들물·날물)',
+    title: '조류 흐름 (들물·날물)',
     subtitle: '하루 중 바닷물이 들어오고 나가는 방향이에요. 조류가 흐를 때 물고기 먹이 활동이 활발해져요.',
     rows: [
       { label: '들물 본 때', desc: '바닷물이 밀려오는 가장 활발한 시간 · 농어·감성돔 최고 조황 기대', highlight: true },
@@ -120,7 +140,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     ],
   },
   몇물: {
-    title: '🌕 몇 물 (음력 물때)',
+    title: '몇 물 (음력 물때)',
     subtitle: '사리(가장 강함) 이후 숫자가 커지며 약해지고, 조금(가장 약함) 이후 1물부터 다시 강해져요. 동·남해는 8물때식(8물=사리), 서해는 7물때식(7물=사리)이에요.',
     rows: [
       { label: '7물(사리)', desc: '서해 조류 최대 · 서해안 기준 조차가 가장 큰 날. 포식성 어종 최고 활성', highlight: true },
@@ -143,7 +163,7 @@ const CONDITION_INFO: Record<ConditionInfoKey, { title: string; subtitle: string
     ],
   },
   수온: {
-    title: '🌡 수온 (물 온도)',
+    title: '수온 (물 온도)',
     subtitle: '각 어종마다 선호하는 수온 범위가 달라요. 수온이 적정 범위를 벗어나면 활성이 떨어지고 입질이 줄어들어요.',
     rows: [
       { label: '5℃ 이하', desc: '극저수온 · 거의 모든 어종 활성 최저, 깊은 곳으로 이동해 연안 낚시 매우 어려움', max: 5 },
@@ -195,30 +215,24 @@ function findCurrentRow(
   return null;
 }
 
-function buildFishCards(results: SpeciesAnalysis[]): FishData[] {
-  return results.map((r) => ({
-    id: FISH_META[r.species]?.id ?? r.species,
-    name: r.species,
-    probability: r.score,
-    trend: null,
-    colorFrom: FISH_META[r.species]?.colorFrom ?? '#334155',
-    colorTo:   FISH_META[r.species]?.colorTo   ?? '#64748B',
-  }));
-}
+type PointGroup = { code: string; displayName: string; points: FishingPointMapMarker[] };
 
 export default function HomePage() {
   const { isLoggedIn, isAdmin } = useAuth();
   const navigate = useNavigate();
+  // 오늘 금어기인 어종 수. 정적 데이터라 매 렌더 계산해도 부담이 없다.
+  useFishRegulations(); // 서버 규제 도착 시 리렌더 — 아래 계산이 새 값을 읽는다
+  const closedThisMonthCount = speciesClosedThisMonth().length;
   const [loginToast, setLoginToast] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
 
-  const [provinces, setProvinces] = useState<ProvinceItem[]>([]);
-  const [fishingPoints, setFishingPoints] = useState<FishingPointMapMarker[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState('');
+  /* 시/도 드롭다운을 없앴다 — 포인트 셀렉트 하나에 시/도별 optgroup 으로 담는다.
+     포인트가 한 번에 다 로드되므로 지도에서 고른 포인트의 시/도 역추적도 필요 없다. */
+  const [pointGroups, setPointGroups] = useState<PointGroup[]>([]);
   const [selectedPointId, setSelectedPointId] = useState('');
 
-  const [provincesError, setProvincesError] = useState('');
-  const [pointsLoading, setPointsLoading] = useState(false);
+  const [pointsError, setPointsError] = useState('');
+  const [pointsLoading, setPointsLoading] = useState(true);
 
   const [isConditionsLoading, setIsConditionsLoading] = useState(false);
   const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
@@ -235,19 +249,34 @@ export default function HomePage() {
   // 이번 주 조황 지도 모달
   const [migratoryMapOpen, setMigratoryMapOpen] = useState(false);
   const [allPointsMapOpen, setAllPointsMapOpen] = useState(false);
+  const [boardTab, setBoardTab] = useState<'catch' | 'free'>('catch');
   const [catchPostsPreview, setCatchPostsPreview] = useState<CatchPostListItem[]>([]);
   const [freePostsPreview, setFreePostsPreview] = useState<FreePostListItem[]>([]);
   const [topCatch, setTopCatch] = useState<TopCatch | null>(null);
 
-  // 지도에서 포인트 선택 시 드롭다운 동기화용 refs
-  const pendingPointIdRef = useRef<string | null>(null);
-  const provincesRef = useRef<ProvinceItem[]>([]);
-  provincesRef.current = provinces;
-
   useEffect(() => {
-    fetchProvinces()
-      .then(setProvinces)
-      .catch(() => setProvincesError('시/도 목록을 불러오지 못했습니다.'));
+    let cancelled = false;
+    (async () => {
+      try {
+        const provinces = await fetchProvinces();
+        const groups = await Promise.all(
+          provinces.map(async (prov: ProvinceItem): Promise<PointGroup> => ({
+            code: prov.code,
+            displayName: prov.displayName,
+            points: await fetchFishingPointsByProvince(prov.code).catch(
+              () => [] as FishingPointMapMarker[],
+            ),
+          })),
+        );
+        if (cancelled) return;
+        setPointGroups(groups.filter((g) => g.points.length > 0));
+      } catch {
+        if (!cancelled) setPointsError('낚시 포인트 목록을 불러오지 못했습니다.');
+      } finally {
+        if (!cancelled) setPointsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -256,55 +285,18 @@ export default function HomePage() {
     getThisMonthTopCatch().then(setTopCatch).catch(() => {});
   }, []);
 
-  // 지도 팝업 → 메인 페이지 포인트 수신 + 드롭다운 동기화
+  // 지도 팝업 → 메인 페이지 포인트 수신. 전체 포인트가 이미 로드돼 있어 그대로 고르면 된다.
   useEffect(() => {
-    const handler = async (event: MessageEvent) => {
+    const handler = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'fishing-point-selected' && event.data.pointId) {
-        const targetId = event.data.pointId as string;
-        setSelectedPointId(targetId); // 즉시 분석 시작
+        setSelectedPointId(event.data.pointId as string); // 즉시 분석 시작
         window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // 시/도 드롭다운 동기화: 모든 시도를 병렬 검색
-        const currentProvinces = provincesRef.current;
-        if (currentProvinces.length === 0) return;
-        const results = await Promise.allSettled(
-          currentProvinces.map(async (prov) => {
-            const pts = await fetchFishingPointsByProvince(prov.code);
-            return pts.some((p) => p.id === targetId) ? { provCode: prov.code } : null;
-          })
-        );
-        for (const r of results) {
-          if (r.status === 'fulfilled' && r.value) {
-            pendingPointIdRef.current = targetId;
-            setSelectedProvince(r.value.provCode);
-            return;
-          }
-        }
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!selectedProvince) { setFishingPoints([]); setSelectedPointId(''); return; }
-    setPointsLoading(true);
-    fetchFishingPointsByProvince(selectedProvince)
-      .then((pts) => {
-        setFishingPoints(pts);
-        // 지도에서 선택한 포인트가 있으면 그것을 유지, 아니면 첫 번째 선택
-        const pending = pendingPointIdRef.current;
-        if (pending && pts.some((p) => p.id === pending)) {
-          setSelectedPointId(pending);
-          pendingPointIdRef.current = null;
-        } else {
-          setSelectedPointId(pts[0]?.id ?? '');
-        }
-      })
-      .catch(() => { setFishingPoints([]); setSelectedPointId(''); })
-      .finally(() => setPointsLoading(false));
-  }, [selectedProvince]);
+  }, []);
 
   useEffect(() => {
     if (!selectedPointId) {
@@ -391,11 +383,18 @@ export default function HomePage() {
 
   const isAnalyzing = isConditionsLoading || isAnalysisLoading;
 
-  const fishCards: FishData[] = analysisResult?.results
-    ? buildFishCards(analysisResult.results)
-    : FISH_LIST.map((f) => ({ ...f, probability: null }));
-
   const hasPrecip = conditionsResult?.precipitationType && conditionsResult.precipitationType !== '없음';
+
+  /** 로그인 필요한 진입 공통 게이트 — 퀵 메뉴에서 쓴다. */
+  const requireLogin = (run: () => void) => {
+    if (!isLoggedIn) {
+      setLoginToast(true);
+      setTimeout(() => setLoginToast(false), 2000);
+      setLoginModalOpen(true);
+      return;
+    }
+    run();
+  };
 
   return (
     <div className={styles.page}>
@@ -403,12 +402,12 @@ export default function HomePage() {
       {loginToast && (
         <div style={{
           position: 'fixed', top: 80, left: '50%', transform: 'translateX(-50%)',
-          background: '#0B3D91', color: '#fff', borderRadius: 12,
+          background: 'var(--color-primary)', color: '#fff', borderRadius: 12,
           padding: '14px 28px', fontSize: 15, fontWeight: 600,
           boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 300,
           whiteSpace: 'nowrap',
         }}>
-          🔒 로그인 후 이용 가능한 서비스입니다
+          로그인 후 이용 가능한 서비스입니다
         </div>
       )}
 
@@ -435,7 +434,7 @@ export default function HomePage() {
                 }}
               >
                 <span className={styles.topCatchBannerShimmer} />
-                <span className={styles.topCatchTrophy}>🏆</span>
+                <span className={styles.topCatchTrophy}><TrophyIcon size={16} strokeWidth={2} /></span>
                 <span className={styles.topCatchLabel}>이번 달 최대어</span>
                 <span className={styles.topCatchDivider} />
                 <span className={styles.topCatchNickname}>{topCatch.authorNickname}</span>
@@ -453,22 +452,21 @@ export default function HomePage() {
               정보 제공 및 조황 기대도를 AI가 분석합니다.
             </p>
 
-            {/* 포인트 선택 */}
-            {provincesError && <div className={styles.errorBanner}>⚠️ {provincesError}</div>}
+            {/* 포인트 선택 — 시/도 드롭다운 없이 한 번에 고른다(시/도는 optgroup) */}
+            {pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
             <div className={styles.locationBar}>
-              <span className={styles.locationIcon}>📍</span>
-              <select className={styles.locationSelect} value={selectedProvince}
-                onChange={(e) => setSelectedProvince(e.target.value)}>
-                <option value="">{provincesError ? '서버 연결 실패' : '시/도 선택'}</option>
-                {provinces.map((p) => <option key={p.code} value={p.code}>{p.displayName}</option>)}
-              </select>
+              <span className={styles.locationIcon}><PinIcon size={17} strokeWidth={2} /></span>
               <select className={styles.locationSelect} value={selectedPointId}
                 onChange={(e) => setSelectedPointId(e.target.value)}
-                disabled={fishingPoints.length === 0 || pointsLoading}>
+                disabled={pointsLoading || pointGroups.length === 0}>
                 <option value="">
-                  {pointsLoading ? '불러오는 중...' : fishingPoints.length === 0 ? '포인트 없음' : '포인트 선택'}
+                  {pointsLoading ? '포인트 불러오는 중...' : pointsError ? '서버 연결 실패' : '낚시 포인트 선택'}
                 </option>
-                {fishingPoints.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
+                {pointGroups.map((g) => (
+                  <optgroup key={g.code} label={g.displayName}>
+                    {g.points.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
+                  </optgroup>
+                ))}
               </select>
               <button className={styles.mapBtn}
                 onClick={() => {
@@ -490,47 +488,105 @@ export default function HomePage() {
               </div>
             ) : (
               <p className={styles.selectPrompt}>
-                시/도와 낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.
+                낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.
               </p>
             )}
 
-            <div className={styles.heroDivider} />
+            {/* 서비스 퀵 메뉴 — 기존의 큰 진입 카드들(어종 현황·어종 포인트·CCTV·
+                금지구역·가이드·금어기·채비)을 아이콘 바 하나로 압축했다.
+                홈이 계기판에 집중하도록 세로 길이를 줄이는 것이 목적. */}
+            <div className={styles.quickNavBox}>
+            <div className={styles.quickNavTitle}>바로가기</div>
+            <div className={styles.quickNav}>
+              <button type="button" className={styles.quickItem}
+                onClick={() => requireLogin(() => navigate('/fish-id'))}>
+                <span className={styles.quickIcon}><CameraIcon size={20} /></span>
+                <span className={styles.quickLabel}>어종 판별</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => requireLogin(() => setMigratoryMapOpen(true))}>
+                <span className={styles.quickIcon}><FishIcon size={20} /></span>
+                <span className={styles.quickLabel}>어종 현황</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => requireLogin(() => setAllPointsMapOpen(true))}>
+                <span className={styles.quickIcon}><PinIcon size={20} /></span>
+                <span className={`${styles.quickLabel} ${styles.quickLabelWrap}`}>모든 낚시 포인트<br />&amp; 유튜버 포인트</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => requireLogin(() => window.open('/map/cctv', 'cctvmap', 'width=900,height=680,resizable=yes'))}>
+                <span className={styles.quickIcon}><CctvIcon size={20} /></span>
+                <span className={styles.quickLabel}>CCTV</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => requireLogin(() => window.open('/map/fishing-zones', 'fishingzones', 'width=900,height=680,resizable=yes'))}>
+                <span className={styles.quickIcon}><BanIcon size={20} /></span>
+                <span className={styles.quickLabel}>금지구역</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => navigate('/regulations')}>
+                <span className={styles.quickIcon}>
+                  <RulerIcon size={20} />
+                  {closedThisMonthCount > 0 && (
+                    <span className={styles.quickBadge}>{closedThisMonthCount}</span>
+                  )}
+                </span>
+                <span className={styles.quickLabel}>금어기</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => navigate('/tackle')}>
+                <span className={styles.quickIcon}><HookIcon size={20} /></span>
+                <span className={styles.quickLabel}>루어 채비</span>
+              </button>
+              <button type="button" className={styles.quickItem}
+                onClick={() => navigate('/guide')}>
+                <span className={styles.quickIcon}><BookIcon size={20} /></span>
+                <span className={styles.quickLabel}>가이드</span>
+              </button>
+            </div>
+            </div>
+
+            {/* 계기판 묶음 — 흰 페이지 위에서 이 묶음만 딥 네이비 패널로 포인트를 준다 */}
+            <div className={styles.dashPanel}>
+            <div className={styles.dashPanelTitle}>
+              {conditionsResult?.pointName ? `${conditionsResult.pointName} · 현재 조건` : '현재 조건'}
+            </div>
 
             {/* 조건 카드 그리드 */}
             <div className={styles.conditionCards}>
-              <ConditionCard icon="🌡" label="수온" loading={isConditionsLoading}
+              <ConditionCard icon={<ThermoIcon size={22} strokeWidth={2} />} label="수온" loading={isConditionsLoading}
                 value={conditionsResult?.waterTemp != null ? `${conditionsResult.waterTemp}℃` : null}
                 source={conditionsResult?.waterTempSourceLabel}
                 infoKey="수온" onInfoClick={handleInfoClick} />
-              <ConditionCard icon="🌊" label="파고" loading={isConditionsLoading}
+              <ConditionCard icon={<WaveIcon size={22} strokeWidth={2} />} label="파고" loading={isConditionsLoading}
                 value={conditionsResult?.waveHeight != null ? `${conditionsResult.waveHeight}m` : null}
                 source={conditionsResult?.waveHeightSourceLabel}
                 infoKey="파고" onInfoClick={handleInfoClick} />
-              <ConditionCard icon="💨" label="풍속" loading={isConditionsLoading}
+              <ConditionCard icon={<WindIcon size={22} strokeWidth={2} />} label="풍속" loading={isConditionsLoading}
                 value={conditionsResult?.windSpeed != null ? `${conditionsResult.windSpeed}m/s` : null}
                 desc={getWindDesc(conditionsResult?.windSpeed)}
                 source={conditionsResult?.windSourceLabel}
                 infoKey="풍속" onInfoClick={handleInfoClick} />
               {/* <WindDirectionCard direction={conditionsResult?.windDirection ?? null} loading={isConditionsLoading}
                 source={conditionsResult?.windDirectionSourceLabel} /> */}
-              <ConditionCard icon="🔄" label="물때" loading={isConditionsLoading}
+              <ConditionCard icon={<TideCycleIcon size={22} strokeWidth={2} />} label="물때" loading={isConditionsLoading}
                 value={conditionsResult?.tideDescription ?? null}
                 source={conditionsResult?.tideSourceLabel}
                 infoKey="물때" onInfoClick={handleInfoClick} />
-              <ConditionCard icon="🌊" label="조류" loading={isConditionsLoading}
+              <ConditionCard icon={<FlowIcon size={22} strokeWidth={2} />} label="조류" loading={isConditionsLoading}
                 value={conditionsResult?.tideFlowPhase
                   ? TIDE_FLOW_LABELS[conditionsResult.tideFlowPhase]
                   : null}
                 source={conditionsResult?.tideSourceLabel}
                 infoKey="조류" onInfoClick={handleInfoClick} />
               <ConditionCard
-                icon={conditionsResult?.sky ? (SKY_ICON[conditionsResult.sky] ?? '🌤') : '🌤'}
+                icon={<SkyGlyph sky={conditionsResult?.sky ?? null} />}
                 label="하늘"
                 loading={isConditionsLoading}
                 value={conditionsResult?.sky ?? null}
                 source={conditionsResult?.skySourceLabel}
               />
-              <ConditionCard icon="🌡" label="기온" loading={isConditionsLoading}
+              <ConditionCard icon={<SunIcon size={22} strokeWidth={2} />} label="기온" loading={isConditionsLoading}
                 value={conditionsResult?.temperature != null ? `${conditionsResult.temperature}℃` : null}
                 source={conditionsResult?.temperatureSourceLabel} />
               <WaterNumberCard
@@ -540,7 +596,9 @@ export default function HomePage() {
                 onInfoClick={handleInfoClick}
               />
               <ConditionCard
-                icon={hasPrecip && conditionsResult?.precipitationType ? (PTY_ICON[conditionsResult.precipitationType] ?? '🌧') : '🌂'}
+                icon={hasPrecip
+                  ? <SkyGlyph sky={null} pty={conditionsResult?.precipitationType} />
+                  : <UmbrellaIcon size={22} strokeWidth={2} />}
                 label="강수량"
                 loading={isConditionsLoading}
                 value={conditionsResult == null ? null : (
@@ -552,132 +610,10 @@ export default function HomePage() {
               />
             </div>
 
-            {/* 이번 주 어종 현황(지도) 카드 + 모든 낚시 포인트 보기 */}
-            <div className={styles.migratoryRow}>
-              <button
-                className={styles.migratoryCard}
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    setLoginToast(true);
-                    setTimeout(() => setLoginToast(false), 2000);
-                    setLoginModalOpen(true);
-                    return;
-                  }
-                  setMigratoryMapOpen(true);
-                }}
-              >
-                <span className={styles.migratoryCardShimmer} />
-                <span className={styles.migratoryCardFish}>🐟</span>
-                <div className={styles.migratoryCardBody}>
-                  <div className={styles.migratoryCardTop}>
-                    <span className={styles.migratoryCardLive}>● LIVE</span>
-                    <span className={styles.migratoryCardTitle}>이번 주 어종 현황</span>
-                  </div>
-                  <p className={styles.migratoryCardDesc}>
-                    이번 주 조황이 올라온 포인트
-                  </p>
-                </div>
-                <span className={styles.migratoryCardCta}>보기 →</span>
-              </button>
-
-              <button
-                className={styles.allPointsCard}
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    setLoginToast(true);
-                    setTimeout(() => setLoginToast(false), 2000);
-                    setLoginModalOpen(true);
-                    return;
-                  }
-                  setAllPointsMapOpen(true);
-                }}
-              >
-                <span className={styles.allPointsCardShimmer} />
-                <span className={styles.allPointsCardIcon}>🗺️</span>
-                <div className={styles.allPointsCardBody}>
-                  <span className={styles.allPointsCardTitle}>모든 어종 포인트</span>
-                  <p className={styles.allPointsCardDesc}>
-                    전국 낚시 포인트
-                  </p>
-                </div>
-                <span className={styles.allPointsCardCta}>보기 →</span>
-              </button>
-            </div>
-
-            {/* 실시간 CCTV + 낚시금지구역 */}
-            <div className={styles.migratoryRow}>
-              <button
-                className={`${styles.allPointsCard} ${styles.cctvCard}`}
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    setLoginToast(true);
-                    setTimeout(() => setLoginToast(false), 2000);
-                    setLoginModalOpen(true);
-                    return;
-                  }
-                  window.open('/map/cctv', 'cctvmap', 'width=900,height=680,resizable=yes');
-                }}
-              >
-                <span className={styles.allPointsCardShimmer} />
-                <span className={styles.allPointsCardIcon}>📹</span>
-                <div className={styles.allPointsCardBody}>
-                  <span className={styles.allPointsCardTitle}>실시간 CCTV</span>
-                  <p className={styles.allPointsCardDesc}>
-                    주요 항만 실시간 화면
-                  </p>
-                </div>
-                <span className={styles.allPointsCardCta}>보기 →</span>
-              </button>
-
-              <button
-                className={`${styles.allPointsCard} ${styles.zoneCard}`}
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    setLoginToast(true);
-                    setTimeout(() => setLoginToast(false), 2000);
-                    setLoginModalOpen(true);
-                    return;
-                  }
-                  window.open('/map/fishing-zones', 'fishingzones', 'width=900,height=680,resizable=yes');
-                }}
-              >
-                <span className={styles.allPointsCardShimmer} />
-                <span className={styles.allPointsCardIcon}>🚫</span>
-                <div className={styles.allPointsCardBody}>
-                  <span className={styles.allPointsCardTitle}>낚시금지구역</span>
-                  <p className={styles.allPointsCardDesc}>
-                    금지·제한 구역 확인
-                  </p>
-                </div>
-                <span className={styles.allPointsCardCta}>보기 →</span>
-              </button>
-            </div>
-
-            {/* 낚시 가이드 — 이 화면에서 유일하게 로그인 없이 들어갈 수 있는 카드다.
-                비로그인 방문자와 검색엔진이 콘텐츠로 넘어가는 통로라 로그인 게이트를 걸지 않는다. */}
-            <div className={styles.migratoryRow}>
-              <button
-                className={`${styles.allPointsCard} ${styles.guideCard}`}
-                onClick={() => navigate('/guide')}
-              >
-                <span className={styles.allPointsCardShimmer} />
-                <span className={styles.allPointsCardIcon}>📖</span>
-                <div className={styles.allPointsCardBody}>
-                  <span className={styles.allPointsCardTitle}>낚시 가이드</span>
-                  <p className={styles.allPointsCardDesc}>
-                    물때 보는 법 · 출조 판단 · 안전 수칙
-                  </p>
-                </div>
-                {/* 다른 카드는 전부 로그인이 필요하다. 이 카드만 다르다는 것을 별도 배지가 아니라
-                    버튼 문구 자체로 알린다 — 떠 있는 배지 하나가 카드 안에서 갈 곳을 못 찾았다. */}
-                <span className={styles.allPointsCardCta}>로그인 없이 읽기 →</span>
-              </button>
-            </div>
-
             {/* 낙뢰 경고 */}
             {conditionsResult?.hasLightning && (
               <div className={styles.lightningBanner}>
-                ⚡ 낙뢰 감지 — 즉시 안전한 곳으로 대피하세요
+                <BoltIcon size={15} strokeWidth={2} /> 낙뢰 감지 — 즉시 안전한 곳으로 대피하세요
               </div>
             )}
 
@@ -685,7 +621,7 @@ export default function HomePage() {
             {(isConditionsLoading || conditionsResult) && (
               <div className={styles.sunRow}>
                 <div className={styles.sunItem}>
-                  <span className={styles.sunIcon}>🌅</span>
+                  <span className={styles.sunIcon}><SunriseIcon size={20} /></span>
                   <span className={styles.sunLabel}>일출</span>
                   {isConditionsLoading
                     ? <span className={styles.sunSkeleton} />
@@ -693,7 +629,7 @@ export default function HomePage() {
                 </div>
                 <div className={styles.sunDivider} />
                 <div className={styles.sunItem}>
-                  <span className={styles.sunIcon}>🌇</span>
+                  <span className={styles.sunIcon}><SunsetIcon size={20} /></span>
                   <span className={styles.sunLabel}>일몰</span>
                   {isConditionsLoading
                     ? <span className={styles.sunSkeleton} />
@@ -701,6 +637,10 @@ export default function HomePage() {
                 </div>
               </div>
             )}
+
+            {/* 시간별 예보 — 앞으로 6시간. 위 계기 타일이 "지금"을 맡으므로 여기는 미래만 담는다.
+                데이터가 없으면 컴포넌트가 스스로 아무것도 그리지 않는다. */}
+            <HourlyForecastStrip items={conditionsResult?.hourly ?? null} />
 
             {/* 조석 그래프 — 조건 로딩 중이거나 결과 있으면 표시 */}
             {(isConditionsLoading || conditionsResult) && (
@@ -714,26 +654,37 @@ export default function HomePage() {
               />
             )}
 
-          </div>
+            {/* 오늘–모레 단기예보 — 기본 접힘. 오늘 못 나갈 때 "그럼 언제?" 를 여기서 본다.
+                조석 다음에 두는 이유는, 오늘 판단이 끝난 뒤에 보는 정보이기 때문이다. */}
+            <DailyForecastCard items={conditionsResult?.daily ?? null} />
 
-          <div className={styles.waveWrap}>
-            <svg viewBox="0 0 1440 80" preserveAspectRatio="none" className={styles.wave}>
-              <path d="M0,40 C180,80 360,0 540,40 C720,80 900,0 1080,40 C1260,80 1440,20 1440,40 L1440,80 L0,80 Z" fill="#EFF6FF" />
-            </svg>
+            </div>
+
           </div>
         </section>
 
         {/* ─── 출조 경고 배너 ─── */}
         {conditionsResult?.outingStatus !== 'SAFE' && conditionsResult?.outingWarning && (
           <div className={`${styles.outingBanner} ${conditionsResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
-            <span className={styles.outingIcon}>{conditionsResult.outingStatus === 'IMPOSSIBLE' ? '⛔' : '⚠️'}</span>
+            <span className={styles.outingIcon}>
+              {conditionsResult.outingStatus === 'IMPOSSIBLE'
+                ? <BanIcon size={20} strokeWidth={2} />
+                : <AlertIcon size={20} strokeWidth={2} />}
+            </span>
             <span>{conditionsResult.outingWarning}</span>
           </div>
         )}
 
-        {/* ─── 어종별 조황 기대도 ─── */}
+        {/* ─── 어종별 조황 기대도 ───
+            AI 응답이 있을 때(또는 분석 중·재시도·오류·출조불가처럼 상태를 알려야 할 때)만 그린다.
+            포인트를 고르기 전에는 빈 칸으로 자리만 차지하지 않도록 섹션 자체를 숨긴다. */}
+        {selectedPointId && (
+          isAnalysisLoading || analysisRefreshing || analysisError
+          || conditionsResult?.outingStatus === 'IMPOSSIBLE'
+          || (analysisResult?.results && analysisResult.results.length > 0)
+        ) && (
         <section className={styles.section}>
-          <div className={styles.sectionInner}>
+          <div className={`${styles.sectionInner} ${styles.narrowInner}`}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>어종별 조황 기대도</h2>
               <div className={styles.sectionSubWrap}>
@@ -744,46 +695,31 @@ export default function HomePage() {
               </div>
             </div>
 
-            {analysisError && <div className={styles.errorBanner}>⚠️ {analysisError}</div>}
-
-            {!selectedPointId && !isAnalysisLoading && (
-              <div className={styles.hintBox}>
-                위에서 시/도와 낚시 포인트를 선택하면 AI 조황 분석이 시작됩니다.
-              </div>
-            )}
+            {analysisError && <div className={styles.errorBanner}>{analysisError}</div>}
 
             {conditionsResult?.outingStatus === 'IMPOSSIBLE' ? (
               <div className={styles.impossibleBox}>
-                <span className={styles.impossibleIcon}>⛔</span>
+                <span className={styles.impossibleIcon}><BanIcon size={44} strokeWidth={1.6} /></span>
                 <p className={styles.impossibleTitle}>출조 불가 조건</p>
                 <p className={styles.impossibleDesc}>현재 기상 조건이 위험 수준입니다. 어종 점수 분석이 제공되지 않습니다.</p>
               </div>
             ) : (
               <>
-                {isAnalysisLoading ? (
-                  /* 스켈레톤 로딩 */
-                  <div className={styles.fishGrid}>
-                    {[1,2,3,4].map((i) => <div key={i} className={styles.fishSkeleton} />)}
-                  </div>
-                ) : (
-                  <div className={styles.fishGrid}>
-                    {fishCards.map((fish) => (
-                      <FishProbabilityCard key={fish.id} fish={fish}
-                        onClick={analysisResult?.results
-                          ? () => {
-                              const next = expandedSpecies === fish.name ? null : fish.name;
-                              setExpandedSpecies(next);
-                              if (next) {
-                                setTimeout(() => {
-                                  document.getElementById(`reason-${next}`)
-                                    ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }, 50);
-                              }
-                            }
-                          : undefined} />
-                    ))}
-                  </div>
-                )}
+                <SpeciesPanel
+                  results={analysisResult?.results ?? null}
+                  loading={isAnalysisLoading}
+                  onPick={(species) => {
+                    if (!analysisResult?.results) return;
+                    const next = expandedSpecies === species ? null : species;
+                    setExpandedSpecies(next);
+                    if (next) {
+                      setTimeout(() => {
+                        document.getElementById(`reason-${next}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }, 50);
+                    }
+                  }}
+                />
                 {isAnalysisLoading && (
                   <div className={styles.analyzingBanner}>
                     <div className={styles.analyzingSpinner} />
@@ -800,11 +736,12 @@ export default function HomePage() {
             )}
           </div>
         </section>
+        )}
 
         {/* ─── AI 상세 분석 ─── */}
         {analysisResult?.results && analysisResult.results.length > 0 && (
           <section className={`${styles.section} ${styles.sectionAlt}`}>
-            <div className={styles.sectionInner}>
+            <div className={`${styles.sectionInner} ${styles.narrowInner}`}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>AI 분석 이유</h2>
                 <span className={styles.sectionSub}>어종별 조황 근거 — 클릭하여 펼치기</span>
@@ -829,17 +766,17 @@ export default function HomePage() {
                     {expandedSpecies === r.species && (
                       <div className={styles.reasonBody}>
                         {r.conditionReason && (
-                          <ReasonSection title="📊 현재 상황" text={r.conditionReason} />
+                          <ReasonSection title="현재 상황" text={r.conditionReason} />
                         )}
                         {r.pointReason && (
-                          <ReasonSection title="📍 포인트 적합성" text={r.pointReason} />
+                          <ReasonSection title="포인트 적합성" text={r.pointReason} />
                         )}
                         {r.strategy && (
-                          <ReasonSection title="🎯 공략 방향" text={r.strategy} />
+                          <ReasonSection title="공략 방향" text={r.strategy} />
                         )}
                         {r.tackle && (
                           <>
-                            <ReasonSection title="🎣 채비 운용" text={r.tackle} />
+                            <ReasonSection title="채비 운용" text={r.tackle} />
                             <div className={styles.tackleShopLink}>
                               <span className={styles.tackleShopLabel}>샌드웍스 링크입니다</span>
                               <a
@@ -849,13 +786,13 @@ export default function HomePage() {
                                 className={styles.tackleShopBtn}
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                🛒 샌드웍스로 바로가기
+                                샌드웍스로 바로가기
                               </a>
                             </div>
                           </>
                         )}
                         {r.caution && (
-                          <ReasonSection title="⚠️ 주의사항" text={r.caution} />
+                          <ReasonSection title="주의사항" text={r.caution} />
                         )}
                         {analysisResult?.analyzedAt && (
                           <div className={styles.analyzedAt}>
@@ -871,144 +808,126 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* ─── 조황 게시판 미리보기 ─── */}
+        {/* ─── 커뮤니티 미리보기 — 조황/자유 게시판을 탭 하나로 압축 ─── */}
         <section className={styles.section}>
-          <div className={styles.sectionInner}>
+          <div className={`${styles.sectionInner} ${styles.boardInner}`}>
             <div className={styles.sectionHeader}>
-              <h2
-                className={styles.sectionTitle}
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                onClick={() => navigate('/catch-posts')}
-                title="전체 조황 게시판 보기"
-              >
-                🐟 조황 게시판
-                <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
-              </h2>
+              <h2 className={styles.sectionTitle}>커뮤니티</h2>
+              <div className={styles.boardTabs}>
+                <button
+                  type="button"
+                  className={`${styles.boardTab} ${boardTab === 'catch' ? styles.boardTabActive : ''}`}
+                  onClick={() => setBoardTab('catch')}
+                >
+                  조황 게시판
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.boardTab} ${boardTab === 'free' ? styles.boardTabActive : ''}`}
+                  onClick={() => setBoardTab('free')}
+                >
+                  자유게시판
+                </button>
+              </div>
               {isLoggedIn && (
                 <button
-                  onClick={() => navigate('/catch-posts')}
+                  onClick={() => navigate(boardTab === 'catch' ? '/catch-posts' : '/free-posts')}
                   style={{
                     padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
                     border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer',
+                    cursor: 'pointer', marginLeft: 'auto',
                   }}
                 >
                   글쓰기
                 </button>
               )}
             </div>
-            {catchPostsPreview.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
-                아직 등록된 게시글이 없습니다.
-              </p>
-            ) : (
-              <div className={styles.previewList}>
-                {catchPostsPreview.map(item => (
-                  <div
-                    key={item.id}
-                    className={styles.previewCard}
-                    onClick={() => navigate('/catch-posts', { state: { openPostId: item.id } })}
-                  >
-                    <div className={styles.previewMain}>
-                      <div className={styles.previewCardTop}>
-                        <span className={styles.previewSpeciesBadge}>
-                          {item.species.map(sp => sp.name).join('·')}
-                        </span>
-                        <span className={styles.previewTitle}>{item.title}</span>
-                      </div>
-                      <div className={styles.previewCardBottom}>
-                        {item.pointName
-                          ? <span className={styles.previewPointBadge}>📍 {item.pointName}</span>
-                          : <span />}
-                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
-                        {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
-                        {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
-                        {(item.likeCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>👍 {item.likeCount}</span>}
-                      </div>
-                    </div>
-                    <div className={styles.previewDates}>
-                      <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
-                      <span className={styles.previewWriteDate}>잡은 날짜 {item.caughtAt}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ textAlign: 'center', marginTop: 14 }}>
-              <button
-                onClick={() => navigate('/catch-posts')}
-                style={{
-                  padding: '8px 24px', background: 'transparent',
-                  border: '1px solid var(--color-border)', borderRadius: 999,
-                  fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)',
-                  cursor: 'pointer',
-                }}
-              >
-                더보기
-              </button>
-            </div>
-          </div>
-        </section>
 
-        {/* ─── 자유게시판 미리보기 ─── */}
-        <section className={styles.section}>
-          <div className={styles.sectionInner}>
-            <div className={styles.sectionHeader}>
-              <h2
-                className={styles.sectionTitle}
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                onClick={() => navigate('/free-posts')}
-                title="전체 자유게시판 보기"
-              >
-                💬 자유게시판
-                <span style={{ fontSize: 16, color: 'var(--color-text-muted)' }}>›</span>
-              </h2>
-              {isLoggedIn && (
-                <button
-                  onClick={() => navigate('/free-posts')}
-                  style={{
-                    padding: '7px 16px', background: 'var(--color-primary)', color: '#fff',
-                    border: 'none', borderRadius: 999, fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  글쓰기
-                </button>
-              )}
-            </div>
-            {freePostsPreview.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
-                아직 등록된 게시글이 없습니다.
-              </p>
+            {boardTab === 'catch' ? (
+              catchPostsPreview.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
+                  아직 등록된 게시글이 없습니다.
+                </p>
+              ) : (
+                <div className={styles.previewList}>
+                  {catchPostsPreview.map(item => (
+                    <div
+                      key={item.id}
+                      className={styles.previewCard}
+                      onClick={() => navigate('/catch-posts', { state: { openPostId: item.id } })}
+                    >
+                      <div className={styles.previewMain}>
+                        <div className={styles.previewCardTop}>
+                          <span className={styles.previewSpeciesBadge}>
+                            {item.species.map(sp => sp.name).join('·')}
+                          </span>
+                          <span className={styles.previewTitle}>{item.title}</span>
+                        </div>
+                        <div className={styles.previewCardBottom}>
+                          {item.pointName
+                            ? <span className={styles.previewPointBadge}>{item.pointName}</span>
+                            : <span />}
+                          <span className={styles.previewAuthor}>{item.authorNickname}</span>
+                          {item.photoUrls?.length > 0 && (
+                            <span className={styles.previewMetaIcon}><CameraIcon size={13} /></span>
+                          )}
+                          {(item.commentCount ?? 0) > 0 && (
+                            <span className={styles.previewMetaIcon}><CommentIcon size={13} /> {item.commentCount}</span>
+                          )}
+                          {(item.likeCount ?? 0) > 0 && (
+                            <span className={styles.previewMetaIcon}><LikeIcon size={13} /> {item.likeCount}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className={styles.previewDates}>
+                        <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
+                        <span className={styles.previewWriteDate}>잡은 날짜 {item.caughtAt}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
             ) : (
-              <div className={styles.previewList}>
-                {freePostsPreview.map(item => (
-                  <div
-                    key={item.id}
-                    className={styles.previewCard}
-                    onClick={() => navigate('/free-posts', { state: { openPostId: item.id } })}
-                  >
-                    <div className={styles.previewMain}>
-                      <div className={styles.previewCardTop}>
-                        <span className={styles.previewTitle}>{item.title}</span>
+              freePostsPreview.length === 0 ? (
+                <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: '24px 0', fontSize: 14 }}>
+                  아직 등록된 게시글이 없습니다.
+                </p>
+              ) : (
+                <div className={styles.previewList}>
+                  {freePostsPreview.map(item => (
+                    <div
+                      key={item.id}
+                      className={styles.previewCard}
+                      onClick={() => navigate('/free-posts', { state: { openPostId: item.id } })}
+                    >
+                      <div className={styles.previewMain}>
+                        <div className={styles.previewCardTop}>
+                          <span className={styles.previewTitle}>{item.title}</span>
+                        </div>
+                        <div className={styles.previewCardBottom}>
+                          <span className={styles.previewAuthor}>{item.authorNickname}</span>
+                          {item.photoUrls?.length > 0 && (
+                            <span className={styles.previewMetaIcon}><CameraIcon size={13} /></span>
+                          )}
+                          {(item.commentCount ?? 0) > 0 && (
+                            <span className={styles.previewMetaIcon}><CommentIcon size={13} /> {item.commentCount}</span>
+                          )}
+                          {(item.likeCount ?? 0) > 0 && (
+                            <span className={styles.previewMetaIcon}><LikeIcon size={13} /> {item.likeCount}</span>
+                          )}
+                        </div>
                       </div>
-                      <div className={styles.previewCardBottom}>
-                        <span className={styles.previewAuthor}>{item.authorNickname}</span>
-                        {item.photoUrls?.length > 0 && <span className={styles.previewMetaIcon}>📷</span>}
-                        {(item.commentCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>💬 {item.commentCount}</span>}
-                        {(item.likeCount ?? 0) > 0 && <span className={styles.previewMetaIcon}>👍 {item.likeCount}</span>}
+                      <div className={styles.previewDates}>
+                        <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
                       </div>
                     </div>
-                    <div className={styles.previewDates}>
-                      <span className={styles.previewDate}>작성일 {formatDateTime(item.createdAt)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )
             )}
             <div style={{ textAlign: 'center', marginTop: 14 }}>
               <button
-                onClick={() => navigate('/free-posts')}
+                onClick={() => navigate(boardTab === 'catch' ? '/catch-posts' : '/free-posts')}
                 style={{
                   padding: '8px 24px', background: 'transparent',
                   border: '1px solid var(--color-border)', borderRadius: 999,
@@ -1024,20 +943,13 @@ export default function HomePage() {
 
         {/* ─── 공지사항 게시판 ─── */}
         <section className={styles.section}>
-          <div className={styles.sectionInner}>
+          <div className={`${styles.sectionInner} ${styles.boardInner}`}>
             <NoticeBoard isAdmin={isAdmin} navigateOnClick />
           </div>
         </section>
 
         <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_HOME as string | undefined} />
       </main>
-
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <span className={styles.footerLogo}>🎣 Walking Hook</span>
-          <span className={styles.footerCopy}>실시간 조황 예측 서비스</span>
-        </div>
-      </footer>
 
       <ConditionInfoSheet infoKey={activeInfoKey} current={conditionsResult} onClose={handleInfoClose} />
       <LoginModal open={loginModalOpen} onClose={() => setLoginModalOpen(false)} />
@@ -1118,7 +1030,7 @@ function ConditionInfoSheet({ infoKey, current, onClose }: {
 
 /* ─── 조건 카드 ─── */
 function ConditionCard({ icon, label, value, loading, className, source, desc, infoKey, onInfoClick }: {
-  icon?: string; label: string; value: string | null; loading?: boolean; className?: string;
+  icon?: React.ReactNode; label: string; value: string | null; loading?: boolean; className?: string;
   source?: string | null; desc?: string | null;
   infoKey?: ConditionInfoKey; onInfoClick?: (key: ConditionInfoKey) => void;
 }) {
@@ -1152,14 +1064,14 @@ function WaterNumberCard({ waterNumber, loading, source, onInfoClick }: {
   waterNumber: string | null; loading?: boolean; source?: string | null;
   onInfoClick?: (key: ConditionInfoKey) => void;
 }) {
-  const moon = getWaterMoonIcon(waterNumber);
+  const moonPhase = getWaterMoonPhase(waterNumber);
   return (
     <div
       className={`${styles.conditionCard} ${styles.waterNumberCard} ${loading ? styles.conditionCardLoading : ''} ${onInfoClick ? styles.conditionCardClickable : ''}`}
       onClick={onInfoClick ? () => onInfoClick('몇물') : undefined}
       role={onInfoClick ? 'button' : undefined}
     >
-      <span className={styles.waterMoonEmoji}>{moon}</span>
+      <span className={styles.waterMoonIcon}><MoonPhaseIcon phase={moonPhase} size={24} /></span>
       {loading
         ? <span className={styles.conditionCardSkeleton}>분석 중...</span>
         : (
@@ -1221,7 +1133,7 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
     return (
       <div className={styles.tideTimeline}>
         <div className={styles.tideTimelineHeader}>
-          <span className={styles.tideTimelineTitle}>🌊 오늘의 조석</span>
+          <span className={styles.tideTimelineTitle}>오늘의 조석</span>
         </div>
         <div className={styles.tideTimelineSkeleton} style={{ height: `${TOTAL_H}px` }} />
       </div>
@@ -1232,7 +1144,7 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
     return (
       <div className={styles.tideTimeline}>
         <div className={styles.tideTimelineHeader}>
-          <span className={styles.tideTimelineTitle}>🌊 오늘의 조석</span>
+          <span className={styles.tideTimelineTitle}>오늘의 조석</span>
           {stationName && <span className={styles.tideTimelineStation}>{stationName} 기준</span>}
         </div>
         <span className={styles.tideTimelineEmpty}>조석 데이터 없음</span>
@@ -1314,15 +1226,15 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
   return (
     <div className={styles.tideTimeline}>
       <div className={styles.tideTimelineHeader}>
-        <span className={styles.tideTimelineTitle}>🌊 오늘의 조석</span>
+        <span className={styles.tideTimelineTitle}>오늘의 조석</span>
         {stationName && <span className={styles.tideTimelineStation}>{stationName} 기준</span>}
       </div>
       <svg viewBox={`0 0 ${W} ${TOTAL_H}`} className={styles.tideChartSvg}>
         <defs>
           <linearGradient id="tideGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.55" />
-            <stop offset="60%" stopColor="#0EA5E9" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0.04" />
+            <stop offset="0%" stopColor="#1D4FBF" stopOpacity="0.32" />
+            <stop offset="60%" stopColor="#1D4FBF" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#1D4FBF" stopOpacity="0.02" />
           </linearGradient>
           <clipPath id="tideClip">
             <rect x={PAD.left} y={PAD.top} width={chartW} height={CHART_H} />
@@ -1332,7 +1244,7 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
         {/* 그라디언트 채우기 */}
         <path d={fillPath} fill="url(#tideGrad)" clipPath="url(#tideClip)" />
         {/* 코사인 파형 선 */}
-        <path d={linePath} fill="none" stroke="#38BDF8" strokeWidth="3" strokeLinejoin="round" clipPath="url(#tideClip)" />
+        <path d={linePath} fill="none" stroke="#1D4FBF" strokeWidth="2.5" strokeLinejoin="round" clipPath="url(#tideClip)" />
 
         {/* 자정 경계선 + 내일 pill (지금 pill과 같은 상단 레인) */}
         {(() => {
@@ -1342,29 +1254,29 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
           return (
             <>
               <line x1={midnightX} y1={20} x2={midnightX} y2={bottomY}
-                stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeDasharray="4,4" />
+                stroke="rgba(16,24,40,0.22)" strokeWidth="1.5" strokeDasharray="4,4" />
               <rect x={pillCx - pillW / 2} y={1} width={pillW} height="18" rx="9"
-                fill="rgba(255,255,255,0.18)" />
+                fill="#EAECF0" />
               <text x={pillCx} y={13} textAnchor="middle" fontSize="10"
-                fill="rgba(255,255,255,0.9)" fontWeight="700">{label}</text>
+                fill="#344054" fontWeight="700">{label}</text>
             </>
           );
         })()}
 
         {/* 현재 시각 — "지금 HH:MM" pill (SVG 상단 고정) + 세로 점선 */}
         <rect x={nowPillCx - nowPillW / 2} y={1} width={nowPillW} height="18" rx="9"
-          fill="#FDE047" opacity="0.95" />
-        <text x={nowPillCx} y={13} textAnchor="middle" fontSize="10" fill="#1E3A5F" fontWeight="900">
+          fill="#1D4FBF" />
+        <text x={nowPillCx} y={13} textAnchor="middle" fontSize="10" fill="#FFFFFF" fontWeight="900">
           {`지금 ${nowTimeStr}`}
         </text>
         <line x1={nowX} y1={20} x2={nowX} y2={bottomY}
-          stroke="#FDE047" strokeWidth="2.5" strokeDasharray="5,3" />
+          stroke="#1D4FBF" strokeWidth="2" strokeDasharray="5,3" />
 
         {/* 일출/일몰 — 아이콘 + 시간 텍스트 */}
         {[
-          { time: sunriseTime, icon: '🌅' },
-          { time: sunsetTime,  icon: '🌇' },
-        ].map(({ time, icon }) => {
+          { time: sunriseTime, label: '일출' },
+          { time: sunsetTime,  label: '일몰' },
+        ].map(({ time, label }) => {
           if (!time) return null;
           const [hh, mm] = time.split(':').map(Number);
           const sunMin = hh * 60 + mm;
@@ -1372,10 +1284,11 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
           const sx = xOf(sunMin);
           const sy = yOf(heightAt(sunMin)) - 14;
           return (
-            <g key={icon}>
-              <text x={sx} y={sy} textAnchor="middle" fontSize="14">{icon}</text>
-              <text x={sx} y={sy + 13} textAnchor="middle" fontSize="9"
-                fill="rgba(255,255,255,0.7)" fontWeight="500">{time}</text>
+            <g key={label}>
+              <text x={sx} y={sy} textAnchor="middle" fontSize="10"
+                fill="#D97706" fontWeight="800">{label}</text>
+              <text x={sx} y={sy + 12} textAnchor="middle" fontSize="9"
+                fill="#98A2B3" fontWeight="600">{time}</text>
             </g>
           );
         })}
@@ -1386,8 +1299,8 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
           const ey = yOf(e.heightCm);
           const isPast    = mins[i] < nowMin && (e.dayOffset ?? 0) === 0;
           const isHigh    = e.highTide;
-          const dotColor  = isHigh ? '#4ADE80' : '#F87171';
-          const glowColor = isHigh ? '#16A34A' : '#DC2626';
+          const dotColor  = isHigh ? '#1D4FBF' : '#98A2B3';
+          const glowColor = isHigh ? '#1D4FBF' : '#98A2B3';
           const typeLabel = isHigh ? '만조' : '간조';
           return (
             <g key={i} opacity={isPast ? 0.7 : 1}>
@@ -1398,9 +1311,9 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
                     <line x1={ex} y1={HI_HT_Y + 4} x2={ex} y2={ey - 13}
                       stroke={dotColor} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.45" />
                   )}
-                  <text x={ex} y={HI_TIME_Y} textAnchor="middle" fontSize="13" fill="white"    fontWeight="900">{e.time}</text>
+                  <text x={ex} y={HI_TIME_Y} textAnchor="middle" fontSize="13" fill="#101828" fontWeight="900">{e.time}</text>
                   <text x={ex} y={HI_TYPE_Y} textAnchor="middle" fontSize="12" fill={dotColor} fontWeight="800">{typeLabel}</text>
-                  <text x={ex} y={HI_HT_Y}   textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.9)" fontWeight="700">{e.heightCm}cm</text>
+                  <text x={ex} y={HI_HT_Y}   textAnchor="middle" fontSize="11" fill="#667085" fontWeight="700">{e.heightCm}cm</text>
                 </>
               ) : (
                 /* 간조 — 하단 고정 레인 */
@@ -1409,14 +1322,14 @@ function TideChart({ events, series: _series, stationName, sunriseTime, sunsetTi
                     <line x1={ex} y1={ey + 13} x2={ex} y2={bottomY + 4}
                       stroke={dotColor} strokeWidth="1.5" strokeDasharray="3,2" opacity="0.45" />
                   )}
-                  <text x={ex} y={LO_TIME_Y} textAnchor="middle" fontSize="13" fill="white"    fontWeight="900">{e.time}</text>
+                  <text x={ex} y={LO_TIME_Y} textAnchor="middle" fontSize="13" fill="#101828" fontWeight="900">{e.time}</text>
                   <text x={ex} y={LO_TYPE_Y} textAnchor="middle" fontSize="12" fill={dotColor} fontWeight="800">{typeLabel}</text>
-                  <text x={ex} y={LO_HT_Y}   textAnchor="middle" fontSize="11" fill="rgba(255,255,255,0.9)" fontWeight="700">{e.heightCm}cm</text>
+                  <text x={ex} y={LO_HT_Y}   textAnchor="middle" fontSize="11" fill="#667085" fontWeight="700">{e.heightCm}cm</text>
                 </>
               )}
-              <circle cx={ex} cy={ey} r="13" fill={glowColor} opacity="0.5" />
+              <circle cx={ex} cy={ey} r="13" fill={glowColor} opacity="0.18" />
               <circle cx={ex} cy={ey} r="9"  fill={dotColor} />
-              <circle cx={ex} cy={ey} r="6"  fill={dotColor} stroke="white" strokeWidth="3" />
+              <circle cx={ex} cy={ey} r="6"  fill={dotColor} stroke="#FFFFFF" strokeWidth="3" />
             </g>
           );
         })}
@@ -1608,7 +1521,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
       const buildInfoContent = (pointId: string, pointName: string | null, speciesBadges: string, postsHtml: string, paginationHtml: string) => `<div style="position:relative;padding:14px 16px;min-width:220px;max-width:280px;font-family:'Pretendard','Noto Sans KR',sans-serif;border-radius:10px;line-height:1.5;">
         <button onclick="window.__closeMigratoryInfo('${pointId}')" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border:none;background:#F1F5F9;border-radius:50%;font-size:16px;font-weight:700;color:#64748B;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
-        ${pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;padding-right:26px;">📍 ${escapeHtml(pointName)}</div>` : ''}
+        ${pointName ? `<div style="font-size:13px;font-weight:700;color:#0B3D91;margin-bottom:6px;padding-right:26px;">${escapeHtml(pointName)}</div>` : ''}
         <div style="margin-bottom:6px;">${speciesBadges}</div>
         ${postsHtml}
         ${paginationHtml}
@@ -1748,7 +1661,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)' }}>
-              🐟 이번 주 어종 현황(지도)
+              이번 주 어종 현황 (지도)
             </span>
             {status === 'ready' && (
               <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -1807,7 +1720,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           padding: '8px 16px', borderTop: '1px solid var(--color-border)',
           flexShrink: 0, background: 'var(--color-bg)',
         }}>
-          <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 어종과 조황을 확인할 수 있습니다</span>
+          <span style={{ fontSize: 12, color: '#64748B' }}>핀을 클릭하면 어종과 조황을 확인할 수 있습니다</span>
         </div>
       </div>
     </div>
@@ -1824,11 +1737,48 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
   /** 영상 목록을 열 포인트 — 마커 말풍선의 "영상 보기"로 지정된다 */
-  const [videoPoint, setVideoPoint] = useState<{ id: string; name: string } | null>(null);
+  const [videoPoint, setVideoPoint] =
+    useState<{ id: string; name: string; otherChannelCount: number } | null>(null);
+
+  /* ── 유튜버(채널) 필터 ────────────────────────────────────────────────
+   * 한 명만 고른다. 고르면 그 채널 영상이 붙은 포인트만 남고,
+   * 핀을 눌렀을 때도 그 채널 영상만 보여준다.
+   * 마커는 다시 만들지 않는다 — 처음 받아 둔 전체 마커에서 보일 것만 골라 넣는다.
+   */
+  const [channelPanelOpen, setChannelPanelOpen] = useState(false);
+  const [channelList, setChannelList] = useState<MigratoryPointChannelList>({
+    totalPointCount: 0, totalVideoCount: 0, channels: [],
+  });
+  const [channelStatus, setChannelStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  /** null 이면 "전체 유튜버" */
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  /** 고른 채널의 포인트 ID 집합. null 이면 필터 없음 */
+  const [channelPointIds, setChannelPointIds] = useState<Set<string> | null>(null);
+  const [channelLoading, setChannelLoading] = useState(false);
+  /**
+   * 포인트별 {그 채널 편수, 전체 편수}.
+   * 말풍선이 "영상 N" 과 "다른 채널 영상 M개"를 추가 요청 없이 그리는 근거다.
+   */
+  const channelCountsRef = useRef(new Map<string, { count: number; total: number }>());
+  // 말풍선 HTML 은 지도 초기화 때 만든 클로저 안에서 그려진다. 최신 채널을 읽도록 ref 로 들고 다닌다.
+  // 바로 아래 onlyWithVideosRef 와 달리 렌더 중이 아니라 effect 에서 채운다(렌더 중 ref 쓰기는
+  // 동시성 렌더에서 어긋날 수 있다). 말풍선은 클릭 시점에 그려지므로 한 프레임 늦어도 문제없다.
+  const selectedChannelRef = useRef<string | null>(selectedChannel);
+  useEffect(() => { selectedChannelRef.current = selectedChannel; }, [selectedChannel]);
 
   /** 상단 가운데 필터 — false: 모든 포인트, true: 유튜브 영상이 등록된 포인트만 */
   const [onlyWithVideos, setOnlyWithVideos] = useState(false);
   const [videoPointCount, setVideoPointCount] = useState(0);
+  // 마커 클릭 핸들러는 지도 초기화 때 한 번만 만들어져서 그 시점의 onlyWithVideos 를 붙들고 있다.
+  // 필터를 바꿔도 최신 값을 읽도록 ref 로 따로 들고 다닌다.
+  const onlyWithVideosRef = useRef(onlyWithVideos);
+  onlyWithVideosRef.current = onlyWithVideos;
+  /** 포인트별 설명 캐시 — 같은 핀을 다시 눌러도 재요청하지 않는다. 설명이 없으면 null 로 기억한다 */
+  const descriptionCache = useRef(new Map<string, string | null>()).current;
+  /** 지금 말풍선이 열려 있는 포인트 — 응답이 늦게 와도 엉뚱한 말풍선을 고치지 않게 한다 */
+  const openedPointId = useRef<string | null>(null);
+  /** 필터를 바꿀 때 열려 있던 말풍선을 닫는다 — 아래 effect 에서 호출 */
+  const closeOpenedInfoRef = useRef<(() => void) | null>(null);
   // 필터를 바꿀 때 다시 요청하지 않고, 만들어 둔 마커를 클러스터러에 넣었다 뺐다 한다.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clustererRef = useRef<any>(null);
@@ -1836,16 +1786,73 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
   const allMarkersRef = useRef<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markerVideoCounts = useRef(new Map<any, number>()).current;
+  /** 마커 → 포인트 ID. 채널 필터로 보일 마커를 고를 때 쓴다(effect 안에서만 읽는다) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markerPointIdsRef = useRef(new Map<any, string>());
 
   useEffect(() => {
     const clusterer = clustererRef.current;
     if (!clusterer) return;
-    const visible = onlyWithVideos
+    // 말풍선 내용이 필터에 따라 달라진다(영상 버튼). 열어 둔 채로 필터를 바꾸면
+    // 화면과 필터가 어긋나므로 먼저 닫는다.
+    closeOpenedInfoRef.current?.();
+    let visible = onlyWithVideos
       ? allMarkersRef.current.filter((m) => (markerVideoCounts.get(m) ?? 0) > 0)
       : allMarkersRef.current;
+    // 유튜버를 고르면 그 채널 포인트만 남긴다. 필터가 없으면 channelPointIds 는 null 이다.
+    if (onlyWithVideos && channelPointIds) {
+      visible = visible.filter((m) => channelPointIds.has(markerPointIdsRef.current.get(m) ?? ''));
+    }
     clusterer.clear();
     clusterer.addMarkers(visible);
-  }, [onlyWithVideos, status, markerVideoCounts]);
+  }, [onlyWithVideos, status, markerVideoCounts, channelPointIds]);
+
+  /* 유튜버 목록 — 모달을 열 때 한 번만 받는다(서버가 1시간 캐시한다) */
+  useEffect(() => {
+    let cancelled = false;
+    setChannelStatus('loading');
+    fetchMigratoryPointChannels()
+      .then((list) => { if (!cancelled) { setChannelList(list); setChannelStatus('ready'); } })
+      .catch(() => { if (!cancelled) setChannelStatus('error'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  /*
+   * 고른 채널의 포인트 집합을 받아 온다.
+   * 마커를 다시 만들지 않고 "보일 것"만 고르는 방식이라, 지도가 통째로 깜빡이지 않는다.
+   */
+  useEffect(() => {
+    if (!selectedChannel) {
+      channelCountsRef.current = new Map();
+      setChannelPointIds(null);
+      setChannelLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setChannelLoading(true);
+    fetchAllMigratoryFishPointMapMarkers(selectedChannel)
+      .then((points) => {
+        if (cancelled) return;
+        const counts = new Map<string, { count: number; total: number }>();
+        points.forEach((p) => {
+          counts.set(p.id, {
+            count: p.videoCount ?? 0,
+            total: p.totalVideoCount ?? p.videoCount ?? 0,
+          });
+        });
+        channelCountsRef.current = counts;
+        setChannelPointIds(new Set(points.map((p) => p.id)));
+      })
+      // 실패하면 필터를 걸지 않는다 — 빈 지도를 보여 주는 것보다 전체를 보여 주는 편이 낫다.
+      .catch(() => { if (!cancelled) { channelCountsRef.current = new Map(); setChannelPointIds(null); } })
+      .finally(() => { if (!cancelled) setChannelLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedChannel]);
+
+  /* "모든 포인트"로 돌아가면 유튜버 목록은 의미가 없다 — 패널만 닫고 선택은 남겨 둔다 */
+  useEffect(() => {
+    if (!onlyWithVideos) setChannelPanelOpen(false);
+  }, [onlyWithVideos]);
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -1902,13 +1909,24 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (window as any).__closeAllPointsInfo = (pointId: string) => {
             pinnedWindows.get(pointId)?.close();
+            if (openedPointId.current === pointId) openedPointId.current = null;
+          };
+
+          closeOpenedInfoRef.current = () => {
+            const opened = openedPointId.current;
+            if (!opened) return;
+            pinnedWindows.get(opened)?.close();
+            openedPointId.current = null;
           };
 
           // 말풍선 안의 "영상 보기" — InfoWindow 는 React 밖의 HTML 이라 전역 함수로 잇는다.
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).__openPointVideos = (pointId: string, pointName: string) => {
+          (window as any).__openPointVideos = (
+            pointId: string, pointName: string, otherChannelCount = 0
+          ) => {
             pinnedWindows.get(pointId)?.close();
-            setVideoPoint({ id: pointId, name: pointName });
+            openedPointId.current = null;
+            setVideoPoint({ id: pointId, name: pointName, otherChannelCount });
           };
 
           const markers = validPoints.map((p) => {
@@ -1916,19 +1934,39 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
             const marker = new kakao.maps.Marker({ position });
             // 필터 전환 때 클러스터러에 다시 넣을 대상을 고르려고 개수를 들고 다닌다.
             markerVideoCounts.set(marker, p.videoCount ?? 0);
+            markerPointIdsRef.current.set(marker, p.id);
 
             // 포인트 이름만 표시 — 어종 정보는 노출하지 않음
             const nameContent = `<div style="padding:5px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">📍 ${escapeHtml(p.name)}</div>`;
 
-            // 클릭 시 큰 ✕ 버튼으로 직접 닫기 전까지 이름이 고정되는 InfoWindow
-            const pinnedContent = `<div style="position:relative;padding:7px 34px 9px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;white-space:nowrap;">
+            // 클릭 시 큰 ✕ 버튼으로 직접 닫기 전까지 고정되는 InfoWindow.
+            //  · "모든 포인트"  → 이름 (+설명이 등록돼 있으면 설명)
+            //  · "유튜버 포인트" → 이름 + 영상 목록 버튼
+            // 영상 버튼을 유튜버 필터에서만 띄우는 이유: 모든 포인트를 보는 중에 영상이
+            // 튀어나오면 사용자가 고른 것과 화면이 어긋난다. 영상은 그 필터를 고른 사람에게만 준다.
+            const buildPinnedContent = (description: string | null) => {
+              // 유튜버를 고른 상태면 편수도 그 채널 기준으로 센다.
+              const channel = selectedChannelRef.current;
+              const counted = channel ? channelCountsRef.current.get(p.id) : undefined;
+              const videoCount = counted ? counted.count : (p.videoCount ?? 0);
+              const otherCount = counted ? Math.max(0, counted.total - counted.count) : 0;
+              const showVideos = onlyWithVideosRef.current && videoCount > 0;
+              // 설명이 붙으면 한 줄로 못 담으므로 nowrap 을 풀고 폭을 제한한다.
+              const wrap = description
+                ? 'white-space:normal;max-width:260px;'
+                : 'white-space:nowrap;';
+              return `<div style="position:relative;padding:7px 34px 9px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;font-size:13px;font-weight:700;color:#0B3D91;${wrap}">
               📍 ${escapeHtml(p.name)}
               <button onclick="window.__closeAllPointsInfo('${p.id}')" style="position:absolute;top:3px;right:3px;width:26px;height:26px;border:none;background:#F1F5F9;border-radius:50%;font-size:14px;font-weight:700;color:#64748B;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
-              ${(p.videoCount ?? 0) > 0
-                ? `<button onclick="window.__openPointVideos('${p.id}', '${escapeHtml(p.name).replace(/'/g, '&#39;')}')" style="display:block;margin-top:8px;width:100%;padding:6px 14px;background:#0B3D91;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">이 포인트가 나오는 영상 ${p.videoCount}</button>`
+              ${description
+                ? `<div style="margin-top:6px;font-size:12.5px;font-weight:500;color:#475569;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;">${escapeHtml(description).replace(/\n/g, '<br/>')}</div>`
+                : ''}
+              ${showVideos
+                ? `<button onclick="window.__openPointVideos('${p.id}', '${escapeHtml(p.name).replace(/'/g, '&#39;')}', ${otherCount})" style="display:block;margin-top:8px;width:100%;padding:6px 14px;background:#0B3D91;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;">${channel ? `${escapeHtml(channel)} 영상 ${videoCount}` : `이 포인트가 나오는 영상 ${videoCount}`}</button>`
                 : ''}
             </div>`;
-            const pinnedInfoWindow = new kakao.maps.InfoWindow({ content: pinnedContent, removable: false });
+            };
+            const pinnedInfoWindow = new kakao.maps.InfoWindow({ content: buildPinnedContent(null), removable: false });
             pinnedWindows.set(p.id, pinnedInfoWindow);
 
             kakao.maps.event.addListener(marker, 'mouseover', () => {
@@ -1940,7 +1978,24 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
             });
             kakao.maps.event.addListener(marker, 'click', () => {
               hoverInfoWindow.close();
+              const cached = descriptionCache.get(p.id);
+              // 설명은 대부분 비어 있으므로 "불러오는 중"을 띄우지 않는다.
+              // 이름을 먼저 보여주고, 설명이 실제로 있을 때만 뒤에서 덧붙인다.
+              pinnedInfoWindow.setContent(buildPinnedContent(cached ?? null));
               pinnedInfoWindow.open(map, marker);
+              openedPointId.current = p.id;
+              if (cached !== undefined) return;
+
+              fetchMigratoryFishPointDetail(p.id)
+                .then((detail) => {
+                  const description = detail.description?.trim() ? detail.description.trim() : null;
+                  descriptionCache.set(p.id, description);
+                  // 응답이 오는 사이 다른 핀을 눌렀거나 닫았으면 건드리지 않는다.
+                  if (!description || openedPointId.current !== p.id) return;
+                  pinnedInfoWindow.setContent(buildPinnedContent(description));
+                })
+                // 설명은 부가 정보다. 실패해도 이름만 그대로 두고 아무 말도 하지 않는다.
+                .catch(() => { descriptionCache.set(p.id, null); });
             });
 
             return marker;
@@ -1997,7 +2052,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)' }}>
-              🗺️ 모든 낚시 포인트
+              모든 낚시 포인트
             </span>
             {status === 'ready' && (
               <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -2077,11 +2132,103 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
                   </button>
                 );
               })}
+
+              {/*
+                세 번째 칩 — 유튜버 선택. "유튜버 포인트"를 고른 상태에서만 쓸 수 있다.
+                "모든 포인트"에서 눌리면 사용자가 고른 것과 화면이 어긋난다(영상 버튼을 감춘 이유와 같다).
+              */}
+              <button
+                type="button"
+                disabled={!onlyWithVideos}
+                onClick={() => setChannelPanelOpen((v) => !v)}
+                style={{
+                  padding: '7px 12px', borderRadius: 999,
+                  border: selectedChannel ? '1px solid #8FC0F2' : '1px solid transparent',
+                  background: selectedChannel ? '#E8F2FE' : 'transparent',
+                  color: !onlyWithVideos ? '#CBD5E1' : (selectedChannel ? '#0B5CB0' : '#64748B'),
+                  fontSize: 12.5, fontWeight: selectedChannel ? 700 : 600,
+                  cursor: onlyWithVideos ? 'pointer' : 'not-allowed',
+                  whiteSpace: 'nowrap', maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis',
+                }}
+                title={selectedChannel ?? '유튜버 선택'}
+              >
+                {selectedChannel ? `${selectedChannel} ✕` : '유튜버 선택 ▾'}
+              </button>
+            </div>
+          )}
+
+          {/* 유튜버 목록 — 지도 왼쪽에 겹쳐 뜬다 */}
+          {status === 'ready' && onlyWithVideos && channelPanelOpen && (
+            <ChannelFilterPanel
+              channels={channelList.channels}
+              status={channelStatus}
+              selected={selectedChannel}
+              // 곳 수는 지도가 실제로 들고 있는 값을, 편수는 서버 합계(감춘 채널 포함)를 쓴다.
+              totalPointCount={videoPointCount}
+              totalVideoCount={channelList.totalVideoCount}
+              onSelect={(name) => { setSelectedChannel(name); setChannelPanelOpen(false); }}
+              onClose={() => setChannelPanelOpen(false)}
+            />
+          )}
+
+          {/* 고른 유튜버 안내 — 지금 왜 핀이 적은지 한 줄로 설명하고, 한 번에 해제한다 */}
+          {status === 'ready' && onlyWithVideos && selectedChannel && !channelPanelOpen && (
+            <div style={{
+              position: 'absolute', top: 62, left: 12, right: 12, zIndex: 3,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+              background: 'rgba(255,255,255,0.96)', border: '1px solid #CFE0F3',
+              borderRadius: 11, padding: '8px 12px', boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12.5, fontWeight: 700, color: '#0B5CB0',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {selectedChannel}
+                </div>
+                <div style={{ fontSize: 11, color: '#5B6572', marginTop: 2 }}>
+                  {channelLoading
+                    ? '포인트를 고르는 중...'
+                    /* 목록의 "N곳"이 아니라 지도가 실제로 받은 수를 쓴다 —
+                       채널 목록은 1시간 캐시라 어긋날 수 있다. */
+                    : `이 유튜버 영상이 있는 포인트 ${channelPointIds?.size ?? 0}곳`}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedChannel(null)}
+                style={{
+                  flexShrink: 0, border: 'none', background: 'transparent',
+                  color: '#0B3D91', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                해제
+              </button>
+            </div>
+          )}
+
+          {/* 고른 유튜버의 포인트가 0곳 — 빈 지도만 보이면 고장으로 읽힌다 */}
+          {status === 'ready' && onlyWithVideos && selectedChannel
+            && !channelLoading && channelPointIds?.size === 0 && (
+            <div style={{
+              position: 'absolute', top: 116, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(255,255,255,0.94)', padding: '8px 16px', borderRadius: 10,
+              fontSize: 12.5, color: '#475569', zIndex: 3, whiteSpace: 'nowrap',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            }}>
+              이 유튜버의 포인트가 없습니다 ·{' '}
+              <button
+                type="button"
+                onClick={() => setSelectedChannel(null)}
+                style={{ border: 'none', background: 'transparent', color: '#0B3D91', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+              >
+                전체 보기
+              </button>
             </div>
           )}
 
           {/* 유튜버 포인트만 봤는데 하나도 없을 때 — 빈 지도만 보이면 고장으로 읽힌다 */}
-          {status === 'ready' && onlyWithVideos && videoPointCount === 0 && (
+          {status === 'ready' && onlyWithVideos && !selectedChannel && videoPointCount === 0 && (
             <div style={{
               position: 'absolute', top: 62, left: '50%', transform: 'translateX(-50%)',
               background: 'rgba(255,255,255,0.94)', padding: '8px 16px', borderRadius: 10,
@@ -2101,7 +2248,13 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           padding: '8px 16px', borderTop: '1px solid var(--color-border)',
           flexShrink: 0, background: 'var(--color-bg)',
         }}>
-          <span style={{ fontSize: 12, color: '#64748B' }}>📍 핀을 클릭하면 포인트 이름과 그 포인트가 나오는 영상을 확인할 수 있습니다 · 지도를 축소하면 숫자로 묶여 표시됩니다</span>
+          <span style={{ fontSize: 12, color: '#64748B' }}>
+            {!onlyWithVideos
+              ? '📍 핀을 클릭하면 포인트 이름과 설명을 확인할 수 있습니다 · 지도를 축소하면 숫자로 묶여 표시됩니다'
+              : selectedChannel
+                ? `📍 핀을 클릭하면 ${selectedChannel} 영상만 보여줍니다 · 다른 채널 영상은 목록 안에서 펼칠 수 있습니다`
+                : '📍 핀을 클릭하면 그 포인트가 나오는 영상을 확인할 수 있습니다 · 지도를 축소하면 숫자로 묶여 표시됩니다'}
+          </span>
         </div>
       </div>
 
@@ -2109,6 +2262,8 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
         <PointVideoListModal
           pointId={videoPoint.id}
           pointName={videoPoint.name}
+          channelName={selectedChannel}
+          otherChannelCount={videoPoint.otherChannelCount}
           onClose={() => setVideoPoint(null)}
         />
       )}
