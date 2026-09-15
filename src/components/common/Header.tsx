@@ -5,7 +5,16 @@ import LoginModal from './LoginModal';
 import NotificationBell from './NotificationBell';
 import styles from './Header.module.css';
 
-export default function Header() {
+type Props = {
+  /**
+   * 홈처럼 헤더 바로 아래가 딥블루 밴드인 화면에서 켠다.
+   * 헤더까지 같은 색면으로 칠해 이음새를 없앤다. 기본은 흰 헤더 —
+   * 밴드가 없는 다른 페이지에서 남색 헤더만 떠 있으면 어색하다.
+   */
+  onDark?: boolean;
+};
+
+export default function Header({ onDark = false }: Props) {
   const { isLoggedIn, isAdmin, isModerator, nickname, logout } = useAuth();
   const navigate = useNavigate();
   const [loginOpen, setLoginOpen] = useState(false);
@@ -17,7 +26,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={styles.header}>
+      <header className={`${styles.header} ${onDark ? styles.headerOnDark : ''}`}>
         <div className={styles.inner}>
           {/* 로고 */}
           <button className={styles.logo} onClick={() => navigate('/')}>
