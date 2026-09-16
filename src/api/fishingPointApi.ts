@@ -99,6 +99,8 @@ export interface FishingPointMapMarker {
   name: string;
   latitude: number;
   longitude: number;
+  /** 시/도. 홈이 한 번 받아 시/도별로 묶는 데 쓴다. */
+  province: Province;
 }
 
 export interface FishingPointDetail {
