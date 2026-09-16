@@ -1,0 +1,284 @@
+.page {
+  width: 100%;
+  background: var(--color-bg);
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: calc(var(--header-height) + 28px) 24px 64px;
+}
+
+/* ─── breadcrumb ─── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.breadcrumb button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary-light);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.breadcrumb button:hover { text-decoration: underline; }
+.crumbDivider { color: var(--color-text-light); }
+.crumbCurrent { color: var(--color-text-muted); }
+
+/* ─── 본문 ─── */
+.article {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 36px 40px 40px;
+}
+
+.articleHead {
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.only {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-tint, #EEF3FE);
+  color: var(--color-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.title {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.5px;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.lead {
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text-muted);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.section { margin-top: 32px; }
+
+.heading {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-primary);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  margin-bottom: 14px;
+  padding-left: 14px;
+  border-left: 4px solid var(--color-accent);
+}
+
+.para {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.para + .para { margin-top: 14px; }
+
+/* ─── 사용 순서 ─── */
+.steps {
+  margin-top: 16px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  position: relative;
+  counter-increment: step;
+  padding-left: 34px;
+  font-size: 15.5px;
+  line-height: 1.8;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.steps li + li { margin-top: 10px; }
+.steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ─── 화면 캡처 ───────────────────────────────────────────────
+   실제 서비스 화면이라 원본 비율 그대로 둔다. 자르면 뜻이 달라진다. */
+.shot {
+  margin: 20px 0 0;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+/* 진입 버튼처럼 원래 작은 그림은 확대하지 않는다. */
+.shotSmall img {
+  max-width: 420px;
+  margin: 0 auto;
+}
+.shotCaption {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ─── 강조 상자 ─── */
+.callout {
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-left: 4px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  line-height: 1.75;
+  color: #7c4a03;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ─── 기능 열기 버튼 ─── */
+.action {
+  display: block;
+  width: 100%;
+  margin-top: 34px;
+  padding: 15px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.18s;
+}
+.action:hover { background: var(--color-primary-dark, #16409E); }
+
+/* ─── 다른 기능 ─── */
+.more { margin-top: 44px; }
+.moreTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 14px;
+}
+.moreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.moreCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 10px 14px 10px 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  font-family: inherit;
+}
+.moreCard:hover {
+  border-color: rgba(11, 61, 145, 0.28);
+  box-shadow: var(--shadow-sm);
+}
+.moreThumb {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-light);
+  background: var(--color-surface-2);
+}
+.moreCardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--color-text);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* ─── 없는 슬러그 ─── */
+.notFound {
+  text-align: center;
+  font-size: 16px;
+  color: var(--color-text-muted);
+  padding: 60px 0 20px;
+}
+.backBtn {
+  display: block;
+  margin: 0 auto;
+  padding: 10px 22px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+@media (max-width: 480px) {
+  .main { padding: calc(var(--header-height) + 20px) 16px 48px; }
+  .article { padding: 24px 18px 28px; border-radius: var(--radius-md); }
+  .title { font-size: 23px; }
+  .lead { font-size: 15px; }
+  .heading { font-size: 18px; }
+  .para { font-size: 15.5px; }
+  .steps li { font-size: 15px; }
+  .moreGrid { grid-template-columns: 1fr; }
+}
+
+/* 본문 강조 — 색을 바꾸지 않고 굵기만 올린다. */
+.strong {
+  font-weight: 700;
+  color: var(--color-text);
+}
