@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import SpeciesPanel from '../components/fish/SpeciesPanel';
 import {
-  fetchProvinces, fetchFishingPointsByProvince, fetchConditions, analyzeFishingPoint,
-  type ProvinceItem, type FishingPointMapMarker,
+  fetchPublicFishingPointsForMap, fetchConditions, analyzeFishingPoint,
+  PROVINCE_OPTIONS, type FishingPointMapMarker,
   type FishingConditionsResult, type FishingAnalysisResult,
   type TideEvent, type TidePoint, TIDE_FLOW_LABELS,
 } from '../api/fishingPointApi';
@@ -235,6 +235,8 @@ export default function HomePage() {
      포인트가 한 번에 다 로드되므로 지도에서 고른 포인트의 시/도 역추적도 필요 없다. */
   const [pointGroups, setPointGroups] = useState<PointGroup[]>([]);
   const [selectedPointId, setSelectedPointId] = useState('');
+  /** 계기판(수온·파고·풍속…) 묶음 — 포인트를 고르면 여기까지 내려 준다 */
+  const dashPanelRef = useRef<HTMLDivElement>(null);
 
   const [pointsError, setPointsError] = useState('');
   const [pointsLoading, setPointsLoading] = useState(true);
@@ -259,30 +261,66 @@ export default function HomePage() {
   const [freePostsPreview, setFreePostsPreview] = useState<FreePostListItem[]>([]);
   const [topCatch, setTopCatch] = useState<TopCatch | null>(null);
 
+  /* 포인트 좌표(/fishing-points/by-province)는 인증이 필요한 API다.
+     비로그인 상태로 부르면 전 지역이 401로 떨어져 "불러오지 못했습니다"가 뜨는데,
+     그건 장애가 아니라 로그인을 안 한 것뿐이다. 그래서 아예 부르지 않고,
+     선택 바 자리에 로그인 안내를 놓는다. 로그인하면 이 훅이 다시 돈다. */
   useEffect(() => {
+    if (!isLoggedIn) {
+      setPointGroups([]);
+      setSelectedPointId('');
+      setPointsError('');
+      setPointsLoading(false);
+      return;
+    }
+    setPointsLoading(true);
+    setPointsError('');
     let cancelled = false;
     (async () => {
       try {
-        const provinces = await fetchProvinces();
-        const groups = await Promise.all(
-          provinces.map(async (prov: ProvinceItem): Promise<PointGroup> => ({
-            code: prov.code,
-            displayName: prov.displayName,
-            points: await fetchFishingPointsByProvince(prov.code).catch(
-              () => [] as FishingPointMapMarker[],
-            ),
-          })),
-        );
+        // 예전에는 시/도마다 한 번씩 17번을 불렀다. 받는 데이터는 같은데 요청과
+        // 쿼리만 17개였고, 새로고침마다 되풀이됐다. 전량을 한 번에 받아
+        // 여기서 묶는다. 서버는 이 응답에 5분짜리 캐시 헤더를 달아 보내므로
+        // 연속 새로고침은 서버까지 오지도 않는다.
+        const markers = await fetchPublicFishingPointsForMap();
         if (cancelled) return;
-        setPointGroups(groups.filter((g) => g.points.length > 0));
+
+        const byProvince = new Map<string, FishingPointMapMarker[]>();
+        for (const m of markers) {
+          const bucket = byProvince.get(m.province);
+          if (bucket) bucket.push(m);
+          else byProvince.set(m.province, [m]);
+        }
+        // optgroup 순서는 서버 enum 순서(PROVINCE_OPTIONS)를 따른다 —
+        // 응답에 실려 오는 순서에 화면 순서를 맡기지 않는다.
+        const groups: PointGroup[] = PROVINCE_OPTIONS
+          .map(([code, displayName]) => ({
+            code,
+            displayName,
+            points: byProvince.get(code) ?? [],
+          }))
+          .filter((g) => g.points.length > 0);
+
+        // 백엔드가 province 를 아직 안 실어 보내는 동안(프론트가 먼저 배포된 순간)
+        // 묶기만 실패하고 데이터는 멀쩡하다. 그럴 때 빈 목록을 보여 주느니
+        // 한 덩어리로라도 고를 수 있게 둔다.
+        if (groups.length === 0 && markers.length > 0) {
+          setPointGroups([{ code: 'ALL', displayName: '전체', points: markers }]);
+        } else {
+          setPointGroups(groups);
+          if (groups.length === 0) setPointsError('등록된 낚시 포인트가 없습니다.');
+        }
       } catch {
-        if (!cancelled) setPointsError('낚시 포인트 목록을 불러오지 못했습니다.');
+        // 예전에는 실패를 빈 배열로 삼켜서 select 만 조용히 잠겼다.
+        if (!cancelled) {
+          setPointsError('낚시 포인트 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+        }
       } finally {
         if (!cancelled) setPointsLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     getCatchPostsPage({ page: 0, size: 5 }).then(r => setCatchPostsPreview(r.content)).catch(() => {});
@@ -413,6 +451,12 @@ export default function HomePage() {
    * 비로그인으로는 한 걸음도 못 간다 — 모달에서 닫으면 제자리인 것보다,
    * 로그인 화면에서 끝내고 원래 자리로 돌아오는 편이 짧다.
    */
+  /** 로그인 화면으로 보내고, 끝나면 이 자리로 돌려보낸다. */
+  const goLogin = (back = '/') => {
+    setPostLoginRedirect(back);
+    navigate('/login');
+  };
+
   const openFishId = () => {
     if (!isLoggedIn) {
       setPostLoginRedirect('/fish-id');
@@ -421,6 +465,29 @@ export default function HomePage() {
     }
     navigate('/fish-id');
   };
+
+  /* 포인트를 고르면 계기판이 보이는 자리까지 내려 준다.
+     지도 핀으로 고른 경우 화면은 그대로 히어로에 머물러 있어서,
+     "골랐는데 아무 일도 안 일어났다"로 읽힌다. 결과가 있는 곳으로 데려다 준다. */
+  useEffect(() => {
+    if (!selectedPointId) return;
+    const el = dashPanelRef.current;
+    if (!el) return;
+
+    // 헤더가 fixed 라 그 높이만큼 빼야 계기판 제목이 가려지지 않는다.
+    const headerH =
+      parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--header-height'),
+        10,
+      ) || 64;
+    const top = el.getBoundingClientRect().top + window.scrollY - headerH - 12;
+
+    // 이미 그만큼 내려와 있으면 건드리지 않는다 — 읽던 자리를 뺏지 않는다.
+    if (window.scrollY >= top - 4) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }, [selectedPointId]);
 
   const requireLogin = (run: () => void) => {
     if (!isLoggedIn) {
@@ -494,29 +561,33 @@ export default function HomePage() {
             </p>
 
             {/* 포인트 선택 — 시/도 드롭다운 없이 한 번에 고른다(시/도는 optgroup) */}
-            {pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
+            {isLoggedIn && pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
             <div className={styles.locationBar}>
               <span className={styles.locationIcon}><PinIcon size={17} strokeWidth={2} /></span>
-              <select className={styles.locationSelect} value={selectedPointId}
-                onChange={(e) => setSelectedPointId(e.target.value)}
-                disabled={pointsLoading || pointGroups.length === 0}>
-                <option value="">
-                  {pointsLoading ? '포인트 불러오는 중...' : pointsError ? '서버 연결 실패' : '낚시 포인트 선택'}
-                </option>
-                {pointGroups.map((g) => (
-                  <optgroup key={g.code} label={g.displayName}>
-                    {g.points.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
-                  </optgroup>
-                ))}
-              </select>
+              {isLoggedIn ? (
+                <select className={styles.locationSelect} value={selectedPointId}
+                  onChange={(e) => setSelectedPointId(e.target.value)}
+                  disabled={pointsLoading || pointGroups.length === 0}>
+                  <option value="">
+                    {pointsLoading ? '포인트 불러오는 중...' : pointsError ? '서버 연결 실패' : '낚시 포인트 선택'}
+                  </option>
+                  {pointGroups.map((g) => (
+                    <optgroup key={g.code} label={g.displayName}>
+                      {g.points.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              ) : (
+                /* 잠긴 select 는 눌러도 아무 일이 없어 고장으로 읽힌다.
+                   같은 자리·같은 모양의 버튼으로 바꿔 로그인 화면으로 보낸다. */
+                <button type="button" className={styles.locationLoginBtn}
+                  onClick={() => goLogin('/')}>
+                  로그인하고 포인트 고르기
+                </button>
+              )}
               <button className={styles.mapBtn}
                 onClick={() => {
-                  if (!isLoggedIn) {
-                    setLoginToast(true);
-                    setTimeout(() => setLoginToast(false), 2000);
-                    setLoginModalOpen(true);
-                    return;
-                  }
+                  if (!isLoggedIn) { goLogin('/'); return; }
                   window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes');
                 }}>
                 지도 보기
@@ -529,7 +600,9 @@ export default function HomePage() {
               </div>
             ) : (
               <p className={styles.selectPrompt}>
-                낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.
+                {isLoggedIn
+                  ? '낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.'
+                  : '로그인하면 전국 낚시 포인트와 AI 조황 분석을 볼 수 있습니다.'}
               </p>
             )}
               </div>
@@ -614,13 +687,13 @@ export default function HomePage() {
               <button type="button" className={styles.quickItem}
                 onClick={() => navigate('/guide')}>
                 <span className={styles.quickIcon}><BookIcon size={20} /></span>
-                <span className={styles.quickLabel}>가이드</span>
+                <span className={styles.quickLabel}>낚시 가이드</span>
               </button>
             </div>
             </div>
 
             {/* 계기판 묶음 — 흰 페이지 위에서 이 묶음만 딥 네이비 패널로 포인트를 준다 */}
-            <div className={styles.dashPanel}>
+            <div className={styles.dashPanel} ref={dashPanelRef}>
             <div className={styles.dashPanelTitle}>
               {conditionsResult?.pointName ? `${conditionsResult.pointName} · 현재 조건` : '현재 조건'}
             </div>
