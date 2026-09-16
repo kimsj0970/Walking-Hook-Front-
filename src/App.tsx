@@ -31,6 +31,8 @@ import FishIdPage from './pages/FishIdPage';
 import SpeciesComparePage, { SpeciesCompareListPage } from './pages/SpeciesComparePage';
 import TacklePage from './pages/TacklePage';
 import GuideDetailPage from './pages/GuideDetailPage';
+import AboutListPage from './pages/AboutListPage';
+import AboutDetailPage from './pages/AboutDetailPage';
 import LoginPage from './pages/LoginPage';
 import './App.css';
 
@@ -81,6 +83,8 @@ export default function App() {
             <Route path="/tackle" element={<TacklePage />} />
             <Route path="/guide" element={<GuideListPage />} />
             <Route path="/guide/:slug" element={<GuideDetailPage />} />
+            <Route path="/about" element={<AboutListPage />} />
+            <Route path="/about/:slug" element={<AboutDetailPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/open-data" element={<OpenDataPage />} />
