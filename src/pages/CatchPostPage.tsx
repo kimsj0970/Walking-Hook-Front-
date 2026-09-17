@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import PostMeta, { AuthorLabel } from '../components/board/PostMeta';
+import { PinIcon, MapIcon } from '../components/common/Icons';
 import Pagination from '../components/common/Pagination';
 import PhotoUploader from '../components/common/PhotoUploader';
 import ImageLightbox from '../components/common/ImageLightbox';
@@ -1094,15 +1096,21 @@ export default function CatchPostPage() {
                         <span className={styles.listTitle}>{item.title}</span>
                       </div>
                       <div className={styles.listBottom}>
-                        {item.pointName
-                          ? <span className={styles.listPoint}>📍 {item.pointName}</span>
-                          : item.province
-                            ? <span className={styles.listPoint}>🗺 {PROVINCE_LABELS[item.province]}</span>
-                            : <span className={styles.listNoPoint}>위치 미지정</span>}
-                        <span className={styles.authorNickname}>{item.authorNickname}</span>
-                        {item.photoUrls?.length > 0 && <span className={styles.photoIcon}>📷 {item.photoUrls.length}</span>}
-                        <span className={styles.commentCount}>💬 {item.commentCount ?? 0}</span>
-                        <span className={styles.commentCount}>👍 {item.likeCount ?? 0}</span>
+                        {!item.pointName && !item.province && (
+                          <span className={styles.listNoPoint}>위치 미지정</span>
+                        )}
+                        <PostMeta
+                          authorNickname={item.authorNickname}
+                          official={item.officialPost}
+                          photoCount={item.photoUrls?.length ?? 0}
+                          commentCount={item.commentCount ?? 0}
+                          likeCount={item.likeCount ?? 0}
+                          place={item.pointName
+                            ? { label: item.pointName, kind: 'point' }
+                            : item.province
+                              ? { label: PROVINCE_LABELS[item.province], kind: 'province' }
+                              : null}
+                        />
                       </div>
                     </div>
                     <div className={styles.listDates}>
@@ -1146,7 +1154,7 @@ export default function CatchPostPage() {
                           </button>
                         )}
                         <button className={styles.iconActionBtn} onClick={() => setReportOpen(true)} title="신고하기">
-                          <span>🚨</span>신고
+                          <span>🚩</span>신고
                         </button>
                         {detail.authorId !== userId && (
                           <button
@@ -1164,19 +1172,23 @@ export default function CatchPostPage() {
                   <div className={styles.detailMeta}>
                     <span className={styles.authorChip}>
                       <span className={styles.authorAvatar}>{detail.authorNickname.charAt(0)}</span>
-                      {detail.authorNickname}
+                      <AuthorLabel nickname={detail.authorNickname} official={detail.officialPost} />
                     </span>
                     <span className={styles.metaDot}>·</span>
                     <span>잡은 날짜: {detail.caughtAt}</span>
                     {detail.pointName ? (
                       <>
                         <span className={styles.metaDot}>·</span>
-                        <span className={styles.metaPoint}>📍 {detail.pointName}</span>
+                        <span className={styles.metaPoint}>
+                          <PinIcon size={14} strokeWidth={1.9} />{detail.pointName}
+                        </span>
                       </>
                     ) : detail.province ? (
                       <>
                         <span className={styles.metaDot}>·</span>
-                        <span className={styles.metaPoint}>🗺 {PROVINCE_LABELS[detail.province]}</span>
+                        <span className={styles.metaPoint}>
+                          <MapIcon size={14} strokeWidth={1.9} />{PROVINCE_LABELS[detail.province]}
+                        </span>
                       </>
                     ) : null}
                     <span className={styles.metaDot}>·</span>
@@ -1212,7 +1224,6 @@ export default function CatchPostPage() {
                   )}
                 </div>
 
-                <h3 className={styles.contentLabel}>📝 게시물 내용</h3>
                 <p className={styles.detailContent}>{detail.content}</p>
 
                 {detail.photoUrls?.length > 0 && (
