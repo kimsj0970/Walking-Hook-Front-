@@ -1015,13 +1015,19 @@
 
 /* ─── 출조 경고 배너 ─── */
 .outingBanner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
+  padding: 16px 16px;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
+}
+
+/* 아래 '어종별 조황 기대도' 카드(.narrowInner)와 같은 폭·같은 중앙선. */
+.outingInner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .outingCaution {
