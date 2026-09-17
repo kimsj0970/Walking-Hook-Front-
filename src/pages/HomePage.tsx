@@ -813,12 +813,16 @@ export default function HomePage() {
         {/* ─── 출조 경고 배너 ─── */}
         {conditionsResult?.outingStatus !== 'SAFE' && conditionsResult?.outingWarning && (
           <div className={`${styles.outingBanner} ${conditionsResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
-            <span className={styles.outingIcon}>
-              {conditionsResult.outingStatus === 'IMPOSSIBLE'
-                ? <BanIcon size={20} strokeWidth={2} />
-                : <AlertIcon size={20} strokeWidth={2} />}
-            </span>
-            <span>{conditionsResult.outingWarning}</span>
+            {/* 띠는 화면 끝까지 가되, 글은 아래 카드와 같은 폭 안에 선다.
+                예전에는 안쪽 상자가 없어 넓은 화면에서 문구만 왼쪽 끝에 홀로 붙었다. */}
+            <div className={styles.outingInner}>
+              <span className={styles.outingIcon}>
+                {conditionsResult.outingStatus === 'IMPOSSIBLE'
+                  ? <BanIcon size={20} strokeWidth={2} />
+                  : <AlertIcon size={20} strokeWidth={2} />}
+              </span>
+              <span>{conditionsResult.outingWarning}</span>
+            </div>
           </div>
         )}
 
