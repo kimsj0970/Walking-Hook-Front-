@@ -692,6 +692,21 @@ export default function HomePage() {
             </div>
             </div>
 
+            {/* 출조 경고 — 계기판 바로 위.
+                수온·파고·몇물을 읽기 전에 "오늘 나가도 되나"가 먼저 걸려야 한다.
+                예전에는 계기판 아래에 화면 끝까지 늘어나는 띠였는데, 넓은 화면에서
+                노란 띠만 양옆으로 길게 뻗어 다른 카드들과 따로 놀았다. */}
+            {conditionsResult?.outingStatus !== 'SAFE' && conditionsResult?.outingWarning && (
+              <div className={`${styles.outingBanner} ${conditionsResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
+                <span className={styles.outingIcon}>
+                  {conditionsResult.outingStatus === 'IMPOSSIBLE'
+                    ? <BanIcon size={20} strokeWidth={2} />
+                    : <AlertIcon size={20} strokeWidth={2} />}
+                </span>
+                <span>{conditionsResult.outingWarning}</span>
+              </div>
+            )}
+
             {/* 계기판 묶음 — 흰 페이지 위에서 이 묶음만 딥 네이비 패널로 포인트를 준다 */}
             <div className={styles.dashPanel} ref={dashPanelRef}>
             <div className={styles.dashPanelTitle}>
@@ -809,22 +824,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
-        {/* ─── 출조 경고 배너 ─── */}
-        {conditionsResult?.outingStatus !== 'SAFE' && conditionsResult?.outingWarning && (
-          <div className={`${styles.outingBanner} ${conditionsResult.outingStatus === 'IMPOSSIBLE' ? styles.outingImpossible : styles.outingCaution}`}>
-            {/* 띠는 화면 끝까지 가되, 글은 아래 카드와 같은 폭 안에 선다.
-                예전에는 안쪽 상자가 없어 넓은 화면에서 문구만 왼쪽 끝에 홀로 붙었다. */}
-            <div className={styles.outingInner}>
-              <span className={styles.outingIcon}>
-                {conditionsResult.outingStatus === 'IMPOSSIBLE'
-                  ? <BanIcon size={20} strokeWidth={2} />
-                  : <AlertIcon size={20} strokeWidth={2} />}
-              </span>
-              <span>{conditionsResult.outingWarning}</span>
-            </div>
-          </div>
-        )}
 
         {/* ─── 어종별 조황 기대도 ───
             AI 응답이 있을 때(또는 분석 중·재시도·오류·출조불가처럼 상태를 알려야 할 때)만 그린다.
