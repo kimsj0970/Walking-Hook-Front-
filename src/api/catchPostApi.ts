@@ -31,6 +31,8 @@ export interface CatchPostListItem {
   commentCount: number;
   likeCount: number;
   dislikeCount: number;
+  /** 글쓴이가 운영진인가. 서버가 권한을 보고 내려준다(닉네임 비교 아님). */
+  officialPost: boolean;
 }
 
 export interface CatchPostDetail {
@@ -54,7 +56,8 @@ export interface CatchPostDetail {
   action: string | null;
   likeCount: number;
   dislikeCount: number;
-  myReaction: ReactionKind | null;
+  myReaction: ReactionKind | null;  /** 글쓴이가 운영진인가. */
+  officialPost: boolean;
 }
 
 export interface PostSummary {
