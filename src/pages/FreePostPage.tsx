@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import PostMeta, { AuthorLabel } from '../components/board/PostMeta';
 import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
 import ImageLightbox from '../components/common/ImageLightbox';
@@ -19,18 +20,8 @@ import styles from './FreePostPage.module.css';
 
 type View = 'list' | 'detail';
 
-const ADMIN_NICKNAMES = ['운영자', '관리자', 'admin', 'Admin'];
 const PAGE_SIZE = 20;
 const MAX_PHOTOS = 5;
-
-function AuthorLabel({ nickname }: { nickname: string }) {
-  const isAdmin = ADMIN_NICKNAMES.includes(nickname);
-  return (
-    <span className={isAdmin ? styles.authorNicknameAdmin : styles.authorNickname}>
-      {nickname}
-    </span>
-  );
-}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -302,10 +293,13 @@ export default function FreePostPage() {
                           <span className={styles.listTitle}>{item.title}</span>
                         </div>
                         <div className={styles.listBottom}>
-                          <AuthorLabel nickname={item.authorNickname} />
-                          {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷 {item.photoUrls.length}</span>}
-                          {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
-                          {(item.likeCount ?? 0) > 0 && <span className={styles.listCommentCount}>👍 {item.likeCount}</span>}
+                          <PostMeta
+                            authorNickname={item.authorNickname}
+                            official={item.isOfficialPost}
+                            photoCount={item.photoUrls?.length ?? 0}
+                            commentCount={item.commentCount ?? 0}
+                            likeCount={item.likeCount ?? 0}
+                          />
                         </div>
                       </div>
                       <div className={styles.listDates}>
@@ -363,7 +357,7 @@ export default function FreePostPage() {
                   <div className={styles.detailMeta}>
                     <span className={styles.authorChip}>
                       <span className={styles.authorAvatar}>{detail.authorNickname.charAt(0)}</span>
-                      {detail.authorNickname}
+                      <AuthorLabel nickname={detail.authorNickname} official={detail.isOfficialPost} />
                     </span>
                     <span className={styles.metaDot}>·</span>
                     <span>{formatDate(detail.createdAt)}</span>
