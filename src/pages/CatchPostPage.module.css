@@ -305,7 +305,13 @@
 }
 
 .metaDot { color: var(--color-border); }
-.metaPoint { color: #2e7d32; font-weight: 600; }
+.metaPoint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2e7d32;
+  font-weight: 600;
+}
 
 .contentLabel {
   display: flex;
