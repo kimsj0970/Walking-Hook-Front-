@@ -7,6 +7,8 @@ export interface FreePostListItem {
   title: string;
   authorNickname: string;
   createdAt: string;
+  /** 글쓴이가 운영진인가. 서버가 권한을 보고 내려준다(닉네임 비교 아님). */
+  isOfficialPost: boolean;
   photoUrls: string[];
   commentCount: number;
   likeCount: number;
@@ -21,6 +23,8 @@ export interface FreePostDetail {
   authorId: string;
   createdAt: string;
   updatedAt: string | null;
+  /** 글쓴이가 운영진인가. */
+  isOfficialPost: boolean;
   photoUrls: string[];
   likeCount: number;
   dislikeCount: number;
