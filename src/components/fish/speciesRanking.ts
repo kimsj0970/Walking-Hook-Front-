@@ -41,8 +41,8 @@ export const HOME_SPECIES: HomeSpeciesMeta[] = [
  */
 export const TIE_THRESHOLD = 5;
 
-/** '낮음' 등급의 상한. probabilityLabel 과 같은 경계. */
-const LOW_CEIL = 25;
+/** '낮음' 등급의 상한(이 값까지가 낮음). probabilityLabel 과 같은 경계. */
+const LOW_CEIL = 30;
 
 export interface RankedSpecies {
   meta: HomeSpeciesMeta;
@@ -108,7 +108,7 @@ export function buildRanking(results: SpeciesAnalysis[] | null): SpeciesRanking 
 
   const leaders = scored.filter((e) => top - e.score < TIE_THRESHOLD);
   const allTied = leaders.every((e) => e.score === top);
-  const allLow = top < LOW_CEIL;
+  const allLow = top <= LOW_CEIL;
 
   let headline: string;
   if (hasClearLeader) headline = '오늘 가장 기대되는 어종';
@@ -141,30 +141,34 @@ export function buildRanking(results: SpeciesAnalysis[] | null): SpeciesRanking 
 // 반드시 파란 쪽 회색(#94A3B8)을 쓸 것.
 
 export function probabilityColor(score: number): string {
-  if (score >= 75) return '#0B3D91';
-  if (score >= 50) return '#14539B';
-  if (score >= 25) return '#2F6DA8';
+  if (score > 50) return '#0B3D91';
+  if (score > LOW_CEIL) return '#2F6DA8';
   return '#94A3B8';
 }
 
 /** 등급 알약의 배경. 본색을 아주 옅게 깐 것. */
 export function probabilitySoftBg(score: number): string {
-  return score >= 25 ? '#E4EEFA' : '#EBEFF4';
+  return score > LOW_CEIL ? '#E4EEFA' : '#EBEFF4';
 }
 
 /** 등급 알약의 글자색. 알약 배경 위에서 4.5:1 을 넘도록 본색보다 한 단계 진하게. */
 export function probabilityPillInk(score: number): string {
-  if (score >= 75) return '#0B3D91';
-  if (score >= 50) return '#14539B';
-  if (score >= 25) return '#2C6197';
+  if (score > 50) return '#0B3D91';
+  if (score > LOW_CEIL) return '#2C6197';
   return '#5F7288';
 }
 
-/** 색만으로 등급을 전하지 않기 위해 **항상 글자와 함께** 쓴다. */
+/**
+ * 색만으로 등급을 전하지 않기 위해 **항상 글자와 함께** 쓴다.
+ *
+ * 경계: 30점까지 낮음 · 50점까지 보통 · 그 위는 좋음.
+ * 예전에는 25/50/75 네 단계였는데, 실제 점수가 75에 닿는 일이 거의 없어
+ * 맨 위 칸이 비어 있었고 25점이 '보통'으로 올라와 실제보다 후하게 읽혔다.
+ * ⚠️ 경계를 고치면 **앱(AppColors.probabilityLabel)과 서버(summaryOf) 셋을 함께** 고칠 것.
+ */
 export function probabilityLabel(score: number): string {
-  if (score >= 75) return '매우 좋음';
-  if (score >= 50) return '좋음';
-  if (score >= 25) return '보통';
+  if (score > 50) return '좋음';
+  if (score > LOW_CEIL) return '보통';
   return '낮음';
 }
 
