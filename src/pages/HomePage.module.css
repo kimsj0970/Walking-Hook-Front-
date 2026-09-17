@@ -1014,31 +1014,29 @@
 }
 
 /* ─── 출조 경고 배너 ─── */
+/* 계기판 위에 얹히는 경고 카드.
+   화면 끝까지 가는 띠가 아니라 둘레의 카드들과 같은 폭·같은 모서리를 쓴다. */
 .outingBanner {
-  padding: 16px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 13px 16px;
+  border-radius: 14px;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
 }
 
-/* 아래 '어종별 조황 기대도' 카드(.narrowInner)와 같은 폭·같은 중앙선. */
-.outingInner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  max-width: 480px;
-  margin: 0 auto;
-}
-
 .outingCaution {
   background: #FEF9C3;
-  border-bottom: 2px solid #FDE047;
+  border: 1px solid #FDE047;
   color: #713F12;
 }
 
 .outingImpossible {
   background: #FEE2E2;
-  border-bottom: 2px solid #FCA5A5;
+  border: 1px solid #FCA5A5;
   color: #7F1D1D;
 }
 
