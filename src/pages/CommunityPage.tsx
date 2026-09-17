@@ -18,16 +18,10 @@ import {
   type FreePostListItem,
 } from '../api/freePostApi';
 import ReportModal from '../components/common/ReportModal';
+import PostMeta, { AuthorLabel } from '../components/board/PostMeta';
 import styles from './CommunityPage.module.css';
 
 /* ── 조황 작성/수정 모달 ──────────────────────────────────────────── */
-const ADMIN_NICKNAMES = ['운영자', '관리자', 'admin', 'Admin'];
-
-function AuthorLabel({ nickname }: { nickname: string }) {
-  return ADMIN_NICKNAMES.includes(nickname)
-    ? <span className={styles.authorNicknameAdmin}>{nickname}</span>
-    : <span className={styles.authorNickname}>{nickname}</span>;
-}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -127,14 +121,15 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
                     <span className={styles.boardDate}>{item.caughtAt ?? formatDate(item.createdAt)}</span>
                   </div>
                   <div className={styles.boardBottom}>
-                    {item.pointName
-                      ? <span className={styles.boardPoint}>📍 {item.pointName}</span>
-                      : <span />}
                     <div className={styles.boardMeta}>
-                      {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷 {item.photoUrls.length}</span>}
-                      {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
-                      {(item.likeCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>👍 {item.likeCount}</span>}
-                      <AuthorLabel nickname={item.authorNickname} />
+                      <PostMeta
+                        authorNickname={item.authorNickname}
+                        official={item.officialPost}
+                        photoCount={item.photoUrls?.length ?? 0}
+                        commentCount={item.commentCount ?? 0}
+                        likeCount={item.likeCount ?? 0}
+                        place={item.pointName ? { label: item.pointName, kind: 'point' } : null}
+                      />
                     </div>
                   </div>
                 </div>
@@ -158,7 +153,7 @@ export function FishingBoard({ isLoggedIn, className, navigateOnClick }: { isLog
             <div className={styles.detailHeader}>
               <h3 className={styles.detailTitle}>{detail.title}</h3>
               <div className={styles.detailMeta}>
-                <AuthorLabel nickname={detail.authorNickname} />
+                <AuthorLabel nickname={detail.authorNickname} official={detail.officialPost} />
                 {detail.caughtAt && <span>🗓 {detail.caughtAt}</span>}
                 {detail.pointName && <span>📍 {detail.pointName}</span>}
                 <span>{formatDate(detail.createdAt)}</span>
@@ -314,9 +309,12 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
                   }}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
-                    {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷</span>}
-                    {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
-                    <AuthorLabel nickname={item.authorNickname} />
+                    <PostMeta
+                      authorNickname={item.authorNickname}
+                      official
+                      photoCount={item.photoUrls?.length ?? 0}
+                      commentCount={item.commentCount ?? 0}
+                    />
                     <span className={styles.boardDate}>{formatDate(item.createdAt)}</span>
                   </span>
                 </div>
@@ -340,7 +338,8 @@ export function NoticeBoard({ isAdmin, navigateOnClick }: { isAdmin: boolean; na
             <div className={styles.detailHeader}>
               <h3 className={styles.detailTitle}>{detail.title}</h3>
               <div className={styles.detailMeta}>
-                <AuthorLabel nickname={detail.authorNickname} />
+                {/* 공지는 관리자만 쓸 수 있으므로 언제나 운영진이다. */}
+                <AuthorLabel nickname={detail.authorNickname} official />
                 <span>{formatDate(detail.createdAt)}</span>
                 {detail.updatedAt && detail.updatedAt !== detail.createdAt && (
                   <span>(수정됨 {formatDate(detail.updatedAt)})</span>
@@ -449,10 +448,13 @@ export function FreeBoard({ isLoggedIn }: { isLoggedIn: boolean }) {
                 <div key={item.id} className={styles.boardItem} onClick={() => openPost(item.id)}>
                   <span className={styles.boardTitle}>{item.title}</span>
                   <span className={styles.boardMeta}>
-                    {item.photoUrls?.length > 0 && <span className={styles.boardBadgeIcon}>📷 {item.photoUrls.length}</span>}
-                    {(item.commentCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>💬 {item.commentCount}</span>}
-                    {(item.likeCount ?? 0) > 0 && <span className={styles.boardBadgeIcon}>👍 {item.likeCount}</span>}
-                    <AuthorLabel nickname={item.authorNickname} />
+                    <PostMeta
+                      authorNickname={item.authorNickname}
+                      official={item.isOfficialPost}
+                      photoCount={item.photoUrls?.length ?? 0}
+                      commentCount={item.commentCount ?? 0}
+                      likeCount={item.likeCount ?? 0}
+                    />
                     <span className={styles.boardDate}>{formatDate(item.createdAt)}</span>
                   </span>
                 </div>
