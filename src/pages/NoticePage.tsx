@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
+import PostMeta, { AuthorLabel } from '../components/board/PostMeta';
 import Pagination from '../components/common/Pagination';
 import PostFormModal from '../components/common/PostFormModal';
 import ImageLightbox from '../components/common/ImageLightbox';
@@ -14,17 +15,7 @@ import styles from './NoticePage.module.css';
 
 type View = 'list' | 'detail';
 
-const ADMIN_NICKNAMES = ['운영자', '관리자', 'admin', 'Admin'];
 const PAGE_SIZE = 20;
-
-function AuthorLabel({ nickname }: { nickname: string }) {
-  const isAdmin = ADMIN_NICKNAMES.includes(nickname);
-  return (
-    <span className={isAdmin ? styles.authorNicknameAdmin : styles.authorNickname}>
-      {nickname}
-    </span>
-  );
-}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -174,9 +165,13 @@ export default function NoticePage() {
                     <div key={item.id} className={styles.listItem} onClick={() => openDetail(item.id)}>
                       <span className={styles.listTitle}>{item.title}</span>
                       <span className={styles.listMeta}>
-                        {item.photoUrls?.length > 0 && <span className={styles.listPhotoIcon}>📷</span>}
-                        {(item.commentCount ?? 0) > 0 && <span className={styles.listCommentCount}>💬 {item.commentCount}</span>}
-                        <AuthorLabel nickname={item.authorNickname} />
+                        {/* 공지는 관리자만 쓸 수 있으므로 글쓴이는 언제나 운영진이다. */}
+                        <PostMeta
+                          authorNickname={item.authorNickname}
+                          official
+                          photoCount={item.photoUrls?.length ?? 0}
+                          commentCount={item.commentCount ?? 0}
+                        />
                         <span className={styles.listDate}>{formatDate(item.createdAt)}</span>
                       </span>
                     </div>
@@ -215,7 +210,7 @@ export default function NoticePage() {
                   <div className={styles.detailMeta}>
                     <span className={styles.authorChip}>
                       <span className={styles.authorAvatar}>{detail.authorNickname.charAt(0)}</span>
-                      {detail.authorNickname}
+                      <AuthorLabel nickname={detail.authorNickname} official />
                     </span>
                     <span className={styles.metaDot}>·</span>
                     <span>{formatDate(detail.createdAt)}</span>
@@ -228,7 +223,6 @@ export default function NoticePage() {
                   </div>
                 </div>
 
-                <h3 className={styles.contentLabel}>📢 공지 내용</h3>
                 <p className={styles.detailContent}>{detail.content}</p>
 
                 {detail.photoUrls?.length > 0 && (
