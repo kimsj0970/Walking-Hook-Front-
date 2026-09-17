@@ -1,0 +1,54 @@
+/* 네 게시판이 같이 쓰는 한 벌. 크기·색·간격은 여기서만 정한다. */
+.row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.author {
+  color: var(--color-text-muted);
+}
+
+/* 운영진. 색만으로 전하지 않도록 굵기도 같이 올린다. */
+.authorOfficial {
+  color: #D92D20;
+  font-weight: 700;
+}
+
+/* 색은 --color-text-muted(#667085, 흰 바탕에서 4.97:1)까지만 내린다.
+   한 단계 더 연한 --color-text-light(#98A2B3)는 2.58:1 이라
+   12px 남짓한 이 글자 크기에서는 흐려서 안 읽힌다. */
+.count,
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+}
+
+/* 아이콘이 글자보다 살짝 위에 떠 보이는 것을 내린다. */
+.count svg,
+.place svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* 포인트·지역은 알약으로. 조황 목록에서 원래 초록 알약이던 것을 그대로 지킨다 —
+   어종(파랑)과 색으로 갈라져 있어 한눈에 "무엇을 · 어디서"가 읽힌다. */
+.place {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #E8F5E9;
+  color: #2E7D32;
+  border: 1px solid rgba(46, 125, 50, 0.22);
+  font-weight: 700;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
