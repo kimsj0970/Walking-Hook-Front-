@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import PrivateRoute from './components/common/PrivateRoute';
+import DemoRoute from './components/common/DemoRoute';
 import Footer from './components/common/Footer';
 import AgeConsentModal from './components/common/AgeConsentModal';
 import TermsReconsentModal from './components/common/TermsReconsentModal';
@@ -66,9 +67,9 @@ export default function App() {
                 먼저 마운트되면 Authorization 헤더 없이 요청이 나가 401 이 된다.
                 PrivateRoute 는 isInitializing 동안 렌더를 미루므로 그 경합이 사라진다.
                 CCTV 는 정부 공개 데이터라 API 가 공개이므로 감싸지 않는다. */}
-            <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
+            <Route path="/map" element={<DemoRoute><MapPage /></DemoRoute>} />
             <Route path="/map/cctv" element={<CctvMapPage />} />
-            <Route path="/map/fishing-zones" element={<PrivateRoute><FishingZonesMapPage /></PrivateRoute>} />
+            <Route path="/map/fishing-zones" element={<DemoRoute><FishingZonesMapPage /></DemoRoute>} />
             <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
             <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
             <Route path="/community" element={<CommunityPage />} />
@@ -77,7 +78,7 @@ export default function App() {
             <Route path="/free-posts" element={<FreePostPage />} />
             {/* 공개 가이드 — 로그인 없이 읽힌다. 검색엔진·광고 심사가 보는 화면. */}
             <Route path="/regulations" element={<FishRegulationPage />} />
-            <Route path="/fish-id" element={<PrivateRoute><FishIdPage /></PrivateRoute>} />
+            <Route path="/fish-id" element={<DemoRoute><FishIdPage /></DemoRoute>} />
             <Route path="/compare" element={<SpeciesCompareListPage />} />
             <Route path="/compare/:id" element={<SpeciesComparePage />} />
             <Route path="/tackle" element={<TacklePage />} />
