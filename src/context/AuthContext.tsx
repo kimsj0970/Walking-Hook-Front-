@@ -206,9 +206,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNeedsAgeConsent(false);
   }, []);
 
-  // 신규 가입 약관 동의(ageAgreed 포함) 완료 시 로컬 플래그만 해제
+  // 신규 가입 약관 동의(ageAgreed 포함) 완료 시 로컬 플래그만 해제.
+  // 약관 플래그도 함께 끈다 — 닉네임 페이지의 약관 단계가 이미 agreeToTermsApi 로 전부 기록했으므로,
+  // 여기서 안 끄면 닉네임을 넣고 홈에 온 순간 TermsReconsentModal 이 같은 동의를 한 번 더 묻는다.
   const markAgeConsented = useCallback(() => {
     setNeedsAgeConsent(false);
+    setNeedsTermsConsent(false);
   }, []);
 
   const isLoggedIn = !!accessToken;
