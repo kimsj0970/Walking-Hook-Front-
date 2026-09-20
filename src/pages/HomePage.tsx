@@ -547,9 +547,13 @@ export default function HomePage() {
       </button>
     </div>
 
-    {(isAnalyzing || conditionsResult) ? (
+    {(isAnalyzing || analysisRefreshing || conditionsResult) ? (
+      // 분석이 도는 동안은 칩이 스피너와 "AI 분석 중" 을 단다. 조건(빠름)은 금방 오고 AI 분석(느림)이
+      // 뒤따르는데, 예전엔 조건이 오는 순간 포인트 이름만 남아 아래 결과 칸까지 내려가야 진행 중인 걸 알았다.
       <div className={styles.currentPointChip}>
-        {conditionsResult?.pointName ?? (isAnalyzing ? '분석 중...' : '')}
+        {(isAnalyzing || analysisRefreshing) && <span className={styles.chipSpinner} aria-hidden="true" />}
+        {conditionsResult?.pointName ?? ''}
+        {(isAnalyzing || analysisRefreshing) && (conditionsResult?.pointName ? ' · AI 분석 중' : 'AI 분석 중')}
       </div>
     ) : (
       <p className={styles.selectPrompt}>
