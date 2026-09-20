@@ -78,7 +78,8 @@
 
 .cardText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .cardTitle { color: var(--color-text); font-size: 16px; font-weight: 900; letter-spacing: -0.4px; }
-.cardDesc  { color: var(--color-text-muted); font-size: 12.5px; }
+.cardDesc  { color: var(--color-text-muted); font-size: 12.5px; line-height: 1.5; }
+.cardDesc b { color: var(--color-text); font-weight: 700; }
 
 .cardRule { height: 1px; background: #E6EBF4; }
 
