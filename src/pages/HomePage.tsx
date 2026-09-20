@@ -507,6 +507,60 @@ export default function HomePage() {
     run();
   };
 
+  /**
+   * 포인트 선택 + 지도 보기 + 안내 한 줄. 로그인 홈은 히어로 안에, 체험판(비로그인)은 체험판 상자 첫 칸에 그린다 —
+   * 같은 JSX 라 동작이 갈리지 않는다. 체험판이 끝나면 이 변수를 히어로 자리로 도로 인라인하면 된다.
+   */
+  const pointPicker = (
+    <>
+    {/* 포인트 선택 — 시/도 드롭다운 없이 한 번에 고른다(시/도는 optgroup) */}
+    {canUsePoints && pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
+    <div className={styles.locationBar}>
+      <span className={styles.locationIcon}><PinIcon size={17} strokeWidth={2} /></span>
+      {canUsePoints ? (
+        <select className={styles.locationSelect} value={selectedPointId}
+          onChange={(e) => setSelectedPointId(e.target.value)}
+          disabled={pointsLoading || pointGroups.length === 0}>
+          <option value="">
+            {pointsLoading ? '포인트 불러오는 중...' : pointsError ? '서버 연결 실패' : '낚시 포인트 선택'}
+          </option>
+          {pointGroups.map((g) => (
+            <optgroup key={g.code} label={g.displayName}>
+              {g.points.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
+            </optgroup>
+          ))}
+        </select>
+      ) : (
+        /* 잠긴 select 는 눌러도 아무 일이 없어 고장으로 읽힌다.
+           같은 자리·같은 모양의 버튼으로 바꿔 로그인 화면으로 보낸다. */
+        <button type="button" className={styles.locationLoginBtn}
+          onClick={() => goLogin('/')}>
+          로그인하고 포인트 고르기
+        </button>
+      )}
+      <button className={styles.mapBtn}
+        onClick={() => {
+          if (!canUsePoints) { goLogin('/'); return; }
+          window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes');
+        }}>
+        지도 보기
+      </button>
+    </div>
+
+    {(isAnalyzing || conditionsResult) ? (
+      <div className={styles.currentPointChip}>
+        {conditionsResult?.pointName ?? (isAnalyzing ? '분석 중...' : '')}
+      </div>
+    ) : (
+      <p className={styles.selectPrompt}>
+        {canUsePoints
+          ? '낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.'
+          : '로그인하면 전국 낚시 포인트와 AI 조황 분석을 볼 수 있습니다.'}
+      </p>
+    )}
+    </>
+  );
+
   return (
     <div className={styles.page}>
       <Header onDark />
@@ -568,51 +622,7 @@ export default function HomePage() {
               정보 제공 및 조황 기대도를 AI가 분석합니다.
             </p>
 
-            {/* 포인트 선택 — 시/도 드롭다운 없이 한 번에 고른다(시/도는 optgroup) */}
-            {canUsePoints && pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
-            <div className={styles.locationBar} id="hero-point-picker">
-              <span className={styles.locationIcon}><PinIcon size={17} strokeWidth={2} /></span>
-              {canUsePoints ? (
-                <select className={styles.locationSelect} value={selectedPointId}
-                  onChange={(e) => setSelectedPointId(e.target.value)}
-                  disabled={pointsLoading || pointGroups.length === 0}>
-                  <option value="">
-                    {pointsLoading ? '포인트 불러오는 중...' : pointsError ? '서버 연결 실패' : '낚시 포인트 선택'}
-                  </option>
-                  {pointGroups.map((g) => (
-                    <optgroup key={g.code} label={g.displayName}>
-                      {g.points.map((fp) => <option key={fp.id} value={fp.id}>{fp.name}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
-              ) : (
-                /* 잠긴 select 는 눌러도 아무 일이 없어 고장으로 읽힌다.
-                   같은 자리·같은 모양의 버튼으로 바꿔 로그인 화면으로 보낸다. */
-                <button type="button" className={styles.locationLoginBtn}
-                  onClick={() => goLogin('/')}>
-                  로그인하고 포인트 고르기
-                </button>
-              )}
-              <button className={styles.mapBtn}
-                onClick={() => {
-                  if (!canUsePoints) { goLogin('/'); return; }
-                  window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes');
-                }}>
-                지도 보기
-              </button>
-            </div>
-
-            {(isAnalyzing || conditionsResult) ? (
-              <div className={styles.currentPointChip}>
-                {conditionsResult?.pointName ?? (isAnalyzing ? '분석 중...' : '')}
-              </div>
-            ) : (
-              <p className={styles.selectPrompt}>
-                {canUsePoints
-                  ? '낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.'
-                  : '로그인하면 전국 낚시 포인트와 AI 조황 분석을 볼 수 있습니다.'}
-              </p>
-            )}
+            {!demoMode && pointPicker}
               </div>
             </div>
           </div>
@@ -627,7 +637,7 @@ export default function HomePage() {
                 데모가 끝나면 이 분기와 DemoSection 폴더만 지운다. */}
             {demoMode ? (
               <DemoSection
-                onAnalysis={() => document.getElementById("hero-point-picker")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                picker={pointPicker}
                 onFishId={() => navigate('/fish-id')}
                 onMigratoryMap={() => setMigratoryMapOpen(true)}
                 onAllPointsMap={() => setAllPointsMapOpen(true)}
