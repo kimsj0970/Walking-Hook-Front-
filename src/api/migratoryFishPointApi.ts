@@ -1,4 +1,5 @@
 import api from './authApi';
+import { demoPath } from './demoApi';
 import type { Province, TerrainType } from './fishingPointApi';
 import type { PageResult } from './noticeApi';
 
@@ -149,7 +150,7 @@ export async function deleteMigratoryFishPoint(id: string): Promise<void> {
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export async function fetchMigratoryFishPointMapMarkers(): Promise<MigratoryFishPointMapMarker[]> {
-  const { data } = await api.get('/migratory-fish-points/map');
+  const { data } = await api.get(demoPath('/migratory-fish-points/map'));
   return (data.data ?? []) as MigratoryFishPointMapMarker[];
 }
 
@@ -162,7 +163,7 @@ export async function fetchMigratoryFishPointMapMarkers(): Promise<MigratoryFish
 export async function fetchAllMigratoryFishPointMapMarkers(
   channel?: string | null
 ): Promise<MigratoryFishPointMapMarker[]> {
-  const { data } = await api.get('/migratory-fish-points/map/all', {
+  const { data } = await api.get(demoPath('/migratory-fish-points/map/all'), {
     params: channel ? { channel } : undefined,
   });
   return (data.data ?? []) as MigratoryFishPointMapMarker[];
@@ -174,7 +175,7 @@ export async function fetchAllMigratoryFishPointMapMarkers(
  * 채널이 170개가 넘고 그중 대부분이 포인트 1곳짜리다. 화면은 위쪽만 펼치고 나머지를 접는다.
  */
 export async function fetchMigratoryPointChannels(): Promise<MigratoryPointChannelList> {
-  const { data } = await api.get('/migratory-fish-points/channels');
+  const { data } = await api.get(demoPath('/migratory-fish-points/channels'));
   const result = data.data as MigratoryPointChannelList | undefined;
   return {
     totalPointCount: result?.totalPointCount ?? 0,
@@ -201,7 +202,7 @@ export interface MigratoryFishPointPublicDetail {
 export async function fetchMigratoryFishPointDetail(
   id: string
 ): Promise<MigratoryFishPointPublicDetail> {
-  const { data } = await api.get(`/migratory-fish-points/${id}`);
+  const { data } = await api.get(demoPath(`/migratory-fish-points/${id}`));
   return data.data as MigratoryFishPointPublicDetail;
 }
 
@@ -254,7 +255,7 @@ export interface MigratoryPointVideoUpdateRequest {
 export async function fetchPointVideosPublic(
   pointId: string, page = 0, size = 5, channel?: string | null
 ): Promise<PageResult<MigratoryPointVideo>> {
-  const { data } = await api.get(`/migratory-fish-points/${pointId}/videos`, {
+  const { data } = await api.get(demoPath(`/migratory-fish-points/${pointId}/videos`), {
     params: { page, size, ...(channel ? { channel } : {}) },
   });
   return data.data as PageResult<MigratoryPointVideo>;
