@@ -41,7 +41,7 @@
 .pickerHead { display: flex; align-items: center; gap: 12px; }
 .pickerWrap { margin-top: 12px; }
 .pickerWrap [class*="locationBar"] { background: #F3F6FC; border: 1px solid #DCE4F1; }
-.pickerWrap p { margin: 8px 0 0; color: #46618F; font-size: 12px; text-align: center; }
+.pickerWrap p { margin: 8px 0 0; color: #46618F; font-size: 13px; text-align: center; }
 
 .cards {
   margin-top: 14px;
@@ -78,8 +78,18 @@
 
 .cardText { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .cardTitle { color: var(--color-text); font-size: 16px; font-weight: 900; letter-spacing: -0.4px; }
-.cardDesc  { color: var(--color-text-muted); font-size: 12.5px; line-height: 1.5; }
-.cardDesc b { color: var(--color-text); font-weight: 700; }
+/* 설명 글자만 손본다. 12.5px 연회색은 흰 카드 위에서 묻혀서 15px·진한 슬레이트·500 굵기로.
+   강조 구는 브랜드 파랑 800 — 회색 문장 안에서 "무엇을 답해주는지"가 먼저 읽히게. */
+.cardDesc {
+  margin-top: 2px;
+  color: #2B3A52;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: -0.2px;
+  word-break: keep-all;
+}
+.cardDesc b { color: var(--color-text); font-weight: 800; }
 
 .cardRule { height: 1px; background: #E6EBF4; }
 
@@ -169,6 +179,7 @@
   .box { padding: 14px 12px 12px; border-radius: 16px; }
   .cards { gap: 10px; }
   .card { padding: 14px 14px 12px; }
+  .cardDesc { font-size: 13px; }
   .quick { gap: 8px 2px; }
   .quickIcon { width: 44px; height: 44px; border-radius: 14px; }
 }
