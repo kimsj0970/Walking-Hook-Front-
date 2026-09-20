@@ -15,7 +15,8 @@ import styles from './DemoSection.module.css';
  * 점선 테두리와 "체험판" 배지는 이 블록이 임시라는 신호 — 정식 카드(흰 배경·실선)와 구분한다.
  */
 interface Props {
-  onAnalysis: () => void;
+  /** 히어로의 포인트 선택 줄(HomePage 의 pointPicker). 체험판은 이걸 상자 첫 칸에 그린다. */
+  picker: ReactNode;
   onFishId: () => void;
   onMigratoryMap: () => void;
   onAllPointsMap: () => void;
@@ -36,14 +37,20 @@ export default function DemoSection(p: Props) {
         <h2 className={styles.title}>로그인 없이 바로 써보기</h2>
       </div>
 
+      {/* ① AI 조황 분석 — 히어로에 있던 포인트 선택 줄을 그대로 받아 첫 칸에 둔다.
+          체험판이 열어주는 기능 셋(조황·판별·바로가기)이 한 상자 안에서 읽히도록. */}
+      <div className={styles.pickerCard}>
+        <div className={styles.pickerHead}>
+          <span className={styles.cardIcon}><WaveIcon size={24} /></span>
+          <span className={styles.cardText}>
+            <span className={styles.cardTitle}>AI 조황 분석</span>
+            <span className={styles.cardDesc}>포인트를 고르면 아래에 오늘 조건과 AI 분석이 바로 뜹니다</span>
+          </span>
+        </div>
+        <div className={styles.pickerWrap}>{p.picker}</div>
+      </div>
+
       <div className={styles.cards}>
-        <BigCard
-          icon={<WaveIcon size={24} />}
-          title="AI 조황 분석 체험"
-          desc="지도에서 포인트를 골라 오늘 조황을 확인"
-          action="바로 보기"
-          onClick={p.onAnalysis}
-        />
         <BigCard
           icon={<CameraIcon size={24} />}
           title="사진 어종 판별 체험"
