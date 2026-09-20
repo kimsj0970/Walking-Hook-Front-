@@ -290,7 +290,9 @@
 /* ─── 현재 선택 포인트 칩 ─── */
 .currentPointChip {
   margin-top: 12px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 7px 18px;
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.48);
@@ -1088,6 +1090,17 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   margin-top: 8px;
+}
+
+/* 히어로 칩 안의 작은 스피너 — 딥블루 위라 흰 링. 체험판 카드(흰 배경)에서는 DemoSection.module.css 가 색을 덮는다. */
+.chipSpinner {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 .analyzingSpinner {
