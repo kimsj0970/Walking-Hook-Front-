@@ -867,10 +867,7 @@ export default function CatchPostPage() {
   };
 
   const openDetail = async (id: string) => {
-    if (!isLoggedIn) {
-      navigate('/login');
-      return;
-    }
+    // 체험판: 읽기는 열려 있다(/demo 경로). 글·댓글·반응·신고 버튼은 아래에서 isLoggedIn 으로 따로 막는다.
     setDetailLoading(true);
     setDetail(null);
     setComments([]);
