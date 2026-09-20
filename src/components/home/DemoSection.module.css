@@ -42,6 +42,9 @@
 .pickerWrap { margin-top: 12px; }
 .pickerWrap [class*="locationBar"] { background: #F3F6FC; border: 1px solid #DCE4F1; }
 .pickerWrap p { margin: 8px 0 0; color: #46618F; font-size: 13px; text-align: center; }
+/* 흰 카드 위의 칩·스피너 — 히어로용(흰 글자·흰 링)을 파랑 계열로 덮는다. */
+.pickerWrap [class*="currentPointChip"] { background: #EEF3FC; border-color: #C9D7F2; color: #12328F; }
+.pickerWrap [class*="chipSpinner"] { border-color: #C9D7F2; border-top-color: var(--color-primary); }
 
 .cards {
   margin-top: 14px;
