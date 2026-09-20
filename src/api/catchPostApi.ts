@@ -122,6 +122,17 @@ export interface CatchPostUpdateRequest {
   lure?: string | null;
   fishSizeCm?: number | null;
   action?: string | null;
+  /**
+   * 포인트를 건드린 수정인가.
+   *
+   * migratoryPointId 가 없는 것이 "포인트를 지우겠다"인지 "이번엔 포인트와 무관하다"인지
+   * 값만 봐서는 구분되지 않는다. 제목만 고치는 요청이 포인트를 날리면 안 되므로 명시한다.
+   */
+  pointChanged?: boolean;
+  /** pointChanged 가 true 이고 이 값이 없으면 포인트를 지운다. */
+  migratoryPointId?: string | null;
+  /** 포인트를 못 찾아 지역만 고른 경우. 포인트가 함께 오면 서버가 그 지역으로 덮어쓴다. */
+  province?: string | null;
 }
 
 export interface CatchPostPageParams {
