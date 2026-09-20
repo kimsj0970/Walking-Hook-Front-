@@ -54,7 +54,7 @@ export default function DemoSection(p: Props) {
         <BigCard
           icon={<CameraIcon size={24} />}
           title="사진 어종 판별 체험"
-          desc={<>잡은 물고기 사진 한 장이면 어종을 알아보고, <b>금지체장·금어기에 걸리는지</b> 바로 판정합니다. 손 한 뼘을 기준자로 크기까지 재드려요.</>}
+          desc={<>사진 한 장으로 어떤 어종인지 판별하고, <b>금어기·금지체장</b>이 아닌지 분석해 드려요.</>}
           action="바로 체험하기"
           onClick={p.onFishId}
         />
