@@ -13,6 +13,7 @@ import {
   confirmFish,
   fetchFishIdExample,
   fetchFishIdQuota,
+  fishIdErrorMessage,
   resizeImage,
   type FishIdQuota,
   type FishIdResponse,
@@ -22,6 +23,7 @@ import { getMyInfoApi, updateMeasureReferenceApi } from '../api/authApi';
 import { fetchProvinces } from '../api/fishingPointApi';
 import { uploadImage } from '../api/s3Api';
 import { FISH_SPECIES_BY_GROUP, SPECIES_GROUP_LABELS } from '../api/fishSpecies';
+import { useAuth } from '../context/AuthContext';
 import styles from './FishIdPage.module.css';
 
 /**
@@ -80,6 +82,11 @@ export default function FishIdPage() {
   const [error, setError] = useState<string | null>(null);
 
   // ── ① 한 뼘 ────────────────────────────────────────────────
+  // 체험판(비로그인): DemoRoute 가 통과시켰으면 여기 온 비로그인은 곧 체험판이다.
+  // 한 뼘을 서버에 저장하지 않고 이 화면의 메모리에만 두었다가 판별 요청에 실어 보낸다.
+  // 다음에 다시 오면 다시 입력한다 — 같은 폰을 여러 명이 써도 남의 손 크기가 남지 않는다.
+  const { isLoggedIn } = useAuth();
+  const demo = !isLoggedIn;
   const [handSpanMm, setHandSpanMm] = useState<number | null>(null);
   const [handInput, setHandInput] = useState('');
 
@@ -120,6 +127,14 @@ export default function FishIdPage() {
     let alive = true;
     (async () => {
       try {
+        if (demo) {
+          const provs = await fetchProvinces().catch(() => []);
+          if (!alive) return;
+          setProvinces(provs.map((p) => p.displayName));
+          setQuota(null);
+          setStep('hand');
+          return;
+        }
         const [me, provs, q] = await Promise.all([
           getMyInfoApi(),
           fetchProvinces().catch(() => []),
@@ -144,7 +159,7 @@ export default function FishIdPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [demo]);
 
   useEffect(() => {
     return () => {
@@ -165,11 +180,11 @@ export default function FishIdPage() {
     setError(null);
     try {
       const mm = Math.round(cm * 10);
-      await updateMeasureReferenceApi(mm);
+      if (!demo) await updateMeasureReferenceApi(mm);
       setHandSpanMm(mm);
       setStep('upload');
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? '저장에 실패했어요.');
+      setError(fishIdErrorMessage(e, '저장에 실패했어요.'));
     } finally {
       setLoading(false);
     }
@@ -197,14 +212,20 @@ export default function FishIdPage() {
     void fetchFishIdQuota().then(setQuota).catch(() => {});
   };
 
-  /** 서버가 한 뼘 미등록(428)을 돌려주면 등록 화면으로 되돌린다. */
+  /**
+   * 오류 한 곳 처리.
+   *
+   * 428(한 뼘 미등록)만 화면을 되돌리고, 나머지는 문구만 바꾼다. 문구는
+   * fishIdErrorMessage 가 코드로 골라 주므로 **앱과 같은 문장이 나온다** —
+   * 여기서 직접 문자열을 쓰면 양쪽이 조용히 어긋난다.
+   */
   const handleApiError = (e: any, fallback: string) => {
     if (e?.response?.status === 428) {
       setStep('hand');
       setError('내 한 뼘을 먼저 등록해 주세요.');
       return;
     }
-    setError(e?.response?.data?.message ?? fallback);
+    setError(fishIdErrorMessage(e, fallback));
   };
 
   const runAnalyze = useCallback(
@@ -213,10 +234,10 @@ export default function FishIdPage() {
       setError(null);
       try {
         const resized = await resizeImage(file);
-        const result = await analyzeFish(resized, region || undefined);
+        const result = await analyzeFish(resized, region || undefined, handSpanMm ?? undefined);
         applyResult(result, URL.createObjectURL(resized), resized);
       } catch (e: any) {
-        handleApiError(e, '분석에 실패했어요. 잠시 후 다시 시도해주세요.');
+        handleApiError(e, '분석에 실패했어요. 잠시 후 다시 시도해 주세요.');
       } finally {
         setLoading(false);
       }
@@ -278,7 +299,7 @@ export default function FishIdPage() {
       setSpeciesName(name);
       setConfirmed(true);
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? '판정에 실패했어요.');
+      setError(fishIdErrorMessage(e, '판정에 실패했어요.'));
     } finally {
       setLoading(false);
     }
@@ -305,7 +326,7 @@ export default function FishIdPage() {
       setMeasuredWeightG(null);
       setMeasureOpen(false);
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? '판정에 실패했어요.');
+      setError(fishIdErrorMessage(e, '판정에 실패했어요.'));
     } finally {
       setLoading(false);
     }
@@ -413,7 +434,7 @@ export default function FishIdPage() {
         },
       });
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? '사진 업로드에 실패했어요.');
+      setError(fishIdErrorMessage(e, '사진 업로드에 실패했어요.'));
     } finally {
       setPosting(false);
     }
@@ -448,11 +469,13 @@ export default function FishIdPage() {
         {step === 'hand' && (
           <section className={styles.card}>
             <span className={styles.badge}>1단계</span>
-            <h1 className={styles.title}>먼저 내 한 뼘을 등록해주세요</h1>
+            <h1 className={styles.title}>{demo ? '먼저 내 한 뼘을 알려주세요' : '먼저 내 한 뼘을 등록해주세요'}</h1>
             <p className={styles.sub}>
               사진 속 물고기 크기를 재는 <b>유일한 기준자</b>입니다. 기준자가 없으면 크기를 잘못 재고,
               그 오차가 금지체장 판정으로 그대로 넘어가기 때문에 등록 전에는 판별을 시작할 수 없어요.
-              한 번만 등록하면 다음부터는 바로 판별로 넘어갑니다.
+              {demo
+                ? ' 체험판에서는 저장하지 않아요 — 다음에 오시면 다시 입력합니다.'
+                : ' 한 번만 등록하면 다음부터는 바로 판별로 넘어갑니다.'}
             </p>
             <img className={styles.guideImg} src="/images/guide/hand_span_guide.png" alt="한 뼘 재는 법" />
             <p className={styles.note}>
@@ -473,10 +496,10 @@ export default function FishIdPage() {
             </div>
             <p className={styles.helper}>보통 어른은 15 ~ 23cm 사이입니다.</p>
             <button className={styles.primaryBtn} onClick={saveHandSpan} disabled={loading}>
-              등록하고 판별 시작하기
+              {demo ? '판별 시작하기' : '등록하고 판별 시작하기'}
             </button>
             <p className={styles.helper}>
-              마이페이지에서 언제든 다시 고칠 수 있어요.
+              {demo ? '가입하면 한 번만 등록하고 계속 쓸 수 있어요.' : '마이페이지에서 언제든 다시 고칠 수 있어요.'}
             </p>
           </section>
         )}
@@ -530,12 +553,14 @@ export default function FishIdPage() {
                 <CameraIcon size={30} strokeWidth={1.7} />
               </span>
               <strong>물고기 사진 올리기</strong>
-              <span className={styles.dropHint}>눌러서 촬영하거나 사진을 끌어다 놓으세요</span>
+              <span className={styles.dropHint}>눌러서 촬영하거나 앨범에서 고르세요</span>
+              {/* capture="environment" 를 달면 안 된다 — 휴대폰이 곧장 카메라를 열어버려서
+                  이미 찍어둔 사진을 앨범에서 고를 방법이 사라진다. 빼두면 휴대폰은
+                  카메라·앨범·파일을 모두 띄우고, 데스크톱은 지금처럼 파일 선택창이 뜬다. */}
               <input
                 ref={inputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 hidden
                 onChange={(e) => {
                   const f = e.target.files?.[0];
