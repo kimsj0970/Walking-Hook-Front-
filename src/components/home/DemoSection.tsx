@@ -44,7 +44,7 @@ export default function DemoSection(p: Props) {
           <span className={styles.cardIcon}><WaveIcon size={24} /></span>
           <span className={styles.cardText}>
             <span className={styles.cardTitle}>AI 조황 분석</span>
-            <span className={styles.cardDesc}>포인트를 고르면 아래에 오늘 조건과 AI 분석이 바로 뜹니다</span>
+            <span className={styles.cardDesc}>수온·파고·물때·바람을 실시간으로 읽어, 포인트마다 <b>오늘 어떤 어종이 잘 나올지</b>와 공략법·채비까지 AI가 정리합니다.</span>
           </span>
         </div>
         <div className={styles.pickerWrap}>{p.picker}</div>
@@ -54,7 +54,7 @@ export default function DemoSection(p: Props) {
         <BigCard
           icon={<CameraIcon size={24} />}
           title="사진 어종 판별 체험"
-          desc="사진 한 장으로 어종과 가져가도 되는지 확인"
+          desc={<>잡은 물고기 사진 한 장이면 어종을 알아보고, <b>금지체장·금어기에 걸리는지</b> 바로 판정합니다. 손 한 뼘을 기준자로 크기까지 재드려요.</>}
           action="바로 체험하기"
           onClick={p.onFishId}
         />
@@ -87,7 +87,7 @@ export default function DemoSection(p: Props) {
 }
 
 function BigCard({ icon, title, desc, action, onClick }: {
-  icon: ReactNode; title: string; desc: string; action: string; onClick: () => void;
+  icon: ReactNode; title: string; desc: ReactNode; action: string; onClick: () => void;
 }) {
   return (
     <button type="button" className={styles.card} onClick={onClick}>
