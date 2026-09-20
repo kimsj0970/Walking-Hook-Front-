@@ -177,7 +177,9 @@ function PostFormModal({ open, editTarget, points, prefill, onClose, onSaved }: 
         content: editTarget.content,
         species: editTarget.species.map(s => s.name),
         caughtAt: editTarget.caughtAt,
-        selectedProvince: pt?.province ?? '',
+        // 포인트 목록에서 못 찾아도(또는 포인트 없이 지역만 고른 글이어도) 글에 적힌
+        // 지역을 그대로 살린다. 여기서 비우면 수정 저장 때 지역이 통째로 날아간다.
+        selectedProvince: pt?.province ?? editTarget.province ?? '',
         migratoryPointId: editTarget.migratoryPointId ?? '',
         selectedPointName: pt?.name ?? editTarget.pointName ?? '',
         photoUrls: editTarget.photoUrls ?? [],
@@ -276,7 +278,15 @@ function PostFormModal({ open, editTarget, points, prefill, onClose, onSaved }: 
     };
     try {
       if (editTarget) {
-        await updateCatchPost(editTarget.id, req);
+        // 수정 화면은 기존 포인트를 미리 채워 두므로, 지금 폼에 있는 값이 곧 사용자의 뜻이다.
+        // pointChanged 를 켜야 서버가 포인트·지역을 실제로 갈아끼운다 — 이 깃발이 없으면
+        // 다른 포인트를 골라도 조용히 무시된다(예전에 포인트 수정이 안 되던 이유).
+        await updateCatchPost(editTarget.id, {
+          ...req,
+          pointChanged: true,
+          migratoryPointId: form.migratoryPointId || null,
+          province: form.selectedProvince || null,
+        });
       } else {
         await createCatchPost(req);
       }
