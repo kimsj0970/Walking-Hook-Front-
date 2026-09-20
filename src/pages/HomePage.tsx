@@ -9,6 +9,7 @@ import {
   type TideEvent, type TidePoint, TIDE_FLOW_LABELS,
 } from '../api/fishingPointApi';
 import { useAuth } from '../context/AuthContext';
+import DemoSection from '../components/home/DemoSection';
 import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
 import AdSlot from '../components/common/AdSlot';
@@ -221,7 +222,14 @@ function findCurrentRow(
 type PointGroup = { code: string; displayName: string; points: FishingPointMapMarker[] };
 
 export default function HomePage() {
-  const { isLoggedIn, isAdmin } = useAuth();
+  const { isLoggedIn, isAdmin, isInitializing } = useAuth();
+  // 웹 체험판. 비로그인이면 곧 체험판이다. 로그인하면 원래 홈.
+  // isInitializing 을 보는 이유 — 새로고침 직후 토큰 복구가 끝나기 전엔 isLoggedIn 이 잠깐 false 라,
+  // 회원에게 체험판 섹션이 번쩍 보였다가 사라지고 그 사이 요청이 /demo 로 나간다. 복구가 끝난 뒤 판단한다.
+  const demoMode = !isInitializing && !isLoggedIn;
+  // 히어로의 포인트 선택·조황 분석은 "로그인 또는 체험판" 이면 열린다. 나머지 게이트(글쓰기·횟수 배지·
+  // 이달의 조과 배너)는 isLoggedIn 그대로 — 체험판이 열어주는 건 보기 기능뿐이다.
+  const canUsePoints = isLoggedIn || demoMode;
   /** 오늘 남은 판별 횟수 — 진입 카드의 배지에만 쓴다. 실패하면 배지를 그리지 않는다. */
   const [fishIdQuota, setFishIdQuota] = useState<FishIdQuota | null>(null);
   const navigate = useNavigate();
@@ -266,7 +274,7 @@ export default function HomePage() {
      그건 장애가 아니라 로그인을 안 한 것뿐이다. 그래서 아예 부르지 않고,
      선택 바 자리에 로그인 안내를 놓는다. 로그인하면 이 훅이 다시 돈다. */
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!canUsePoints) {
       setPointGroups([]);
       setSelectedPointId('');
       setPointsError('');
@@ -320,7 +328,7 @@ export default function HomePage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [isLoggedIn]);
+  }, [canUsePoints]);
 
   useEffect(() => {
     getCatchPostsPage({ page: 0, size: 5 }).then(r => setCatchPostsPreview(r.content)).catch(() => {});
@@ -347,7 +355,7 @@ export default function HomePage() {
       setAnalysisResult(null);
       return;
     }
-    if (!isLoggedIn) {
+    if (!canUsePoints) {
       setSelectedPointId('');
       setLoginToast(true);
       setTimeout(() => {
@@ -419,7 +427,7 @@ export default function HomePage() {
 
     run();
     return () => { cancelled = true; };
-  }, [selectedPointId, isLoggedIn]);
+  }, [selectedPointId, canUsePoints]);
 
   const now = new Date();
   const timeStr = `${now.getMonth() + 1}월 ${now.getDate()}일 ${now.getHours()}시 기준`;
@@ -458,7 +466,7 @@ export default function HomePage() {
   };
 
   const openFishId = () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn && !demoMode) {
       setPostLoginRedirect('/fish-id');
       navigate('/login');
       return;
@@ -561,10 +569,10 @@ export default function HomePage() {
             </p>
 
             {/* 포인트 선택 — 시/도 드롭다운 없이 한 번에 고른다(시/도는 optgroup) */}
-            {isLoggedIn && pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
-            <div className={styles.locationBar}>
+            {canUsePoints && pointsError && <div className={styles.errorBanner}>{pointsError}</div>}
+            <div className={styles.locationBar} id="hero-point-picker">
               <span className={styles.locationIcon}><PinIcon size={17} strokeWidth={2} /></span>
-              {isLoggedIn ? (
+              {canUsePoints ? (
                 <select className={styles.locationSelect} value={selectedPointId}
                   onChange={(e) => setSelectedPointId(e.target.value)}
                   disabled={pointsLoading || pointGroups.length === 0}>
@@ -587,7 +595,7 @@ export default function HomePage() {
               )}
               <button className={styles.mapBtn}
                 onClick={() => {
-                  if (!isLoggedIn) { goLogin('/'); return; }
+                  if (!canUsePoints) { goLogin('/'); return; }
                   window.open('/map', 'kakaomap', 'width=900,height=680,resizable=yes');
                 }}>
                 지도 보기
@@ -600,7 +608,7 @@ export default function HomePage() {
               </div>
             ) : (
               <p className={styles.selectPrompt}>
-                {isLoggedIn
+                {canUsePoints
                   ? '낚시 포인트를 선택하거나, 지도에서 핀을 클릭하세요.'
                   : '로그인하면 전국 낚시 포인트와 AI 조황 분석을 볼 수 있습니다.'}
               </p>
@@ -614,6 +622,23 @@ export default function HomePage() {
             <div className={styles.heroInner}>
 
 
+            {/* 체험판(비로그인·데모 ON)이면 이 자리를 체험판 섹션이 통째로 대신한다.
+                로그인하면 아래 원래 블록이 그대로 — 원래 블록은 한 줄도 안 바뀌었다.
+                데모가 끝나면 이 분기와 DemoSection 폴더만 지운다. */}
+            {demoMode ? (
+              <DemoSection
+                onAnalysis={() => document.getElementById("hero-point-picker")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                onFishId={() => navigate('/fish-id')}
+                onMigratoryMap={() => setMigratoryMapOpen(true)}
+                onAllPointsMap={() => setAllPointsMapOpen(true)}
+                onCctv={() => window.open('/map/cctv', 'cctvmap', 'width=900,height=680,resizable=yes')}
+                onFishingZones={() => window.open('/map/fishing-zones', 'fishingzones', 'width=900,height=680,resizable=yes')}
+                onRegulations={() => navigate('/regulations')}
+                onTackle={() => navigate('/tackle')}
+                onGuide={() => navigate('/guide')}
+                closedThisMonthCount={closedThisMonthCount}
+              />
+            ) : (<>
             {/* 사진 어종판별 진입 — 퀵메뉴 타일 하나로는 묻혀서 전용 카드로 뺐다.
                 자리는 앱(home_page.dart 의 _FishIdCtaCard)과 같게 맞춘다.
                 바로 위 "지도 보기"가 채운 딥블루라, 여기는 틴트로 톤을 낮춰 서로 안 싸우게 한다. */}
@@ -691,6 +716,7 @@ export default function HomePage() {
               </button>
             </div>
             </div>
+            </>)}
 
             {/* 출조 경고 — 계기판 바로 위.
                 수온·파고·몇물을 읽기 전에 "오늘 나가도 되나"가 먼저 걸려야 한다.
