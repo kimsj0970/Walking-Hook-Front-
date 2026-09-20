@@ -1,4 +1,5 @@
 import api from './authApi';
+import { demoPath, isDemoMode } from './demoApi';
 
 /**
  * 사진 어종판별 API — 회원 전용, 계정당 하루 3회 (관리자 무제한, 예시 테스트 포함).
@@ -61,11 +62,80 @@ export interface FishIdResponse {
   notice: string | null;
 }
 
-export async function analyzeFish(image: Blob, region?: string): Promise<FishIdResponse> {
+/**
+ * 판별 요청의 응답 대기 시간.
+ *
+ * axios 기본값은 "무한 대기"다. 그대로 두면 서버가 죽어도 화면이 영원히 도는데,
+ * 사용자는 멈춘 건지 도는 건지 알 수 없다. 앱과 같은 40초로 맞춘다 —
+ * 서버의 OpenAI 읽기 제한이 30초라 정상 실패는 35초 안에 끝나므로,
+ * 40초에 걸린다는 건 서버가 답 자체를 못 주고 있다는 뜻이다.
+ */
+const ANALYZE_TIMEOUT_MS = 40_000;
+
+/**
+ * 어종판별 실패 문구 — **앱(api_exception.dart)과 같은 문장을 쓴다.**
+ *
+ * 서버가 내려주는 message 를 그대로 띄우지 않고 여기서 한 번 더 잡는 이유는,
+ * 앱이 5xx 응답의 문구를 믿지 않고 자체 문구로 덮기 때문이다. 양쪽을 서버 문구에
+ * 맡겨 두면 같은 상황에서 웹과 앱이 다른 말을 하게 된다.
+ *
+ * 여기 없는 것 — "어종을 못 알아봤다"는 실패가 아니라 정상 응답(200)이다.
+ * status = UNIDENTIFIED / NOT_FISH 로 내려오고 결과 화면이 notice 를 띄운다.
+ */
+const FISH_ID_MESSAGES: Record<string, string> = {
+  FISH_ID_TIMEOUT: '분석이 오래 걸려 중단했어요. 잠시 후 다시 시도해 주세요.',
+  FISH_ID_AI_ERROR: 'AI 분석 서버에 문제가 있어요. 잠시 후 다시 시도해 주세요.',
+  FISH_ID_IMAGE_UNREADABLE: '사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요.',
+  FISH_ID_IMAGE_TOO_LARGE: '사진 용량이 너무 커요. 8MB 이하로 줄여서 올려주세요.',
+  FISH_ID_DAILY_LIMIT: '오늘의 판별 횟수(3회)를 모두 사용했어요. 내일 다시 이용해 주세요.',
+  FISH_ID_EXAMPLE_NOT_READY: '예시 사진이 아직 준비되지 않았어요.',
+  // 체험판(비로그인) 전용 — IP 별 3회(RATE_LIMIT_EXCEEDED)와 하루 전체 상한. 사용자가 할 일은
+  // 둘 다 "가입하기" 로 같아서 화면은 한 카드로 보여준다.
+  RATE_LIMIT_EXCEEDED: '오늘 체험은 여기까지예요. 내일 다시 열려요.',
+  DEMO_DAILY_CAP: '오늘 체험판 분량을 모두 썼어요. 내일 다시 열려요.',
+};
+
+/** 응답을 못 받은 경우 — 서버가 코드를 줄 수 없으니 여기서 이름을 붙인다. */
+const REQUEST_TIMEOUT = '응답이 오래 걸려 중단했어요. 잠시 후 다시 시도해 주세요.';
+const NETWORK_ERROR = '네트워크 연결을 확인해주세요.';  // 앱의 전역 문구와 동일
+
+/**
+ * 어떤 오류든 사용자에게 보여줄 한 줄로 바꾼다.
+ *
+ * 우선순위: ① 우리가 이름 붙인 코드 → ② 서버 문구 → ③ 화면이 준 기본 문구.
+ * ①이 맨 앞인 이유는 앱과 문장을 맞추기 위해서다.
+ */
+export function fishIdErrorMessage(error: unknown, fallback: string): string {
+  const e = error as {
+    code?: string;
+    response?: { status?: number; data?: { code?: string; message?: string } };
+  };
+
+  // 응답 자체가 없는 경우 — axios 는 타임아웃도 네트워크 단절도 response 를 안 준다.
+  if (!e?.response) {
+    if (e?.code === 'ECONNABORTED' || e?.code === 'ETIMEDOUT') return REQUEST_TIMEOUT;
+    return NETWORK_ERROR;
+  }
+
+  const code = e.response.data?.code;
+  if (code && FISH_ID_MESSAGES[code]) return FISH_ID_MESSAGES[code];
+  return e.response.data?.message ?? fallback;
+}
+
+/**
+ * @param handSpanMm 체험판(비로그인)에서만 쓴다. 회원은 서버가 users 표의 값을 쓰므로 무시된다.
+ *                   체험판은 저장하지 않고 매 요청에 실어 보낸다 — 화면이 매번 입력받는다.
+ */
+export async function analyzeFish(
+  image: Blob,
+  region?: string,
+  handSpanMm?: number,
+): Promise<FishIdResponse> {
   const form = new FormData();
   form.append('image', image, 'fish.jpg');
   if (region) form.append('region', region);
-  const { data } = await api.post('/fish-id', form);
+  if (isDemoMode() && handSpanMm != null) form.append('handSpanMm', String(handSpanMm));
+  const { data } = await api.post(demoPath('/fish-id'), form, { timeout: ANALYZE_TIMEOUT_MS });
   return data.data;
 }
 
@@ -82,15 +152,15 @@ export async function confirmFish(params: {
   llmMaxCm?: number | null;
   llmReliability?: string;
 }): Promise<FishIdVerdict> {
-  const { data } = await api.post('/fish-id/confirm', params);
+  const { data } = await api.post(demoPath('/fish-id/confirm'), params);
   return data.data;
 }
 
 /**
  * 오늘 남은 판별 횟수.
  *
- * 판별 응답에 얹지 않고 따로 받는 이유 — 예시 사진 결과는 서버에서 캐시되므로
- * 거기에 남은 횟수를 넣으면 값이 얼어붙는다. 화면 진입 시 한 번, 판별 후 한 번 부른다.
+ * 판별 응답에 얹지 않고 따로 받는 이유 — 남은 횟수는 판별 결과와 수명이 다르다.
+ * 화면 진입 시 한 번, 판별 후 한 번 부른다.
  */
 export interface FishIdQuota {
   limit: number;
@@ -106,7 +176,8 @@ export async function fetchFishIdQuota(): Promise<FishIdQuota> {
 }
 
 export async function fetchFishIdExample(): Promise<{ imageUrl: string; result: FishIdResponse }> {
-  const { data } = await api.get('/fish-id/example');
+  // 예시도 캐시 없이 실제 파이프라인을 그대로 돌므로 판별과 같은 만큼 걸릴 수 있다.
+  const { data } = await api.get(demoPath('/fish-id/example'), { timeout: ANALYZE_TIMEOUT_MS });
   return data.data;
 }
 
