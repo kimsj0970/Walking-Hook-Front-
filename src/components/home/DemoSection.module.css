@@ -29,10 +29,24 @@
   letter-spacing: -0.4px;
 }
 
+/* ① 포인트 선택 카드 — 히어로의 흰 알약(locationBar)이 흰 카드 위에 오면 묻히므로
+   pickerWrap 에서 알약 배경만 연하게 바꾼다. 나머지 동작·마크업은 히어로와 동일. */
+.pickerCard {
+  margin-top: 14px;
+  padding: 18px 18px 14px;
+  background: var(--color-surface);
+  border: 1px solid #fff;
+  border-radius: 16px;
+}
+.pickerHead { display: flex; align-items: center; gap: 12px; }
+.pickerWrap { margin-top: 12px; }
+.pickerWrap [class*="locationBar"] { background: #F3F6FC; border: 1px solid #DCE4F1; }
+.pickerWrap p { margin: 8px 0 0; color: #46618F; font-size: 12px; text-align: center; }
+
 .cards {
   margin-top: 14px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
@@ -152,7 +166,7 @@
 
 @media (max-width: 560px) {
   .box { padding: 14px 12px 12px; border-radius: 16px; }
-  .cards { grid-template-columns: 1fr; gap: 10px; }
+  .cards { gap: 10px; }
   .card { padding: 14px 14px 12px; }
   .quick { gap: 8px 2px; }
   .quickIcon { width: 44px; height: 44px; border-radius: 14px; }
