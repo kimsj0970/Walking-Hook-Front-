@@ -927,7 +927,7 @@ export default function FishIdPage() {
             <div className={styles.overlayBox}>
               <div className={styles.spinner} />
               <strong>사진을 분석하고 있어요</strong>
-              <span>어종을 찾고 금어기·금지체장을 확인하는 중입니다. 5~10초 걸려요.</span>
+              <span>어종을 찾고 금어기·금지체장을 확인하는 중입니다. 10~20초 정도 걸려요.</span>
             </div>
           </div>
         )}
