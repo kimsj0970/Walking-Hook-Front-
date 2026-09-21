@@ -171,7 +171,7 @@ export const ABOUT_ITEMS: AboutItem[] = [
         ],
         shots: [
           { image: 'fishid-upload', caption: '찍는 법을 그림으로 안내한다' },
-          { image: 'fishid-analyzing', caption: '5~10초면 끝난다' },
+          { image: 'fishid-analyzing', caption: '10~20초면 끝난다' },
           { image: 'fishid-notice', caption: '여러 마리가 찍혀도 가장 큰 한 마리로 판별한다' },
         ],
       },
