@@ -242,7 +242,9 @@ export default function FishIdPage() {
         setLoading(false);
       }
     },
-    [region],
+    // handSpanMm 을 빠뜨리면 이 콜백이 첫 렌더의 null 을 붙들고 있어(stale closure) 체험판이
+    // 한 뼘 없이 요청을 보낸다 → 서버 'handSpanMm 없음'. 회원은 서버가 users 표에서 읽어 티가 안 났다.
+    [region, handSpanMm],
   );
 
   const runExample = useCallback(async () => {
