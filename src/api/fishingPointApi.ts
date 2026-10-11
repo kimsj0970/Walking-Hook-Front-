@@ -1,5 +1,4 @@
 import api from './authApi';
-import { demoPath } from './demoApi';
 
 export type Province =
   | 'SEOUL' | 'BUSAN' | 'DAEGU' | 'INCHEON' | 'GWANGJU' | 'DAEJEON' | 'ULSAN' | 'SEJONG'
@@ -184,7 +183,7 @@ export async function deleteFishingPoint(id: string): Promise<void> {
 }
 
 export async function fetchPublicFishingPointsForMap(): Promise<FishingPointMapMarker[]> {
-  const { data } = await api.get(demoPath('/fishing-points/map'));
+  const { data } = await api.get('/fishing-points/map');
   return (data.data ?? []) as FishingPointMapMarker[];
 }
 
@@ -346,12 +345,12 @@ export interface FishingAnalysisResult {
 }
 
 export async function fetchConditions(id: string): Promise<FishingConditionsResult> {
-  const { data } = await api.get(demoPath(`/fishing-points/${id}/conditions`));
+  const { data } = await api.get(`/fishing-points/${id}/conditions`);
   return data.data as FishingConditionsResult;
 }
 
 export async function analyzeFishingPoint(id: string): Promise<FishingAnalysisResult> {
-  const { data } = await api.get(demoPath(`/fishing-points/${id}/analysis`));
+  const { data } = await api.get(`/fishing-points/${id}/analysis`);
   return data.data as FishingAnalysisResult;
 }
 
