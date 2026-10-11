@@ -23,7 +23,6 @@ import { getMyInfoApi, updateMeasureReferenceApi } from '../api/authApi';
 import { fetchProvinces } from '../api/fishingPointApi';
 import { uploadImage } from '../api/s3Api';
 import { FISH_SPECIES_BY_GROUP, SPECIES_GROUP_LABELS } from '../api/fishSpecies';
-import { useAuth } from '../context/AuthContext';
 import styles from './FishIdPage.module.css';
 
 /**
@@ -82,11 +81,6 @@ export default function FishIdPage() {
   const [error, setError] = useState<string | null>(null);
 
   // ── ① 한 뼘 ────────────────────────────────────────────────
-  // 체험판(비로그인): DemoRoute 가 통과시켰으면 여기 온 비로그인은 곧 체험판이다.
-  // 한 뼘을 서버에 저장하지 않고 이 화면의 메모리에만 두었다가 판별 요청에 실어 보낸다.
-  // 다음에 다시 오면 다시 입력한다 — 같은 폰을 여러 명이 써도 남의 손 크기가 남지 않는다.
-  const { isLoggedIn } = useAuth();
-  const demo = !isLoggedIn;
   const [handSpanMm, setHandSpanMm] = useState<number | null>(null);
   const [handInput, setHandInput] = useState('');
 
@@ -127,14 +121,6 @@ export default function FishIdPage() {
     let alive = true;
     (async () => {
       try {
-        if (demo) {
-          const provs = await fetchProvinces().catch(() => []);
-          if (!alive) return;
-          setProvinces(provs.map((p) => p.displayName));
-          setQuota(null);
-          setStep('hand');
-          return;
-        }
         const [me, provs, q] = await Promise.all([
           getMyInfoApi(),
           fetchProvinces().catch(() => []),
@@ -159,7 +145,7 @@ export default function FishIdPage() {
     return () => {
       alive = false;
     };
-  }, [demo]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -180,7 +166,7 @@ export default function FishIdPage() {
     setError(null);
     try {
       const mm = Math.round(cm * 10);
-      if (!demo) await updateMeasureReferenceApi(mm);
+      await updateMeasureReferenceApi(mm);
       setHandSpanMm(mm);
       setStep('upload');
     } catch (e: any) {
@@ -234,7 +220,7 @@ export default function FishIdPage() {
       setError(null);
       try {
         const resized = await resizeImage(file);
-        const result = await analyzeFish(resized, region || undefined, handSpanMm ?? undefined);
+        const result = await analyzeFish(resized, region || undefined);
         applyResult(result, URL.createObjectURL(resized), resized);
       } catch (e: any) {
         handleApiError(e, '분석에 실패했어요. 잠시 후 다시 시도해 주세요.');
@@ -242,9 +228,7 @@ export default function FishIdPage() {
         setLoading(false);
       }
     },
-    // handSpanMm 을 빠뜨리면 이 콜백이 첫 렌더의 null 을 붙들고 있어(stale closure) 체험판이
-    // 한 뼘 없이 요청을 보낸다 → 서버 'handSpanMm 없음'. 회원은 서버가 users 표에서 읽어 티가 안 났다.
-    [region, handSpanMm],
+    [region],
   );
 
   const runExample = useCallback(async () => {
@@ -471,13 +455,11 @@ export default function FishIdPage() {
         {step === 'hand' && (
           <section className={styles.card}>
             <span className={styles.badge}>1단계</span>
-            <h1 className={styles.title}>{demo ? '먼저 내 한 뼘을 알려주세요' : '먼저 내 한 뼘을 등록해주세요'}</h1>
+            <h1 className={styles.title}>먼저 내 한 뼘을 등록해주세요</h1>
             <p className={styles.sub}>
               사진 속 물고기 크기를 재는 <b>유일한 기준자</b>입니다. 기준자가 없으면 크기를 잘못 재고,
               그 오차가 금지체장 판정으로 그대로 넘어가기 때문에 등록 전에는 판별을 시작할 수 없어요.
-              {demo
-                ? ' 체험판에서는 저장하지 않아요 — 다음에 오시면 다시 입력합니다.'
-                : ' 한 번만 등록하면 다음부터는 바로 판별로 넘어갑니다.'}
+              한 번만 등록하면 다음부터는 바로 판별로 넘어갑니다.
             </p>
             <img className={styles.guideImg} src="/images/guide/hand_span_guide.png" alt="한 뼘 재는 법" />
             <p className={styles.note}>
@@ -498,10 +480,10 @@ export default function FishIdPage() {
             </div>
             <p className={styles.helper}>보통 어른은 15 ~ 23cm 사이입니다.</p>
             <button className={styles.primaryBtn} onClick={saveHandSpan} disabled={loading}>
-              {demo ? '판별 시작하기' : '등록하고 판별 시작하기'}
+              등록하고 판별 시작하기
             </button>
             <p className={styles.helper}>
-              {demo ? '가입하면 한 번만 등록하고 계속 쓸 수 있어요.' : '마이페이지에서 언제든 다시 고칠 수 있어요.'}
+              마이페이지에서 언제든 다시 고칠 수 있어요.
             </p>
           </section>
         )}
