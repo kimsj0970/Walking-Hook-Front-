@@ -1092,7 +1092,7 @@
   margin-top: 8px;
 }
 
-/* 히어로 칩 안의 작은 스피너 — 딥블루 위라 흰 링. 체험판 카드(흰 배경)에서는 DemoSection.module.css 가 색을 덮는다. */
+/* 히어로 칩 안의 작은 스피너 — 딥블루 위라 흰 링. */
 .chipSpinner {
   width: 13px;
   height: 13px;
