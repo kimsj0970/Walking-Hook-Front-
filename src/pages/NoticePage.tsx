@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Header from '../components/common/Header';
 import PostMeta, { AuthorLabel } from '../components/board/PostMeta';
@@ -24,6 +24,7 @@ function formatDate(iso: string) {
 
 export default function NoticePage() {
   const { isAdmin, isLoggedIn, userId } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
 
   const [view, setView]     = useState<View>('list');
@@ -79,7 +80,7 @@ export default function NoticePage() {
   };
 
   const openDetail = async (id: string) => {
-    // 체험판: 공지 읽기는 로그인 없이. 댓글 쓰기는 각 버튼이 isLoggedIn 으로 막는다.
+    if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setComments([]); setCommentInput(''); setReplyTo(null); setView('detail');
     try {
       const [d, c] = await Promise.all([getNoticeDetail(id), getNoticeComments(id)]);
