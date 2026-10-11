@@ -1,5 +1,4 @@
 import api from './authApi';
-import { demoPath } from './demoApi';
 
 export type ZoneType = 'PROHIBITED' | 'RESTRICTED' | 'FISHERY';
 
@@ -45,7 +44,7 @@ export async function fetchFishingZones(
   bounds?: ZoneBounds,
   signal?: AbortSignal,
 ): Promise<FishingZone[]> {
-  const { data } = await api.get(demoPath('/fishing-zones'), {
+  const { data } = await api.get('/fishing-zones', {
     params: bounds ?? undefined,
     signal,
   });
