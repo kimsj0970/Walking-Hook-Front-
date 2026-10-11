@@ -1,5 +1,4 @@
 import api from './authApi';
-import { demoPath } from './demoApi';
 import type { PageResult } from './noticeApi';
 import type { ReactionKind } from './reactionApi';
 
@@ -47,7 +46,7 @@ export async function getFreePostsPage(
 }
 
 export async function getFreePostDetail(id: string): Promise<FreePostDetail> {
-  const { data } = await api.get(demoPath(`/free-posts/${id}`));
+  const { data } = await api.get(`/free-posts/${id}`);
   return data.data as FreePostDetail;
 }
 
@@ -77,7 +76,7 @@ export interface FreePostComment {
 }
 
 export async function getFreePostComments(postId: string): Promise<FreePostComment[]> {
-  const { data } = await api.get(demoPath(`/free-posts/${postId}/comments`));
+  const { data } = await api.get(`/free-posts/${postId}/comments`);
   return data.data as FreePostComment[];
 }
 
