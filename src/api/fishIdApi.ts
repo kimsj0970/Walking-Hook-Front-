@@ -1,5 +1,4 @@
 import api from './authApi';
-import { demoPath, isDemoMode } from './demoApi';
 
 /**
  * 사진 어종판별 API — 회원 전용, 계정당 하루 3회 (관리자 무제한, 예시 테스트 포함).
@@ -89,10 +88,6 @@ const FISH_ID_MESSAGES: Record<string, string> = {
   FISH_ID_IMAGE_TOO_LARGE: '사진 용량이 너무 커요. 8MB 이하로 줄여서 올려주세요.',
   FISH_ID_DAILY_LIMIT: '오늘의 판별 횟수(3회)를 모두 사용했어요. 내일 다시 이용해 주세요.',
   FISH_ID_EXAMPLE_NOT_READY: '예시 사진이 아직 준비되지 않았어요.',
-  // 체험판(비로그인) 전용 — IP 별 3회(RATE_LIMIT_EXCEEDED)와 하루 전체 상한. 사용자가 할 일은
-  // 둘 다 "가입하기" 로 같아서 화면은 한 카드로 보여준다.
-  RATE_LIMIT_EXCEEDED: '오늘 체험은 여기까지예요. 내일 다시 열려요.',
-  DEMO_DAILY_CAP: '오늘 체험판 분량을 모두 썼어요. 내일 다시 열려요.',
 };
 
 /** 응답을 못 받은 경우 — 서버가 코드를 줄 수 없으니 여기서 이름을 붙인다. */
@@ -122,20 +117,11 @@ export function fishIdErrorMessage(error: unknown, fallback: string): string {
   return e.response.data?.message ?? fallback;
 }
 
-/**
- * @param handSpanMm 체험판(비로그인)에서만 쓴다. 회원은 서버가 users 표의 값을 쓰므로 무시된다.
- *                   체험판은 저장하지 않고 매 요청에 실어 보낸다 — 화면이 매번 입력받는다.
- */
-export async function analyzeFish(
-  image: Blob,
-  region?: string,
-  handSpanMm?: number,
-): Promise<FishIdResponse> {
+export async function analyzeFish(image: Blob, region?: string): Promise<FishIdResponse> {
   const form = new FormData();
   form.append('image', image, 'fish.jpg');
   if (region) form.append('region', region);
-  if (isDemoMode() && handSpanMm != null) form.append('handSpanMm', String(handSpanMm));
-  const { data } = await api.post(demoPath('/fish-id'), form, { timeout: ANALYZE_TIMEOUT_MS });
+  const { data } = await api.post('/fish-id', form, { timeout: ANALYZE_TIMEOUT_MS });
   return data.data;
 }
 
@@ -152,7 +138,7 @@ export async function confirmFish(params: {
   llmMaxCm?: number | null;
   llmReliability?: string;
 }): Promise<FishIdVerdict> {
-  const { data } = await api.post(demoPath('/fish-id/confirm'), params);
+  const { data } = await api.post('/fish-id/confirm', params);
   return data.data;
 }
 
@@ -177,7 +163,7 @@ export async function fetchFishIdQuota(): Promise<FishIdQuota> {
 
 export async function fetchFishIdExample(): Promise<{ imageUrl: string; result: FishIdResponse }> {
   // 예시도 캐시 없이 실제 파이프라인을 그대로 돌므로 판별과 같은 만큼 걸릴 수 있다.
-  const { data } = await api.get(demoPath('/fish-id/example'), { timeout: ANALYZE_TIMEOUT_MS });
+  const { data } = await api.get('/fish-id/example', { timeout: ANALYZE_TIMEOUT_MS });
   return data.data;
 }
 
