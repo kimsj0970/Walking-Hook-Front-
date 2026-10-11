@@ -1,5 +1,4 @@
 import api from './authApi';
-import { demoPath } from './demoApi';
 import type { FishSpecies } from './fishSpecies';
 import type { Province } from './fishingPointApi';
 import type { ReactionKind } from './reactionApi';
@@ -176,7 +175,7 @@ export async function getCatchPostsPage({
 }
 
 export async function getCatchPostDetail(id: string): Promise<CatchPostDetail> {
-  const { data } = await api.get(demoPath(`/catch-posts/${id}`));
+  const { data } = await api.get(`/catch-posts/${id}`);
   return data.data as CatchPostDetail;
 }
 
@@ -237,7 +236,7 @@ export interface CatchPostComment {
 }
 
 export async function getCatchPostComments(postId: string): Promise<CatchPostComment[]> {
-  const { data } = await api.get(demoPath(`/catch-posts/${postId}/comments`));
+  const { data } = await api.get(`/catch-posts/${postId}/comments`);
   return data.data as CatchPostComment[];
 }
 
