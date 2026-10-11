@@ -144,7 +144,7 @@ export default function FreePostPage() {
   };
 
   const openDetail = async (id: string) => {
-    // 체험판: 읽기는 열려 있다(/demo 경로). 쓰기 버튼은 각자 isLoggedIn 으로 막는다.
+    if (!isLoggedIn) { navigate('/login'); return; }
     setDetailLoading(true); setDetail(null); setComments([]); setCommentInput(''); setReplyTo(null); setView('detail');
     try {
       const [d, c] = await Promise.all([getFreePostDetail(id), getFreePostComments(id)]);
