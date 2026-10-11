@@ -253,7 +253,7 @@ export function FreeBoard({ isLoggedIn }: { isLoggedIn: boolean }) {
   }, []);
 
   const openPost = (id: string) => {
-    // 체험판: 읽기는 로그인 없이. 쓰기 버튼은 각자 isLoggedIn 으로 막는다.
+    // 목록에서 글을 누르면 자유게시판의 상세 화면으로 넘긴다(로그인 게이트는 그쪽에서).
     navigate('/free-posts', { state: { openPostId: id } });
   };
 
