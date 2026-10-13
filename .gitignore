@@ -43,3 +43,6 @@ public/wh-trace.html
 
 # 서비스 소개 페이지 소스 전달용 번들 (저장소에 넣지 않음)
 _about-bundle.tgz
+
+# 작업용 임시 보관함 — 삭제 대기 파일만 들어간다. 커밋 대상이 아니다.
+_to_delete/
