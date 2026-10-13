@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import { ABOUT_ITEMS, findAboutItem, type AboutShot } from '../data/about';
+import { useAdContent } from '../components/common/AdContent';
+import { usePageMeta } from '../lib/usePageMeta';
 import styles from './AboutDetailPage.module.css';
 
 /**
@@ -38,6 +40,10 @@ export default function AboutDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const item = slug ? findAboutItem(slug) : undefined;
+
+  // 없는 슬러그면 안내 한 줄만 그린다 — 그 화면에는 광고를 띄우지 않는다.
+  useAdContent(!!item);
+  usePageMeta(item?.title, item?.lead ?? item?.summary);
 
   // 목록에서 들어오면 스크롤이 남아 본문 중간부터 보인다.
   useEffect(() => {
