@@ -1,5 +1,7 @@
 import Header from '../components/common/Header';
 import { youtubeThumbnail, youtubeWatchUrl } from '../lib/youtube';
+import { useAdContent } from '../components/common/AdContent';
+import { usePageMeta } from '../lib/usePageMeta';
 import styles from './TacklePage.module.css';
 
 /**
@@ -115,6 +117,8 @@ const ROWS: Spec[] = [
 ];
 
 export default function TacklePage() {
+  useAdContent(true);
+  usePageMeta('루어 채비', '대상 어종별 루어 채비 — 로드와 릴, 원줄과 쇼크리더, 지그헤드와 웜까지 그림으로 정리했습니다.');
   return (
     <div className={styles.page}>
       <Header />
