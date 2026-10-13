@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import { ChevronRightIcon } from '../components/common/Icons';
 import { ABOUT_ITEMS, type AboutItem } from '../data/about';
+import { usePageMeta } from '../lib/usePageMeta';
 import styles from './AboutListPage.module.css';
 
 /**
@@ -12,6 +13,7 @@ import styles from './AboutListPage.module.css';
  */
 export default function AboutListPage() {
   const navigate = useNavigate();
+  usePageMeta('서비스 소개', '워킹 훅이 제공하는 기능 — 유튜버 포인트 지도, 낚시 금지구역, 사진 어종 판별, 포인트별 AI 조황 분석, 금어기·금지체장, CCTV 미리보기.');
 
   /** slug 가 있으면 상세로, 없으면 그 기능으로 바로 보낸다. */
   const open = (item: AboutItem) => {
