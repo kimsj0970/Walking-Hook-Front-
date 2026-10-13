@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/common/Header';
 import { GUIDES } from '../data/guides';
+import { usePageMeta } from '../lib/usePageMeta';
 import styles from './GuideListPage.module.css';
 
 /**
@@ -10,6 +11,7 @@ import styles from './GuideListPage.module.css';
  */
 export default function GuideListPage() {
   const navigate = useNavigate();
+  usePageMeta('낚시 가이드', '물때, 바람과 파고, 갯바위 안전, 루어 채비, 낚시 관련 법령까지 — 바다낚시를 시작할 때 알아야 할 것들을 근거와 함께 정리했습니다.');
 
   return (
     <div className={styles.page}>
