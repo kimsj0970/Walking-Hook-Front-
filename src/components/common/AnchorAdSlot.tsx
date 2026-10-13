@@ -1,32 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useHasAdContent } from './AdContent';
 import styles from './AnchorAdSlot.module.css';
 
 // 화면 하단에 고정되는 배너. 앱(`app_shell.dart` 의 `AdBannerSlot(anchored: true)`)과
 // 같은 자리·같은 모양이다. 라우트 바깥에서 렌더되므로 화면을 옮겨도 살아남는다.
 //
 // ⚠️ 앱과 결정적으로 다른 점 — AdMob 은 어느 화면에 배너가 떠도 무방하지만,
-//    AdSense 는 "게시자 콘텐츠가 없는 화면에 게재된 광고"를 별도 위반으로 본다.
-//    그래서 여기서는 **본문이 확실히 있는 경로에서만** 렌더한다. 아래 화이트리스트를
-//    늘릴 때는 "로그인 없이 열었을 때도 읽을 글이 있는가"를 기준으로 판단할 것.
-const AD_PATH_ALLOWLIST = [
-  '/guide',
-  '/notices',
-  '/catch-posts',
-  '/free-posts',
-  '/community',
-];
-
-// 명시적으로 제외 — 지도는 텍스트가 없고, 인증/약관 화면은 광고를 붙일 자리가 아니다.
-const AD_PATH_DENYLIST = [
-  '/login',
-  '/oauth',
-  '/map',
-  '/nickname',
-  '/account-deletion',
-  '/admin',
-];
-
+//    AdSense 는 "게시자 콘텐츠가 없는 화면에 게재된 광고"를 위반으로 보고
+//    **사이트 전체**를 반려한다. 2026-10-13 실제로 이 사유로 반려됐다.
+//
+// 예전에는 경로 문자열 allowlist 로 막았는데, 접두사 매칭이라 아래가 다 새어 나갔다.
+//    /catch-posts/123   게시물 상세는 URL 이 없다(같은 주소의 모달) → 백지 + 광고
+//    /free-posts/*, /notices/*, /community/*   위와 동일
+//    /guide/없는슬러그   "존재하지 않는 가이드입니다" 한 줄 + 광고
+// 경로는 "본문이 있을 것 같다"는 추측일 뿐이다. 그래서 판단을 화면에 넘겼다 —
+// 본문을 그린 화면이 useAdContent(true) 로 직접 선언한다(AdContent.tsx).
 const CLIENT = import.meta.env.VITE_ADSENSE_CLIENT as string | undefined;
 const SLOT = import.meta.env.VITE_ADSENSE_SLOT_ANCHOR as string | undefined;
 const enabled = !!CLIENT && !!SLOT;
@@ -42,15 +31,10 @@ function ensureScript() {
   document.head.appendChild(s);
 }
 
-function isAdPath(pathname: string): boolean {
-  if (AD_PATH_DENYLIST.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return false;
-  return AD_PATH_ALLOWLIST.some((p) => pathname === p || pathname.startsWith(`${p}/`));
-}
-
 export default function AnchorAdSlot() {
   const { pathname } = useLocation();
-  const show = enabled && isAdPath(pathname);
-  const insRef = useRef<HTMLModElement | null>(null);
+  const hasContent = useHasAdContent();
+  const show = enabled && hasContent;
   const pushedFor = useRef<string | null>(null);
 
   useEffect(() => {
@@ -77,7 +61,6 @@ export default function AnchorAdSlot() {
       <div className={styles.bar}>
         <ins
           key={pathname}
-          ref={insRef}
           className="adsbygoogle"
           style={{ display: 'block', width: '100%', height: '100%' }}
           data-ad-client={CLIENT}
