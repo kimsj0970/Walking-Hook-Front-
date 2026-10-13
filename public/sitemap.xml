@@ -1,69 +1,209 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 자동 생성: src/data/*.ts 의 슬러그에서 뽑는다. 손으로 고치지 말 것.
+     로그인해야 내용이 보이는 화면(/community, /notices, /catch-posts, /free-posts)은
+     뺀다 — 크롤러에게는 빈 화면이라 "가치가 낮은 콘텐츠" 로 집계될 뿐이다. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://walking-hook-front.vercel.app/</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide/tide</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide/wind-wave</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide/safety</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide/rig-basics</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide/fishing-law</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://walking-hook-front.vercel.app/guide/first-trip</loc>
-    <lastmod>2026-08-29</lastmod>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://walking-hook-front.vercel.app/notices</loc>
+    <loc>https://walking-hook-front.vercel.app/about</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://walking-hook-front.vercel.app/community</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
+    <loc>https://walking-hook-front.vercel.app/about/youtube-points</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://walking-hook-front.vercel.app/terms</loc>
+    <loc>https://walking-hook-front.vercel.app/about/no-fishing-zones</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/about/fish-id</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/about/conditions</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/about/regulations</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/about/cctv</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/about/catch-board</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/regulations</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/ROCKFISHES</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/GREENLINGS</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/FLATFISHES</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/OCTOPUSES</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/SMALL_OCTOPUSES</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/EELS</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/SEA_BREAMS</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/AMBERJACKS</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/CODS</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/FILEFISHES</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/SHADS</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/compare/SKATES</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/tackle</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/open-data</loc>
+    <lastmod>2026-10-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://walking-hook-front.vercel.app/privacy</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://walking-hook-front.vercel.app/privacy</loc>
+    <loc>https://walking-hook-front.vercel.app/terms</loc>
+    <lastmod>2026-10-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
