@@ -1,7 +1,9 @@
 import styles from './PrivacyPage.module.css';
 import Header from '../components/common/Header';
+import { usePageMeta } from '../lib/usePageMeta';
 
 export default function TermsPage() {
+  usePageMeta('이용약관', '워킹 훅 서비스 이용약관 — 서비스 범위, 회원의 의무, 게시물 정책과 책임의 한계를 안내합니다.');
   return (
     <>
       <Header />
