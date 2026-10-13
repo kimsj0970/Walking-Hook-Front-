@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import AdSlot from '../components/common/AdSlot';
+import { useAdContent } from '../components/common/AdContent';
+import { usePageMeta } from '../lib/usePageMeta';
 import { findGuide, GUIDES, type GuideVideo } from '../data/guides';
 import { formatVideoTime, youtubeThumbnail, youtubeWatchUrl } from '../lib/youtube';
 import styles from './GuideDetailPage.module.css';
@@ -49,6 +51,13 @@ export default function GuideDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const guide = findGuide(slug);
+
+  // 하단 고정 배너는 본문이 실제로 있는 화면에서만 뜬다(AdContent.tsx).
+  // 없는 슬러그로 들어오면 아래에서 안내 한 줄만 그리므로 선언하지 않는다 —
+  // 예전에는 경로가 /guide/ 로 시작한다는 이유만으로 광고가 떴고, 그것이
+  // AdSense 반려 사유 중 하나였다.
+  useAdContent(!!guide);
+  usePageMeta(guide?.title, guide?.summary);
 
   // 목록에서 들어오면 스크롤이 남아 있어 본문 중간부터 보인다.
   useEffect(() => {
