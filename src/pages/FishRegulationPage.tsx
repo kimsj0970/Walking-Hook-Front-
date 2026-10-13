@@ -17,6 +17,8 @@ import {
   type FishRegulation,
 } from '../data/fishRegulations';
 import { useFishRegulations } from '../hooks/useFishRegulations';
+import { useAdContent } from '../components/common/AdContent';
+import { usePageMeta } from '../lib/usePageMeta';
 import {
   hasEcology,
   profileOf,
@@ -68,6 +70,8 @@ function summaryOf(reg: FishRegulation): string {
 }
 
 export default function FishRegulationPage() {
+  useAdContent(true);
+  usePageMeta('금어기 · 금지체장', '수산자원관리법과 시·도 조례 기준 어종별 금어기와 금지체장. 지역마다 다른 기준을 함께 확인할 수 있습니다.');
   const [onlyClosed, setOnlyClosed] = useState(false);
   const [openSpecies, setOpenSpecies] = useState<string | null>(null);
   const [region, setRegion] = useState<string>('');
