@@ -84,6 +84,9 @@ const ANALYZE_TIMEOUT_MS = 40_000;
 const FISH_ID_MESSAGES: Record<string, string> = {
   FISH_ID_TIMEOUT: '분석이 오래 걸려 중단했어요. 잠시 후 다시 시도해 주세요.',
   FISH_ID_AI_ERROR: 'AI 분석 서버에 문제가 있어요. 잠시 후 다시 시도해 주세요.',
+  // 서버가 고장난 게 아니라 동시 판별 상한에 걸린 경우다. 'AI 서버 문제'로 뭉치면
+  // 사실과 다른 말을 하게 되고, '너무 자주 눌렀다'로 뭉치면 사용자 탓으로 읽힌다.
+  FISH_ID_BUSY: '지금 판별 요청이 몰려 있어요. 잠시 후 다시 시도해 주세요.',
   FISH_ID_IMAGE_UNREADABLE: '사진을 읽지 못했어요. 다른 사진으로 다시 시도해 주세요.',
   FISH_ID_IMAGE_TOO_LARGE: '사진 용량이 너무 커요. 8MB 이하로 줄여서 올려주세요.',
   FISH_ID_DAILY_LIMIT: '오늘의 판별 횟수(3회)를 모두 사용했어요. 내일 다시 이용해 주세요.',
