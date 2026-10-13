@@ -11,7 +11,6 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { NoticeBoard } from './CommunityPage';
 import LoginModal from '../components/common/LoginModal';
-import AdSlot from '../components/common/AdSlot';
 import { speciesClosedThisMonth } from '../data/fishRegulations';
 import { useFishRegulations } from '../hooks/useFishRegulations';
 import { getCatchPostsPage, type CatchPostListItem } from '../api/catchPostApi';
@@ -1102,7 +1101,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        <AdSlot slot={import.meta.env.VITE_ADSENSE_SLOT_HOME as string | undefined} />
       </main>
 
       <ConditionInfoSheet infoKey={activeInfoKey} current={conditionsResult} onClose={handleInfoClose} />
