@@ -2,6 +2,8 @@ import { Fragment } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Header from '../components/common/Header';
 import { SPECIES_COMPARES, compareOf, type SpeciesCompare } from '../data/speciesCompares';
+import { useAdContent } from '../components/common/AdContent';
+import { usePageMeta } from '../lib/usePageMeta';
 import styles from './SpeciesComparePage.module.css';
 
 /**
@@ -16,6 +18,7 @@ import styles from './SpeciesComparePage.module.css';
  */
 
 export function SpeciesCompareListPage() {
+  usePageMeta('헷갈리는 어종 구별', '볼락과 우럭, 광어와 가자미처럼 닮은 종끼리 규제가 다릅니다. 종을 가르는 결정적 형질과 종별 금지체장을 나란히 놓고 비교합니다.');
   return (
     <div className={styles.page}>
       <Header />
@@ -50,6 +53,9 @@ export function SpeciesCompareListPage() {
 export default function SpeciesComparePage() {
   const { id } = useParams<{ id: string }>();
   const c = id ? compareOf(id) : undefined;
+
+  useAdContent(!!c);
+  usePageMeta(c && `${c.title} 구별법`, c?.decisive);
 
   if (!c) return <SpeciesCompareListPage />;
 
