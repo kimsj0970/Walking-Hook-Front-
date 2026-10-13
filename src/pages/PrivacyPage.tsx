@@ -1,7 +1,9 @@
 import styles from './PrivacyPage.module.css';
+import { usePageMeta } from '../lib/usePageMeta';
 import Header from '../components/common/Header';
 
 export default function PrivacyPage() {
+  usePageMeta('개인정보처리방침', '워킹 훅이 수집하는 개인정보 항목과 이용 목적, 보유 기간, 제3자 제공과 처리 위탁 현황을 안내합니다.');
   return (
     <>
       <Header />
