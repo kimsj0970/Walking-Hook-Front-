@@ -4,15 +4,47 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Walking Hook</title>
+    <title>워킹 훅 — 걸어서 가는 바다낚시 포인트</title>
+    <!-- 화면마다 제목·설명을 바꾸는 것은 usePageMeta.ts 가 한다. 여기 값은 기본값이자,
+         자바스크립트가 돌기 전 크롤러가 먼저 읽는 값이다. -->
+    <meta
+      name="description"
+      content="걸어서 들어가는 바다낚시 포인트, 물때·바람·파고 기반 AI 조황 분석, 사진 한 장으로 어종과 크기 판정, 금어기·금지체장 확인까지. 서해·남해·제주 포인트를 한곳에서."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="워킹 훅" />
+    <meta property="og:title" content="워킹 훅 — 걸어서 가는 바다낚시 포인트" />
+    <meta
+      property="og:description"
+      content="걸어서 들어가는 바다낚시 포인트, 물때·바람·파고 기반 AI 조황 분석, 사진 한 장으로 어종과 크기 판정, 금어기·금지체장 확인까지."
+    />
     <!-- AdSense 사이트 소유권 확인용. 게시자 ID는 ads.txt/광고 요청에도 그대로 노출되는
          공개 식별자라 하드코딩한다. 승인 후에도 지우면 안 된다(재확인 시 필요). -->
     <meta name="google-adsense-account" content="ca-pub-7180633659692093" />
+    <!-- Google Search Console 소유권 확인. 승인 후에도 지우면 안 된다 —
+         구글이 주기적으로 재확인하고, 사라지면 속성이 해제된다. -->
+    <meta name="google-site-verification" content="UbzCznwxTBEiKOD0vSib1sgTkenpfHfL08oEeH9iB6o" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" integrity="sha384-uGEvnSEpW2nM9xJFsrxrwakwrk9QdDTQIBJh0hVMu90OaVyMAMpAK1rIn0/Kh1/k" crossorigin="anonymous" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- 자바스크립트가 꺼져 있거나 아직 안 돌았을 때 보이는 내용. 빈 화면만 남지
+         않도록 최소한의 안내와 링크를 둔다. -->
+    <noscript>
+      <h1>워킹 훅 — 걸어서 가는 바다낚시 포인트</h1>
+      <p>
+        걸어서 들어갈 수 있는 바다낚시 포인트와 물때·바람·파고 기반 조황 분석, 사진 어종 판별,
+        금어기·금지체장 정보를 제공합니다. 이 페이지를 보려면 자바스크립트를 켜 주세요.
+      </p>
+      <ul>
+        <li><a href="/guide">낚시 가이드</a></li>
+        <li><a href="/about">서비스 소개</a></li>
+        <li><a href="/regulations">금어기 · 금지체장</a></li>
+        <li><a href="/compare">헷갈리는 어종 구별</a></li>
+        <li><a href="/tackle">루어 채비</a></li>
+      </ul>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
