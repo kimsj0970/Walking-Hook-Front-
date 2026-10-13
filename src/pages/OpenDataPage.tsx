@@ -1,4 +1,5 @@
 import styles from './PrivacyPage.module.css';
+import { usePageMeta } from '../lib/usePageMeta';
 
 /**
  * 공공데이터 출처 고지.
@@ -40,6 +41,7 @@ const SOURCES = [
 ];
 
 export default function OpenDataPage() {
+  usePageMeta('데이터 출처', '워킹 훅이 사용하는 공공데이터 출처 — 기상청, 국립해양조사원, 국립수산과학원, 한국천문연구원 등의 제공 기관과 이용 조건.');
   return (
     <div className={styles.container}>
       <div className={styles.content}>
