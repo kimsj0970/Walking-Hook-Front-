@@ -56,6 +56,7 @@ export default function AdminNoticeManagement() {
   };
 
   const fmt = (s: string) => new Date(s).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const fmtDT = (s: string) => new Date(s).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 
   return (
     <div className={styles.page}>
@@ -103,7 +104,7 @@ export default function AdminNoticeManagement() {
               <div className={styles.detailMeta}>
                 <span>{detail.authorNickname}</span>
                 <span className={styles.dot}>·</span>
-                <span>{fmt(detail.createdAt)}</span>
+                <span>{fmtDT(detail.createdAt)}</span>
                 {detail.updatedAt && <span className={styles.updated}>(수정됨: {fmt(detail.updatedAt)})</span>}
               </div>
               <div className={styles.divider} />
