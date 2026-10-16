@@ -1199,7 +1199,7 @@ export default function CatchPostPage() {
                       </>
                     ) : null}
                     <span className={styles.metaDot}>·</span>
-                    <span>작성 날짜: {formatDate(detail.createdAt)}</span>
+                    <span>작성 날짜: {formatDateTime(detail.createdAt)}</span>
                   </div>
 
                   <span className={styles.speciesBadge}>잡은 어종 {detail.species.map(sp => sp.name).join('·')}</span>
@@ -1268,7 +1268,7 @@ export default function CatchPostPage() {
                           <div className={styles.commentHeader}>
                             <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
                             <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                            <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
+                            <span className={styles.commentDate}>{formatDateTime(c.createdAt)}</span>
                             <div className={styles.commentActions}>
                               {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>}
                               {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: c.id, content: c.content })}>신고</button>}
@@ -1294,7 +1294,7 @@ export default function CatchPostPage() {
                                 <span className={styles.replyArrow}>↳</span>
                                 <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
                                 <span className={styles.commentAuthor}>{r.authorNickname}</span>
-                                <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                                <span className={styles.commentDate}>{formatDateTime(r.createdAt)}</span>
                                 <div className={styles.commentActions}>
                                   {isLoggedIn && <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>}
                                   {isLoggedIn && <button className={styles.reportCommentBtn} onClick={() => setCommentReportTarget({ id: r.id, content: r.content })}>신고</button>}
