@@ -174,6 +174,11 @@ export default function InquiryPage() {
       day: '2-digit',
     });
 
+  const formatDateTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return `${formatDate(dateStr)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
   const getDescendants = (parentId: string): InquiryComment[] => {
     const children = comments.filter(c => c.parentId === parentId);
     return children.flatMap(child => [child, ...getDescendants(child.id)]);
@@ -293,7 +298,7 @@ export default function InquiryPage() {
                     </>
                   )}
                   <span className={styles.dot}>·</span>
-                  <span>{formatDate(detail.createdAt)}</span>
+                  <span>{formatDateTime(detail.createdAt)}</span>
                 </div>
                 <div className={styles.divider} />
                 <p className={styles.detailContent}>{detail.content}</p>
@@ -327,7 +332,7 @@ export default function InquiryPage() {
                     <div key={c.id} className={styles.comment}>
                       <div className={styles.commentHeader}>
                         <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                        <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
+                        <span className={styles.commentDate}>{formatDateTime(c.createdAt)}</span>
                         <div className={styles.commentActions}>
                           <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
                           {(isAdmin || c.authorId === userId) && (
@@ -342,7 +347,7 @@ export default function InquiryPage() {
                           <div className={styles.commentHeader}>
                             <span className={styles.replyArrow}>↳</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
-                            <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                            <span className={styles.commentDate}>{formatDateTime(r.createdAt)}</span>
                             <div className={styles.commentActions}>
                               <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
                               {(isAdmin || r.authorId === userId) && (
