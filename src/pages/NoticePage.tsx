@@ -22,6 +22,11 @@ function formatDate(iso: string) {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function formatDateTime(iso: string) {
+  const d = new Date(iso);
+  return `${formatDate(iso)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 export default function NoticePage() {
   const { isAdmin, isLoggedIn, userId } = useAuth();
   const navigate = useNavigate();
@@ -213,11 +218,11 @@ export default function NoticePage() {
                       <AuthorLabel nickname={detail.authorNickname} official />
                     </span>
                     <span className={styles.metaDot}>·</span>
-                    <span>{formatDate(detail.createdAt)}</span>
+                    <span>{formatDateTime(detail.createdAt)}</span>
                     {detail.updatedAt && detail.updatedAt !== detail.createdAt && (
                       <>
                         <span className={styles.metaDot}>·</span>
-                        <span>수정됨 {formatDate(detail.updatedAt)}</span>
+                        <span>수정됨 {formatDateTime(detail.updatedAt)}</span>
                       </>
                     )}
                   </div>
@@ -243,7 +248,7 @@ export default function NoticePage() {
                       <div className={styles.commentHeader}>
                         <span className={styles.commentAvatar}>{c.authorNickname.charAt(0)}</span>
                         <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                        <span className={styles.commentDate}>{formatDate(c.createdAt)}</span>
+                        <span className={styles.commentDate}>{formatDateTime(c.createdAt)}</span>
                         <div className={styles.commentActions}>
                           {isLoggedIn && (
                             <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
@@ -261,7 +266,7 @@ export default function NoticePage() {
                             <span className={styles.replyArrow}>↳</span>
                             <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
-                            <span className={styles.commentDate}>{formatDate(r.createdAt)}</span>
+                            <span className={styles.commentDate}>{formatDateTime(r.createdAt)}</span>
                             {(isAdmin || r.authorId === userId) && (
                               <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
                             )}
