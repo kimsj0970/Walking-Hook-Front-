@@ -70,6 +70,7 @@ export default function AdminInquiryManagement() {
   };
 
   const fmt = (s: string) => new Date(s).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  const fmtDT = (s: string) => new Date(s).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 
   const topComments = comments.filter(c => !c.parentId);
   const repliesOf   = (id: string) => comments.filter(c => c.parentId === id);
@@ -118,7 +119,7 @@ export default function AdminInquiryManagement() {
                 <span>{detail.authorNickname}</span>
                 {isAdmin && detail.authorRealName && <span className={styles.realName}>실명: {detail.authorRealName}</span>}
                 <span className={styles.dot}>·</span>
-                <span>{fmt(detail.createdAt)}</span>
+                <span>{fmtDT(detail.createdAt)}</span>
               </div>
               <div className={styles.divider} />
               <p className={styles.detailContent}>{detail.content}</p>
@@ -136,7 +137,7 @@ export default function AdminInquiryManagement() {
                   <div key={c.id} className={styles.comment}>
                     <div className={styles.commentHeader}>
                       <span className={styles.commentAuthor}>{c.authorNickname}</span>
-                      <span className={styles.commentDate}>{fmt(c.createdAt)}</span>
+                      <span className={styles.commentDate}>{fmtDT(c.createdAt)}</span>
                       <div className={styles.commentActions}>
                         <button className={styles.replyBtn} onClick={() => setReplyTo({ id: c.id, nickname: c.authorNickname })}>답글</button>
                         <button className={styles.delBtn} onClick={() => handleDeleteComment(c.id)}>삭제</button>
@@ -149,7 +150,7 @@ export default function AdminInquiryManagement() {
                         <div className={styles.commentHeader}>
                           <span className={styles.replyArrow}>↳</span>
                           <span className={styles.commentAuthor}>{r.authorNickname}</span>
-                          <span className={styles.commentDate}>{fmt(r.createdAt)}</span>
+                          <span className={styles.commentDate}>{fmtDT(r.createdAt)}</span>
                           <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
                         </div>
                         <p className={styles.commentContent}>{r.content}</p>
