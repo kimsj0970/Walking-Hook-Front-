@@ -11,6 +11,7 @@ import {
   getNoticeComments, addNoticeComment, deleteNoticeComment,
   type NoticeListItem, type NoticeDetail, type NoticeComment,
 } from '../api/noticeApi';
+import { descendantsOf, replyMentionOf } from '../lib/commentThread';
 import styles from './NoticePage.module.css';
 
 type View = 'list' | 'detail';
@@ -260,18 +261,23 @@ export default function NoticePage() {
                       </div>
                       <p className={styles.commentContent}>{c.content}</p>
 
-                      {comments.filter(r => r.parentId === c.id).map(r => (
+                      {descendantsOf(comments, c.id).map(r => (
                         <div key={r.id} className={styles.reply}>
                           <div className={styles.commentHeader}>
                             <span className={styles.replyArrow}>↳</span>
                             <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
                             <span className={styles.commentDate}>{formatDateTime(r.createdAt)}</span>
-                            {(isAdmin || r.authorId === userId) && (
-                              <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
-                            )}
+                            <div className={styles.commentActions}>
+                              {isLoggedIn && (
+                                <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
+                              )}
+                              {(isAdmin || r.authorId === userId) && (
+                                <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                              )}
+                            </div>
                           </div>
-                          <p className={styles.commentContent}>{r.content}</p>
+                          <p className={styles.commentContent}>{(() => { const m = replyMentionOf(comments, r, c.id); return m && <span className={styles.mention}>@{m} </span>; })()}{r.content}</p>
                         </div>
                       ))}
                     </div>
