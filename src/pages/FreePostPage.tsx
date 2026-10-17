@@ -16,6 +16,7 @@ import {
   getFreePostComments, addFreePostComment, deleteFreePostComment,
   type FreePostListItem, type FreePostDetail, type FreePostComment,
 } from '../api/freePostApi';
+import { descendantsOf, replyMentionOf } from '../lib/commentThread';
 import styles from './FreePostPage.module.css';
 
 type View = 'list' | 'detail';
@@ -404,7 +405,7 @@ export default function FreePostPage() {
                   <h4 className={styles.commentTitle}>댓글 <span className={styles.commentCountNum}>{comments.filter(c => !c.deleted).length}</span></h4>
 
                   {comments.filter(c => !c.parentId).map(c => {
-                    const replies = comments.filter(r => r.parentId === c.id && !r.deleted);
+                    const replies = descendantsOf(comments, c.id).filter(r => !r.deleted);
                     // 삭제된 원댓글은 남은 답글이 있을 때만 자리표시자로 유지한다.
                     if (c.deleted && replies.length === 0) return null;
                     return (
@@ -449,23 +450,28 @@ export default function FreePostPage() {
                             <span className={styles.commentAvatar}>{r.authorNickname.charAt(0)}</span>
                             <span className={styles.commentAuthor}>{r.authorNickname}</span>
                             <span className={styles.commentDate}>{formatDateTime(r.createdAt)}</span>
-                            {(canModerate || r.authorId === userId) && (
-                              <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
-                            )}
-                            {isLoggedIn && r.authorId !== userId && (
-                              <>
-                                <button
-                                  className={styles.reportCommentBtn}
-                                  onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: r.id, postTitle: r.content.slice(0, 30), parentPostId: detail.id })}
-                                >신고</button>
-                                <button
-                                  className={styles.reportCommentBtn}
-                                  onClick={() => handleBlockUser(r.authorId, r.authorNickname, false)}
-                                >차단</button>
-                              </>
-                            )}
+                            <div className={styles.commentActions}>
+                              {isLoggedIn && (
+                                <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
+                              )}
+                              {(canModerate || r.authorId === userId) && (
+                                <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                              )}
+                              {isLoggedIn && r.authorId !== userId && (
+                                <>
+                                  <button
+                                    className={styles.reportCommentBtn}
+                                    onClick={() => setReportTarget({ postType: 'FREE_COMMENT', postId: r.id, postTitle: r.content.slice(0, 30), parentPostId: detail.id })}
+                                  >신고</button>
+                                  <button
+                                    className={styles.reportCommentBtn}
+                                    onClick={() => handleBlockUser(r.authorId, r.authorNickname, false)}
+                                  >차단</button>
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <p className={styles.commentContent}>{r.content}</p>
+                          <p className={styles.commentContent}>{(() => { const m = replyMentionOf(comments, r, c.id); return m && <span className={styles.mention}>@{m} </span>; })()}{r.content}</p>
                         </div>
                       ))}
                     </div>
