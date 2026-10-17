@@ -31,6 +31,7 @@ import { blockUser } from '../api/blockApi';
 import ReportModal from '../components/common/ReportModal';
 import MonthYearPicker from '../components/common/MonthYearPicker';
 import ReactionBar from '../components/common/ReactionBar';
+import { replyMentionOf } from '../lib/commentThread';
 import styles from './CatchPostPage.module.css';
 
 type View = 'list' | 'detail';
@@ -1306,7 +1307,7 @@ export default function CatchPostPage() {
                                   )}
                                 </div>
                               </div>
-                              <p className={styles.commentContent}>{r.content}</p>
+                              <p className={styles.commentContent}>{(() => { const m = replyMentionOf(comments, r, c.id); return m && <span className={styles.mention}>@{m} </span>; })()}{r.content}</p>
                             </>
                           )}
                         </div>
