@@ -20,6 +20,7 @@ import {
   type InquiryDetail,
   type InquiryComment,
 } from '../api/inquiryApi';
+import { replyMentionOf } from '../lib/commentThread';
 import styles from './InquiryPage.module.css';
 
 // 1:1 문의는 작성자와 운영진만 본다. 공개 게시판용 기본 문구
@@ -355,7 +356,7 @@ export default function InquiryPage() {
                               )}
                             </div>
                           </div>
-                          <p className={styles.commentContent}>{r.content}</p>
+                          <p className={styles.commentContent}>{(() => { const m = replyMentionOf(comments, r, c.id); return m && <span className={styles.mention}>@{m} </span>; })()}{r.content}</p>
                         </div>
                       ))}
                     </div>
