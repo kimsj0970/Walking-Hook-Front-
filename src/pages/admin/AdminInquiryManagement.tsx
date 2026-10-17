@@ -5,6 +5,7 @@ import {
   getInquiryComments, addInquiryComment, deleteInquiryComment,
   type AdminInquiryListItem, type InquiryDetail, type InquiryComment,
 } from '../../api/inquiryApi';
+import { descendantsOf, replyMentionOf } from '../../lib/commentThread';
 import styles from './AdminInquiryManagement.module.css';
 
 type View = 'list' | 'detail';
@@ -73,7 +74,7 @@ export default function AdminInquiryManagement() {
   const fmtDT = (s: string) => new Date(s).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
 
   const topComments = comments.filter(c => !c.parentId);
-  const repliesOf   = (id: string) => comments.filter(c => c.parentId === id);
+  const repliesOf   = (id: string) => descendantsOf(comments, id);
 
   return (
     <div className={styles.page}>
@@ -151,9 +152,12 @@ export default function AdminInquiryManagement() {
                           <span className={styles.replyArrow}>↳</span>
                           <span className={styles.commentAuthor}>{r.authorNickname}</span>
                           <span className={styles.commentDate}>{fmtDT(r.createdAt)}</span>
-                          <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                          <div className={styles.commentActions}>
+                            <button className={styles.replyBtn} onClick={() => setReplyTo({ id: r.id, nickname: r.authorNickname })}>답글</button>
+                            <button className={styles.delBtn} onClick={() => handleDeleteComment(r.id)}>삭제</button>
+                          </div>
                         </div>
-                        <p className={styles.commentContent}>{r.content}</p>
+                        <p className={styles.commentContent}>{(() => { const m = replyMentionOf(comments, r, c.id); return m && <span className={styles.mention}>@{m} </span>; })()}{r.content}</p>
                       </div>
                     ))}
                   </div>
