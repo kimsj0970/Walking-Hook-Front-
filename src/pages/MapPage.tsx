@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPublicFishingPointsForMap, type FishingPointMapMarker } from '../api/fishingPointApi';
 import MapTypeControl from '../components/map/MapTypeControl';
+import MyLocationControl from '../components/map/MyLocationControl';
 import styles from './MapPage.module.css';
 
 function loadKakaoSDK(appKey: string): Promise<void> {
@@ -167,6 +168,7 @@ export default function MapPage() {
       <div className={styles.mapWrapper}>
         <div ref={mapRef} className={styles.map} />
         <MapTypeControl map={mapForControl} />
+        <MyLocationControl map={mapForControl} />
       </div>
     </div>
   );
