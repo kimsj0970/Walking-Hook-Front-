@@ -242,6 +242,8 @@ export default function MyPage() {
 
         <BlockedUsersCard />
 
+        <LocationPermissionCard />
+
         {/* 메뉴 */}
         <div className={styles.menuSection}>
           <button className={styles.logoutBtn} onClick={handleLogout}>
@@ -367,6 +369,86 @@ function BlockedUsersCard() {
           </div>
         ))
       )}
+    </div>
+  );
+}
+
+type GeoState = 'granted' | 'prompt' | 'denied' | 'unknown';
+
+const GEO_LABEL: Record<GeoState, string> = {
+  granted: '켜짐',
+  prompt: '꺼짐',
+  denied: '차단됨',
+  unknown: '브라우저에서 확인',
+};
+
+/**
+ * 지도 "현위치 보기"용 브라우저 위치 권한 — 앱 마이페이지의 위치 토글과 같은 역할.
+ *
+ * 웹페이지는 권한을 끄거나, 한 번 차단된 권한을 다시 묻게 할 수 없다(브라우저 정책).
+ * 그래서 켜기는 "아직 안 물어본 상태"에서만 브라우저 권한 창을 띄우고, 끄기·차단 해제는
+ * 주소창 자물쇠 경로를 안내한다. 브라우저 설정에서 바꾸면 onchange 로 바로 반영된다.
+ * 여기서 받은 좌표는 쓰지 않고 버린다 — 권한 창을 띄우기 위한 호출일 뿐이다.
+ */
+function LocationPermissionCard() {
+  const [state, setState] = useState<GeoState>('unknown');
+  const [showGuide, setShowGuide] = useState(false);
+  const [asking, setAsking] = useState(false);
+
+  useEffect(() => {
+    let status: PermissionStatus | null = null;
+    const update = () => status && setState(status.state as GeoState);
+    navigator.permissions
+      ?.query({ name: 'geolocation' as PermissionName })
+      .then((s) => {
+        status = s;
+        update();
+        s.addEventListener('change', update);
+      })
+      .catch(() => setState('unknown'));
+    return () => status?.removeEventListener('change', update);
+  }, []);
+
+  const ask = () => {
+    if (!('geolocation' in navigator)) return;
+    setAsking(true);
+    navigator.geolocation.getCurrentPosition(
+      () => { setAsking(false); setState('granted'); },
+      (err) => {
+        setAsking(false);
+        if (err.code === err.PERMISSION_DENIED) setShowGuide(true);
+      },
+      { maximumAge: Infinity, timeout: 15000 },
+    );
+  };
+
+  const canAsk = state === 'prompt' || state === 'unknown';
+
+  return (
+    <div className={styles.infoCard}>
+      <p className={styles.infoCardTitle}>위치</p>
+      <div className={styles.infoRow}>
+        <span className={styles.infoLabel}>지도 현위치 보기</span>
+        <span className={styles.spanValueRow}>
+          <span className={styles.infoValue}>{GEO_LABEL[state]}</span>
+          {canAsk ? (
+            <button type="button" className={styles.spanEditBtn} onClick={ask} disabled={asking}>
+              {asking ? '확인 중…' : '켜기'}
+            </button>
+          ) : (
+            <button type="button" className={styles.spanEditBtn} onClick={() => setShowGuide((v) => !v)}>
+              {state === 'granted' ? '끄는 방법' : '켜는 방법'}
+            </button>
+          )}
+        </span>
+      </div>
+      {(showGuide || state === 'denied') && (
+        <p className={styles.spanNote}>
+          브라우저 주소창 왼쪽 자물쇠 아이콘을 누른 뒤 위치를 {state === 'granted' ? "'차단'" : "'허용'"}으로 바꿔 주세요.
+          휴대폰에서는 브라우저 메뉴의 사이트 설정에서도 바꿀 수 있습니다.
+        </p>
+      )}
+      <p className={styles.blockedEmpty}>위치는 이 기기 안에서 지도 표시에만 쓰이며, 서버로 보내거나 저장하지 않습니다.</p>
     </div>
   );
 }
