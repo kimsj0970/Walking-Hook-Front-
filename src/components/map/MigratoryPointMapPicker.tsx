@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import MapTypeControl from './MapTypeControl';
+import MyLocationControl from './MyLocationControl';
 import type { MigratoryFishPointMapMarker } from '../../api/migratoryFishPointApi';
 import styles from './MigratoryPointMapPicker.module.css';
 
@@ -168,6 +169,7 @@ export default function MigratoryPointMapPicker({
         <div className={styles.mapPickerMap}>
           <div ref={mapRef} className={styles.mapPickerMapCanvas} />
           <MapTypeControl map={mapForControl} />
+          <MyLocationControl map={mapForControl} />
         </div>
       </div>
     </div>
