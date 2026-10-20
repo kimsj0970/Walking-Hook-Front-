@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchCctvList, type CctvMarker } from '../api/cctvApi';
 import MapTypeControl from '../components/map/MapTypeControl';
+import MyLocationControl from '../components/map/MyLocationControl';
 import ImageLightbox from '../components/common/ImageLightbox';
 import styles from './MapPage.module.css';
 
@@ -182,6 +183,7 @@ export default function CctvMapPage() {
       <div className={styles.mapWrapper}>
         <div ref={mapRef} className={styles.map} />
         <MapTypeControl map={mapForControl} />
+        <MyLocationControl map={mapForControl} />
       </div>
 
       {lightboxUrl && (
