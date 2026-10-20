@@ -26,6 +26,7 @@ import {
   type MigratoryPointChannelList,
 } from '../api/migratoryFishPointApi';
 import MapTypeControl from '../components/map/MapTypeControl';
+import MyLocationControl from '../components/map/MyLocationControl';
 import { HourlyForecastStrip, DailyForecastCard } from '../components/home/ForecastBlocks';
 import PointVideoListModal from '../components/map/PointVideoListModal';
 import ChannelFilterPanel from '../components/map/ChannelFilterPanel';
@@ -1865,6 +1866,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
 
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
           <MapTypeControl map={mapForControl} />
+          <MyLocationControl map={mapForControl} />
         </div>
 
         {/* 안내 문구 */}
@@ -2393,6 +2395,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
 
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
           <MapTypeControl map={mapForControl} />
+          <MyLocationControl map={mapForControl} />
         </div>
 
         {/* 안내 문구 */}
