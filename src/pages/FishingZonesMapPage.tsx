@@ -8,6 +8,7 @@ import {
   type ZoneBounds,
 } from '../api/fishingZoneApi';
 import MapTypeControl from '../components/map/MapTypeControl';
+import MyLocationControl from '../components/map/MyLocationControl';
 import styles from './MapPage.module.css';
 
 /**
@@ -384,6 +385,7 @@ export default function FishingZonesMapPage() {
       <div className={styles.mapWrapper}>
         <div ref={mapRef} className={styles.map} />
         <MapTypeControl map={mapForControl} />
+        <MyLocationControl map={mapForControl} />
         {status === 'ready' && fetching && (
           <div
             style={{
