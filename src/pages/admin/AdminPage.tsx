@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/common/Header';
 import PointManagementPage from './PointManagementPage';
 import UserManagementPage from './UserManagementPage';
+import UserStatsPage from './UserStatsPage';
 import DocumentManagementPage from './DocumentManagementPage';
 import AdminMapPage from './AdminMapPage';
 import AiChatPage from './AiChatPage';
@@ -15,7 +16,7 @@ import AdminReportPage from './AdminReportPage';
 import AdminDeletedContentPage from './AdminDeletedContentPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'migratory-points' | 'users' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai' | 'reports' | 'deleted-contents';
+type AdminTab = 'points' | 'migratory-points' | 'users' | 'user-stats' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai' | 'reports' | 'deleted-contents';
 
 const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
   { tab: 'points',           label: 'AI 분석 포인트',     adminOnly: false },
@@ -23,6 +24,7 @@ const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
   { tab: 'fishing-zones',    label: '낚시 금지구역 추가',  adminOnly: false },
   { tab: 'documents',        label: 'RAG 문서 관리',      adminOnly: true  },
   { tab: 'users',            label: '사용자 관리',        adminOnly: false },
+  { tab: 'user-stats',       label: '사용자 통계',        adminOnly: true  },
   { tab: 'inquiries',        label: '고객센터 관리',      adminOnly: false },
   { tab: 'notices',          label: '공지사항 관리',      adminOnly: false },
   { tab: 'reports',          label: '신고 관리',          adminOnly: false },
@@ -84,6 +86,7 @@ export default function AdminPage() {
           {activeTab === 'fishing-zones'    && <FishingZoneManagementPage />}
           {activeTab === 'documents'        && <DocumentManagementPage />}
           {activeTab === 'users'            && <UserManagementPage />}
+          {activeTab === 'user-stats'       && <UserStatsPage />}
           {activeTab === 'inquiries'        && <AdminInquiryManagement />}
           {activeTab === 'notices'          && <AdminNoticeManagement />}
           {activeTab === 'reports'          && <AdminReportPage />}
