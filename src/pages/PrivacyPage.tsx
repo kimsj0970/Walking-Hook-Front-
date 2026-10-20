@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <main className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>개인정보처리방침</h1>
-          <p className={styles.updated}>시행일: 2026년 8월 6일 (개정일: 2026년 7월 30일)</p>
+          <p className={styles.updated}>시행일: 2026년 10월 26일 (개정일: 2026년 10월 19일)</p>
 
           <p className={styles.intro}>
             Walking Hook(이하 "서비스")은 이용자의 개인정보를 소중히 여기며, 「개인정보 보호법」을 준수합니다.
@@ -257,7 +257,25 @@ export default function PrivacyPage() {
           </section>
 
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>12. 방침 변경 안내</h2>
+            <h2 className={styles.sectionTitle}>12. 위치정보의 처리</h2>
+            <p>
+              서비스는 이용자가 지도 화면에서 '현위치 보기' 기능을 사용하는 경우에 한해, 기기 또는 브라우저의
+              위치 권한을 통해 현재 위치를 확인합니다.
+            </p>
+            <ul className={styles.list}>
+              <li>확인한 위치는 이용자의 기기 안에서 지도에 현재 위치를 표시하는 용도로만 사용하며, 서비스의 서버로 전송하거나 저장하지 않습니다. 위치 이력도 기록하지 않습니다.</li>
+              <li>위치 권한은 기능을 처음 사용할 때 기기 또는 브라우저가 요청하며, 허용하지 않아도 '현위치 보기'를 제외한 서비스는 모두 이용할 수 있습니다.</li>
+              <li>위치 권한은 언제든지 해제할 수 있습니다.
+                <ul className={styles.subList}>
+                  <li>앱: 휴대폰 설정 → 애플리케이션 → 워킹훅 → 권한 → 위치</li>
+                  <li>웹: 브라우저 주소창 왼쪽 자물쇠 아이콘 → 위치 → 차단</li>
+                </ul>
+              </li>
+            </ul>
+          </section>
+
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>13. 방침 변경 안내</h2>
             <p>본 개인정보처리방침이 변경될 경우 변경 사항을 서비스 내 공지사항을 통해 사전 안내합니다.</p>
           </section>
         </div>
