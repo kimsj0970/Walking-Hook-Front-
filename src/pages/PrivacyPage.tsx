@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       <main className={styles.container}>
         <div className={styles.content}>
           <h1 className={styles.title}>개인정보처리방침</h1>
-          <p className={styles.updated}>시행일: 2026년 10월 26일 (개정일: 2026년 10월 19일)</p>
+          <p className={styles.updated}>시행일: 2026년 10월 20일 (개정일: 2026년 10월 19일)</p>
 
           <p className={styles.intro}>
             Walking Hook(이하 "서비스")은 이용자의 개인정보를 소중히 여기며, 「개인정보 보호법」을 준수합니다.
