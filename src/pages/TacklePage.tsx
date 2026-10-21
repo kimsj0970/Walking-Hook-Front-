@@ -59,7 +59,6 @@ export default function TacklePage() {
 
   // 'loading' → 'ok' | 'error'. 실패를 "등록된 채비가 없어요"로 뭉개면 원인을 못 찾는다(10/21).
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
-  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -71,7 +70,8 @@ export default function TacklePage() {
         if (alive) setStatus('error');
       });
     return () => { alive = false; };
-  }, [reloadKey]);
+    // 마운트 때 한 번만 부른다. 재시도 버튼을 두지 않는 이유는 아래 error 분기 주석 참고.
+  }, []);
 
   // 관리자에서 활성으로 등록한 건 방식과 상관없이 보인다. 해역은 고른 해역 + 공통(null).
   // 서해 칸은 남해 전용(SOUTH) 제품도 받는다. null·누락(undefined) 모두 공통으로 본다.
@@ -125,9 +125,11 @@ export default function TacklePage() {
         {status === 'loading' ? (
           <p className={styles.empty}>불러오는 중…</p>
         ) : status === 'error' ? (
+          /* 재시도 버튼을 두지 않는다 — 실패가 401(공개 설정이 아직 운영에 안 올라간
+             상태)이면 같은 요청을 몇 번 보내도 결과가 같아서, 누를수록 고장 난 것처럼
+             보인다. 라우트를 다시 열면 컴포넌트가 마운트되며 자동으로 다시 부른다. */
           <div className={styles.empty}>
-            <p>채비 목록을 불러오지 못했어요.</p>
-            <button type="button" className={styles.retry} onClick={() => setReloadKey((k) => k + 1)}>다시 시도</button>
+            <p>채비 목록을 불러오지 못했어요.<br />잠시 후 다시 들어와 주세요.</p>
           </div>
         ) : visible.length === 0 ? (
           <div className={styles.empty}>
