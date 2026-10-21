@@ -1,34 +1,26 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/common/Header';
+import TackleThumb from '../components/tackle/TackleThumb';
 import { youtubeThumbnail, youtubeWatchUrl } from '../lib/youtube';
 import { useAdContent } from '../components/common/AdContent';
 import { usePageMeta } from '../lib/usePageMeta';
+import {
+  fetchTackleProducts, seaLabel, SPEC_LABELS, SPEC_ORDER, TIER_LABELS,
+  type SpecKey, type TackleProduct, type Tier,
+} from '../api/tackleApi';
 import styles from './TacklePage.module.css';
 
 /**
- * "루어 채비" — 처음 한 벌을 고르는 기준.
+ * "루어 채비" — 처음 한 벌을 고르는 기준. (2026-10-21 화면 개편)
  *
- * 앱 `features/tackle/tackle_page.dart` 와 같은 값·같은 그림을 쓴다.
+ * 기획 화면안(Artifact "루어 채비 제휴 링크 화면 기획")대로 다시 짰다. 앱 tackle_page.dart 와 같은 구성이다.
+ * 위에서 **해역 · 가격대**를 고르면 관리자에서 그 조건으로 등록한 제품만 항목별 카드로 보인다.
+ * **코드에 박아 둔 규격 값·설명은 없다**(10/21 승호님 지시) — 등록된 게 없으면 "아직 등록된 채비가 없어요" 한 줄만 뜬다.
+ * 예전의 항목별 그림·"합사만 쓰지 않는 이유"는 빼고, 전체 흐름은 "한눈에 보는 채비" 그림 한 장이 맡는다.
+ * 매듭은 영상 카드로 남긴다.
  *
- * 대상은 방파제·갯바위에서 걸어 들어가는 낚시다. 선상 채비는 무게가 10~50배
- * 달라 한 화면에 섞으면 둘 중 하나는 반드시 틀린 값이 되므로 넣지 않는다.
- * 루어 무게도, 노리는 어종 목록도 일부러 넣지 않았다 — 물때·수심·바람·계절에
- * 따라 달라져 숫자나 목록을 박아 두면 그대로 틀린 안내가 된다.
- *
- * ## 서해/동해 토글을 없앤 이유
- *
- * 예전에는 해역 토글로 화면을 통째로 갈아 끼웠다. 그런데 **그림은 하나뿐이라**
- * 동해를 골라도 로드 그림에는 `862 → 8'6" = 2.59 m · 2피스` 가 박혀 있었다.
- * 그림이 특정 모델을 말하는 순간 다른 해역에서는 반드시 틀린 안내가 된다.
- *
- * 그래서 **그림은 해역을 말하지 않는다.** 로드 그림은 표기 읽는 법과 길이 비교만,
- * 릴 그림은 부위 이름과 번호별 크기 차이만 말한다. 해역별 숫자는 글로 옮겨
- * 항목마다 서해·동해를 나란히 보여 준다. 덤으로 왜 다른지가 같이 읽히고,
- * 사용자가 "지금 어느 쪽을 보고 있는지" 를 신경 쓸 필요도 없어졌다.
- *
- * 그림은 `public/tackle/*.svg` 다(합사만 `line.png` — 실제 로프 그림이라 벡터로는
- * 못 그린다). 앱은 같은 그림을 PNG 로 쓴다(flutter_svg 는
- * 글자 렌더링이 보장되지 않아서). 폭 360 기준으로 그려 라벨이 그대로 읽힌다.
- * 매듭만 그림이 없다 — 손 순서가 전부라 정지 그림으로는 따라 하지 못한다.
+ * 해역은 `서해 · 남해` / `동해` 두 칸 — 남해는 서해와 같은 값으로 묶는다(10/21 결정).
  */
 
 /** 매듭 영상 — 프로젝트에 이미 등록된 것과 같은 영상. 썸네일은 복제하지 않는다. */
@@ -45,80 +37,61 @@ const KNOT_WHY =
   + '묶기 전에 물이나 침으로 적시고(마찰열이 강도를 떨어뜨립니다), '
   + '5~10초에 걸쳐 천천히 조인 뒤 여분은 2~3mm 남깁니다.';
 
-interface Reason {
-  head: string;
-  detail: string;
+type SeaKey = 'WEST' | 'EAST';
+
+const SEA_STORAGE_KEY = 'tackle.sea';
+
+function readSea(): SeaKey {
+  try {
+    const v = localStorage.getItem(SEA_STORAGE_KEY);
+    if (v === 'WEST' || v === 'EAST') return v;
+  } catch { /* 사생활 보호 모드 등 */ }
+  return 'WEST';
 }
-
-interface Spec {
-  label: string;
-  /** 서해 값. `east` 와 같으면 둘 다 비우고 `both` 를 쓴다. */
-  west?: string;
-  east?: string;
-  /** 해역이 갈리지 않는 항목(매듭). */
-  both?: string;
-  why: string;
-  brandNote?: string;
-  /** 항목 그림 (`public/tackle/*.svg`) */
-  art?: string;
-  /** 쇼크리더에만 붙는 "합사(PE)만 쓰지 않는 이유" */
-  reasons?: Reason[];
-  /** 매듭만 그림 대신 영상 카드 */
-  video?: boolean;
-}
-
-const LEADER_REASONS: Reason[] = [
-  { head: '쓸림에 약하다', detail: '섬유 다발이라 한 가닥만 끊겨도 강도가 급락합니다. 테트라·갯바위·자갈 전부 위협입니다.' },
-  { head: '늘어나지 않는다', detail: '캐스팅 순간의 충격, 고기가 갑자기 튈 때의 하중을 흡수하지 못합니다.' },
-  { head: '이빨에 잘린다', detail: '삼치·갈치는 PE를 그대로 잘라 냅니다.' },
-];
-
-const SEAS: { key: 'west' | 'east'; name: string; text: string }[] = [
-  { key: 'west', name: '서해', text: '조류가 셉니다. 물때에 따라 채비를 조절하게 됩니다.' },
-  { key: 'east', name: '동해', text: '조류가 약한 대신 비거리가 중요합니다. 물색이 맑아 먼 곳을 노리게 됩니다.' },
-];
-
-const ROWS: Spec[] = [
-  {
-    label: '로드',
-    west: '862ML',
-    east: '902ML 이상',
-    art: '/tackle/rod.svg',
-    why: '8\'6" · 2피스 · 미디엄라이트. 방파제에서 다루기 편하고 갯바위에서도 부담 없는 길이입니다. '
-      + '동해는 비거리가 필요해 더 길게 쓰며, 1002 넘는 길이도 씁니다.',
-  },
-  {
-    label: '릴',
-    west: '3000번',
-    east: '5000번',
-    art: '/tackle/reel.svg',
-    why: '3000번은 우럭·광어 등 방파제 루어 전반에, '
-      + '5000번은 삼치·부시리 등 대형 회유성 어종을 제압하는 데 많이 씁니다. '
-      + '시마노 C3000HG · C5000XG 기준.',
-    brandNote: '(다이와는 LT3000-CXH · LT5000D-CXH)',
-  },
-  {
-    label: '원줄 (PE)',
-    west: '1.0호',
-    east: '1.0–1.2호',
-    // 합사만 PNG 다. 실제 로프 그림이라 벡터로는 못 그린다.
-    art: '/tackle/line.png',
-    why: '가늘수록 멀리 날아가지만 터짐에 약합니다.',
-  },
-  {
-    label: '쇼크리더',
-    west: '카본 3–5호',
-    east: '카본 4–6호',
-    art: '/tackle/leader.svg',
-    why: '자갈·돌 등에 쓸림을 버티기 위해 씁니다. 굵을수록 단단하지만 바람 저항을 더 타서 비거리가 줄어듭니다.',
-    reasons: LEADER_REASONS,
-  },
-  { label: '매듭', both: 'FG 노트', video: true, why: KNOT_WHY },
-];
 
 export default function TacklePage() {
   useAdContent(true);
-  usePageMeta('루어 채비', '대상 어종별 루어 채비 — 로드와 릴, 원줄과 쇼크리더, 지그헤드와 웜까지 그림으로 정리했습니다.');
+  usePageMeta('루어 채비', '방파제·갯바위 루어 채비 — 로드와 릴, 원줄과 쇼크리더, 매듭까지 해역별로 정리했습니다.');
+
+  const [products, setProducts] = useState<TackleProduct[]>([]);
+  const [sea, setSea] = useState<SeaKey>(() => readSea());
+  const [tier, setTier] = useState<Tier>(() => readTier());
+
+  // 'loading' → 'ok' | 'error'. 실패를 "등록된 채비가 없어요"로 뭉개면 원인을 못 찾는다(10/21).
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    setStatus('loading');
+    fetchTackleProducts()
+      .then((list) => { if (alive) { setProducts(list); setStatus('ok'); } })
+      .catch((e) => {
+        console.warn('[Tackle] 제품 조회 실패', e);
+        if (alive) setStatus('error');
+      });
+    return () => { alive = false; };
+  }, [reloadKey]);
+
+  // 관리자에서 활성으로 등록한 건 방식과 상관없이 보인다. 해역은 고른 해역 + 공통(null).
+  // 서해 칸은 남해 전용(SOUTH) 제품도 받는다. null·누락(undefined) 모두 공통으로 본다.
+  const seaMatch = (p: TackleProduct, s: SeaKey) =>
+    p.sea == null || (s === 'WEST' ? (p.sea === 'WEST' || p.sea === 'SOUTH') : p.sea === s);
+  const visible = useMemo(
+    () => products.filter((p) => p.tier === tier && seaMatch(p, sea)),
+    [products, sea, tier],
+  );
+  const byKey = (key: SpecKey) => visible.filter((p) => p.specKey === key);
+
+  const pickSea = (v: SeaKey) => {
+    setSea(v);
+    try { localStorage.setItem(SEA_STORAGE_KEY, v); } catch { /* 저장 못 해도 동작 */ }
+  };
+  const pickTier = (t: Tier) => {
+    setTier(t);
+    try { localStorage.setItem(TIER_STORAGE_KEY, t); } catch { /* 저장 못 해도 동작 */ }
+  };
+
   return (
     <div className={styles.page}>
       <Header />
@@ -126,75 +99,72 @@ export default function TacklePage() {
       <main className={styles.main}>
         <section className={styles.hero}>
           <h1 className={styles.title}>루어 채비</h1>
-          <p className={styles.desc}>
-            정답은 없습니다. 처음 한 벌을 고르는 기준으로 쓰세요.
-          </p>
+          <p className={styles.desc}>방파제 · 갯바위 루어 기준입니다. 해역과 가격대를 고르면 그 조건에 맞는 채비를 보여 드립니다.</p>
         </section>
 
-        <p className={styles.scope}>방파제 · 갯바위에서 걸어 들어가는 낚시 기준</p>
-
-        {/* 해역 성격은 여기서 한 번만 말한다. 아래 항목들은 숫자만 나란히 놓는다. */}
-        <div className={styles.seas}>
-          {SEAS.map((s) => (
-            <div key={s.key} className={styles.sea}>
-              <span className={`${styles.seaName} ${styles[s.key]}`}>{s.name}</span>
-              <p className={styles.seaText}>{s.text}</p>
+        <div className={styles.selector}>
+          <div className={styles.selGroup}>
+            <span className={styles.selTitle}>어디서 낚시하세요?</span>
+            <div className={styles.pills} role="group" aria-label="해역 선택">
+              <button type="button" aria-pressed={sea === 'WEST'} className={sea === 'WEST' ? styles.pillOn : styles.pillOff} onClick={() => pickSea('WEST')}>서해 · 남해</button>
+              <button type="button" aria-pressed={sea === 'EAST'} className={sea === 'EAST' ? styles.pillOn : styles.pillOff} onClick={() => pickSea('EAST')}>동해</button>
             </div>
-          ))}
+          </div>
+          <div className={styles.selGroup}>
+            <span className={styles.selTitle}>어느 가격대로 보시겠어요?</span>
+            <div className={styles.pills} role="group" aria-label="가격대 선택">
+              {TIERS.map((t) => (
+                <button key={t} type="button" aria-pressed={tier === t} className={tier === t ? styles.pillOn : styles.pillOff} onClick={() => pickTier(t)}>
+                  {TIER_LABELS[t]}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {ROWS.map((r) => (
-          <section key={r.label} className={styles.spec}>
-            <span className={styles.specLabel}>{r.label}</span>
+        {status === 'loading' ? (
+          <p className={styles.empty}>불러오는 중…</p>
+        ) : status === 'error' ? (
+          <div className={styles.empty}>
+            <p>채비 목록을 불러오지 못했어요.</p>
+            <button type="button" className={styles.retry} onClick={() => setReloadKey((k) => k + 1)}>다시 시도</button>
+          </div>
+        ) : visible.length === 0 ? (
+          <div className={styles.empty}>
+            <p>{products.length === 0 ? '아직 등록된 채비가 없어요.' : `${sea === 'WEST' ? '서해 · 남해' : '동해'} · ${TIER_LABELS[tier]}에는 아직 등록된 채비가 없어요.`}</p>
+          </div>
+        ) : (
+          <>
+            <RigOverview />
 
-            {r.both ? (
-              <p className={styles.oneValue}>
-                {r.both}
-                <span className={styles.oneNote}>— 서해 · 동해 같습니다</span>
-              </p>
-            ) : (
-              <div className={styles.vals}>
-                {SEAS.map((s) => (
-                  <div key={s.key} className={styles.val}>
-                    <span className={`${styles.valSea} ${styles[s.key]}`}>{s.name}</span>
-                    <strong className={styles.valNum}>{r[s.key]}</strong>
-                  </div>
-                ))}
+            {/* 관리자에서 등록한 제품이 있는 항목만 카드를 그린다. 번호는 그림 번호와 같다. */}
+            {SPEC_ORDER.filter((k) => byKey(k).length > 0).map((k) => (
+              <section key={k} id={`tackle-${k}`} className={styles.spec}>
+                <div className={styles.specHead}>
+                  <span className={styles.specLabel}>
+                    <span className={styles.specNo}>{SPEC_ORDER.indexOf(k) + 1}</span>
+                    {SPEC_LABELS[k]}
+                  </span>
+                </div>
+                <ProductList items={byKey(k)} />
+              </section>
+            ))}
+
+            <section className={styles.spec}>
+              <div className={styles.specHead}>
+                <span className={styles.specLabel}>매듭</span>
+                <strong className={styles.specValue}>FG 노트</strong>
               </div>
-            )}
+              <p className={styles.specWhy}>{KNOT_WHY}</p>
+              <KnotVideo />
+            </section>
 
-            {r.art && (
-              <img className={styles.art} src={r.art} alt={`${r.label} 그림`} />
-            )}
-            {r.video && <KnotVideo />}
-
-            <p className={styles.specWhy}>{r.why}</p>
-            {r.brandNote && <p className={styles.specBrand}>{r.brandNote}</p>}
-
-            {r.reasons && (
-              <div className={styles.reasons}>
-                <h3 className={styles.reasonsTitle}>합사(PE)만 쓰지 않는 이유</h3>
-                <ol className={styles.reasonList}>
-                  {r.reasons.map((x, i) => (
-                    <li key={x.head} className={styles.reason}>
-                      <span className={styles.reasonNo}>{i + 1}</span>
-                      <span>
-                        <b>{x.head}</b>
-                        <em>{x.detail}</em>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            )}
-          </section>
-        ))}
-
-        <p className={styles.footer}>
-          루어 무게와 노리는 어종은 물때·수심·바람·계절에 따라 달라져 넣지 않았습니다.
-          <br />
-          로드·릴 표기는 시마노를 기준으로 하고, 다이와가 다르면 괄호로 병기했습니다.
-        </p>
+            <p className={styles.basis}>2026년 기준</p>
+            <p className={styles.disclosure}>
+              이 화면에는 쿠팡 파트너스 링크가 포함되어 있으며, 구매 시 일정액의 수수료를 받습니다.
+            </p>
+          </>
+        )}
       </main>
     </div>
   );
@@ -218,5 +188,85 @@ function KnotVideo() {
       <span className={styles.videoTitle}>{KNOT_VIDEO.title}</span>
       <span className={styles.videoCh}>{KNOT_VIDEO.channel} · 유튜브에서 열림</span>
     </a>
+  );
+}
+
+const TIERS: Tier[] = ['ENTRY', 'MID', 'HIGH'];
+const TIER_STORAGE_KEY = 'tackle.tier';
+
+function readTier(): Tier {
+  try {
+    const v = localStorage.getItem(TIER_STORAGE_KEY);
+    if (v === 'ENTRY' || v === 'MID' || v === 'HIGH') return v;
+  } catch { /* 사생활 보호 모드 등 */ }
+  return 'ENTRY';
+}
+
+/** 그림 위 번호 위치(%). 그림 `public/tackle/rig_full.png`(1640×680) 기준. 앱 tackle_page.dart 와 같은 값 */
+const RIG_MARKS: { no: number; key: SpecKey; left: number; top: number }[] = [
+  { no: 1, key: 'ROD', left: 62, top: 1 },
+  { no: 2, key: 'REEL', left: 33, top: 26 },
+  { no: 3, key: 'LINE', left: 90, top: 38 },
+  { no: 4, key: 'LEADER', left: 50, top: 52 },
+  { no: 5, key: 'SWIVEL', left: 38, top: 57 },
+  { no: 6, key: 'LURE', left: 18, top: 53 },
+];
+
+/**
+ * "한눈에 보는 채비" — 초릿대 끝에서 루어까지 어떤 순서로 이어지는지.
+ * 그림에 글자를 넣지 않고 번호만 코드로 얹는다. 번호를 누르면 그 항목으로 내려간다.
+ * 도래·루어는 규격 카드가 없어 제품이 있을 때만 이동할 곳이 생긴다.
+ */
+function RigOverview() {
+  const go = (key: SpecKey) => {
+    document.getElementById(`tackle-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  return (
+    <section className={styles.rig}>
+      <h2 className={styles.rigTitle}>한눈에 보는 채비</h2>
+      <p className={styles.rigSub}>초릿대 끝에서 루어까지 이렇게 이어집니다</p>
+      <div className={styles.rigArt}>
+        <img
+          src="/tackle/rig_full.png"
+          alt="로드에 릴을 달고, 원줄이 가이드를 지나 초릿대 끝에서 매듭으로 쇼크리더와 이어지고, 도래와 스냅을 거쳐 루어까지 연결된 채비 전체 그림"
+        />
+        {RIG_MARKS.map((m) => (
+          <span key={m.no} className={styles.rigMark} style={{ left: `${m.left}%`, top: `${m.top}%` }} aria-hidden>
+            {m.no}
+          </span>
+        ))}
+      </div>
+      <div className={styles.rigChips}>
+        {RIG_MARKS.map((m) => (
+          <button key={m.no} type="button" className={styles.rigChip} onClick={() => go(m.key)}>
+            {m.no} {SPEC_LABELS[m.key]}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** 항목 아래 제품 목록. 가격 오름차순(서버 정렬). 목록에서는 쿠팡으로 바로 나가지 않고 상세로 간다. */
+function ProductList({ items }: { items: TackleProduct[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className={styles.products}>
+      {items.map((p) => (
+        <Link key={p.id} to={`/tackle/products/${p.id}`} className={styles.product}>
+          <TackleThumb src={p.imageUrl} size={72} alt={p.name} />
+          <span className={styles.productBody}>
+            <span className={styles.productTags}>
+              <span className={styles.tagTier}>{TIER_LABELS[p.tier]}</span>
+              <span className={styles.tagSea}>{seaLabel(p.sea)}</span>
+              <span className={styles.price}>{p.priceBand}</span>
+            </span>
+            <span className={styles.productName}>{p.name}</span>
+            {p.summary && <span className={styles.productSummary}>{p.summary}</span>}
+          </span>
+          <span className={styles.more}>상세보기</span>
+        </Link>
+      ))}
+    </div>
   );
 }
