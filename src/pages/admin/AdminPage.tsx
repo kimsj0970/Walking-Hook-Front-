@@ -14,9 +14,10 @@ import MigratoryPointManagementPage from './MigratoryPointManagementPage';
 import FishingZoneManagementPage from './FishingZoneManagementPage';
 import AdminReportPage from './AdminReportPage';
 import AdminDeletedContentPage from './AdminDeletedContentPage';
+import TackleProductManagementPage from './TackleProductManagementPage';
 import styles from './AdminPage.module.css';
 
-type AdminTab = 'points' | 'migratory-points' | 'users' | 'user-stats' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai' | 'reports' | 'deleted-contents';
+type AdminTab = 'points' | 'migratory-points' | 'users' | 'user-stats' | 'documents' | 'inquiries' | 'notices' | 'map' | 'fishing-zones' | 'ai' | 'reports' | 'deleted-contents' | 'tackle-products';
 
 const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
   { tab: 'points',           label: 'AI 분석 포인트',     adminOnly: false },
@@ -29,6 +30,7 @@ const ALL_NAV_ITEMS: { tab: AdminTab; label: string; adminOnly: boolean }[] = [
   { tab: 'notices',          label: '공지사항 관리',      adminOnly: false },
   { tab: 'reports',          label: '신고 관리',          adminOnly: false },
   { tab: 'deleted-contents', label: '신고·삭제 콘텐츠',    adminOnly: false },
+  { tab: 'tackle-products',  label: '입문 상품 관리',     adminOnly: true  },
   { tab: 'map',              label: '지도 보기',          adminOnly: false },
   { tab: 'ai',               label: 'AI에게 질문',       adminOnly: true  },
 ];
@@ -91,6 +93,7 @@ export default function AdminPage() {
           {activeTab === 'notices'          && <AdminNoticeManagement />}
           {activeTab === 'reports'          && <AdminReportPage />}
           {activeTab === 'deleted-contents' && <AdminDeletedContentPage />}
+          {activeTab === 'tackle-products'  && <TackleProductManagementPage />}
           {activeTab === 'map'              && <AdminMapPage />}
           {activeTab === 'ai'              && <AiChatPage />}
         </main>
