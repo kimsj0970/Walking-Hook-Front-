@@ -312,6 +312,295 @@
   color: #94a3b8;
 }
 
+/* ── 해역 · 가격대 선택 (2026-10-21 개편) ───────────────── */
+
+.selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.selGroup {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.selTitle {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: var(--color-text-muted);
+}
+
+.pills {
+  display: flex;
+  gap: 8px;
+}
+
+.pillOn,
+.pillOff {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 11px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pillOn { background: var(--color-primary, #1D4FBF); color: #fff; border: 1px solid var(--color-primary, #1D4FBF); }
+.pillOff { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
+
+.seaNote {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.specHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.specValue {
+  margin-left: auto;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--color-primary, #1D4FBF);
+}
+
+/* ── 한눈에 보는 채비 ───────────────────────────────────── */
+
+.rig {
+  margin: 0 0 14px;
+  padding: 14px 16px 16px;
+  background: #fff;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+}
+
+.rigTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text, #0f172a);
+}
+
+.rigSub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.rigArt {
+  position: relative;
+  max-width: 560px;
+  margin: 10px auto 0;
+}
+
+.rigArt img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.rigMark {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  border-radius: 50%;
+  background: var(--color-primary, #1D4FBF);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.rigChips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.rigChip {
+  min-height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary-tint, #EEF3FE);
+  color: var(--color-primary, #1D4FBF);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.specNo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--color-primary, #1D4FBF);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+
+/* ── 가격대 선택 ─────────────────────────────────────────── */
+
+.tierBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 10px;
+}
+
+.tierTitle {
+  margin-right: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.tierOn,
+.tierOff {
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tierOn { background: var(--color-primary, #1D4FBF); color: #fff; border: 1px solid var(--color-primary, #1D4FBF); }
+.tierOff { background: #fff; color: #475569; border: 1px solid #cbd5e1; }
+
+/* ── 제품 ──────────────────────────────────────────────── */
+
+.products {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.product:hover { background: #f8faff; }
+
+.productBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.productTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.tagTier,
+.tagSea {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.tagTier { background: var(--color-primary-tint, #EEF3FE); color: var(--color-primary, #1D4FBF); }
+.tagSea { background: #f1f5f9; color: #475569; }
+
+.price {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.productName {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--color-text, #0f172a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.productSummary {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.more {
+  flex-shrink: 0;
+  padding: 7px 11px;
+  border-radius: 9px;
+  background: var(--color-primary, #1D4FBF);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.basis {
+  margin: 10px 0 0;
+  text-align: right;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+/* 공정위 추천·보증 심사지침 — 쉽게 인식할 수 있는 위치. 접지 않고 색으로 분리한다 */
+.disclosure {
+  margin: 8px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #FB923C;
+  border-radius: 10px;
+  background: #FFF7ED;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #7C2D12;
+}
+
 @media (max-width: 640px) {
   .main {
     padding: calc(var(--header-height) + 24px) 16px 48px;
@@ -321,3 +610,27 @@
     font-size: 26px;
   }
 }
+
+.empty {
+  margin: 28px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.empty p { margin: 0; }
+
+.retry {
+  margin-top: 12px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1d4fbf;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
