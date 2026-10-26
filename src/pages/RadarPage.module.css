@@ -1,4 +1,4 @@
-/* 비구름 — 사이트 기본 톤(밝은 배경 + 흰 카드).
+/* 실시간 레이더 — 사이트 기본 톤(밝은 배경 + 흰 카드).
    하단 앵커 광고는 올리지 않는다(useAdContent 선언 안 함) — 지도 화면들과 같은 규칙.
    앱은 반대로 AdBannerSlot 을 맨 아래 고정으로 넣는다. */
 
@@ -17,9 +17,15 @@
 }
 
 .title {
-  margin: 0 0 14px;
+  margin: 0 0 2px;
   font-size: 1.4rem;
   font-weight: 700;
+}
+
+.sub {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
 }
 
 /* ── 탭 ──
