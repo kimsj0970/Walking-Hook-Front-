@@ -1,0 +1,223 @@
+/* 비구름 — 사이트 기본 톤(밝은 배경 + 흰 카드).
+   하단 앵커 광고는 올리지 않는다(useAdContent 선언 안 함) — 지도 화면들과 같은 규칙.
+   앱은 반대로 AdBannerSlot 을 맨 아래 고정으로 넣는다. */
+
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* 폰 기준으로 잡고 데스크톱은 같은 컬럼을 가운데 두고 여백만 넓힌다.
+   2단 배치는 쓰지 않는다 — 폰에서 못 쓰는 구조라 웹·앱이 따로 놀게 된다. */
+.main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+
+.title {
+  margin: 0 0 14px;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* ── 탭 ──
+   현재(정사각 600×600)와 미래(세로형 601×1034)는 비율이 달라 한 무대에 못 넣는다.
+   탭으로 나누면 무대 비율을 따로 줄 수 있어 각자 꽉 찬다. */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.tab,
+.tabOn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 11px 0;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.tab:hover { border-color: var(--color-primary-light); }
+
+.tabOn {
+  border: 1px solid transparent;
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* ── 무대 ── */
+.stage {
+  position: relative;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.stage:active { cursor: grabbing; }
+
+/* 현재 — 레이더 지도 영역 600×600 */
+.square { aspect-ratio: 1 / 1; }
+
+/* 미래 — 분포도 601×1034. 폰에서 너무 길어지지 않게 높이를 제한하고 가운데 둔다. */
+.tall {
+  aspect-ratio: 601 / 1034;
+  max-height: 62vh;
+  margin: 0 auto;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.stamp {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* 기상청 원본 범례를 잘라 그대로 쓴다 — 구간이 바뀌어도 자동으로 따라간다. */
+.legend {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 58%;
+  width: auto;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--color-border);
+  pointer-events: none;
+}
+
+.zoomBox {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zoomBtn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.zoomBtn:disabled { opacity: 0.4; cursor: default; }
+
+.state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 0 24px;
+  line-height: 1.6;
+  background: var(--color-surface);
+}
+
+/* ── 하단 ── */
+.hint {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.playBtn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.playBtn:disabled { opacity: 0.4; cursor: default; }
+
+.slider {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.slider:disabled { opacity: 0.4; cursor: default; }
+
+.ends {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0 0 52px;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.source {
+  margin: 18px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+}
+
+@media (max-width: 400px) {
+  .main { padding: 16px 12px 40px; }
+  .tab, .tabOn { font-size: 0.8rem; }
+}
