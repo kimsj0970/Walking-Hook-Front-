@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   type FishingPointDetail,
   type FishingPointCreateRequest,
@@ -16,7 +16,10 @@ import {
   STRUCTURE_DENSITY_OPTIONS,
   createFishingPoint,
   updateFishingPoint,
+  searchFishingPoints,
 } from '../../api/fishingPointApi';
+import { fetchFishingZones } from '../../api/fishingZoneApi';
+import MapTypeControl from '../../components/map/MapTypeControl';
 import styles from './FishingPointFormModal.module.css';
 
 interface BoolFieldMeta {
@@ -178,19 +181,196 @@ interface Props {
   onSaved: () => void;
 }
 
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Kakao = any;
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function loadKakaoSDK(appKey: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).kakao?.maps) { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${appKey}&autoload=false&libraries=clusterer`;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('카카오맵 로드 실패'));
+    document.head.appendChild(script);
+  });
+}
+
+function makePinUrl(color: string, stroke: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="32" viewBox="0 0 28 38">
+    <path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 24 14 24S28 24.5 28 14C28 6.268 21.732 0 14 0z" fill="${color}" stroke="${stroke}" stroke-width="1.5"/>
+    <circle cx="14" cy="14" r="5" fill="white"/>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
 export default function FishingPointFormModal({ open, editTarget, onClose, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [serverError, setServerError] = useState('');
 
+  const [showMap, setShowMap] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const kakaoMapRef = useRef<Kakao>(null);
+  const markerRef = useRef<Kakao>(null);
+  const [mapForControl, setMapForControl] = useState<Kakao>(null);
+
   useEffect(() => {
     if (open) {
       setForm(editTarget ? detailToForm(editTarget) : DEFAULT_FORM);
       setErrors({});
       setServerError('');
+      setShowMap(false);
     }
   }, [open, editTarget]);
+
+  // 지도 초기화 — 조황 포인트 모달(MigratoryFishPointFormModal)과 같은 구조다.
+  const initMap = useCallback(() => {
+    const appKey = import.meta.env.VITE_KAKAO_MAP_KEY as string | undefined;
+    if (!appKey || !mapContainerRef.current) return;
+
+    loadKakaoSDK(appKey).then(() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const kakao = (window as any).kakao;
+      kakao.maps.load(() => {
+        if (!mapContainerRef.current) return;
+
+        const lat = parseFloat(form.latitude);
+        const lng = parseFloat(form.longitude);
+        const hasCoord = !isNaN(lat) && !isNaN(lng);
+        const center = hasCoord
+          ? new kakao.maps.LatLng(lat, lng)
+          : new kakao.maps.LatLng(36.5, 127.8);
+
+        const map = new kakao.maps.Map(mapContainerRef.current, {
+          center,
+          level: hasCoord ? 5 : 13,
+        });
+        kakaoMapRef.current = map;
+        setMapForControl(map);
+
+        // 토글로 접혀 있다가 펼쳐지는 영역이라 생성 시점에 컨테이너 크기가
+        // 아직 확정되지 않아 지도 타일이 잘려 보이는 문제가 있어 보정한다.
+        requestAnimationFrame(() => {
+          map.relayout();
+          map.setCenter(center);
+        });
+
+        // 낚시 금지·제한구역 폴리곤 — 포인트 좌표 선택 시 참고용
+        fetchFishingZones().then(zones => {
+          zones.forEach(zone => {
+            try {
+              const parsed = JSON.parse(zone.geoJson);
+              const ring: [number, number][] = parsed.coordinates[0];
+              const path = ring.slice(0, -1).map(([zlng, zlat]: [number, number]) =>
+                new kakao.maps.LatLng(zlat, zlng)
+              );
+              const color = zone.zoneType === 'PROHIBITED' ? '#DC2626' : '#EA580C';
+              const poly = new kakao.maps.Polygon({
+                map,
+                path,
+                strokeWeight: 2,
+                strokeColor: color,
+                strokeOpacity: 0.9,
+                fillColor: color,
+                fillOpacity: 0.2,
+              });
+              const infoWindow = new kakao.maps.InfoWindow({
+                content: `<div style="padding:10px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;">
+                  <strong style="font-size:13px;color:${color};display:block;">${escapeHtml(zone.name)}</strong>
+                  <div style="font-size:11px;color:#94A3B8;margin-top:3px;">${zone.zoneType === 'PROHIBITED' ? '🔴 낚시금지구역' : '🟠 낚시제한구역'}</div>
+                </div>`,
+                removable: true,
+              });
+              kakao.maps.event.addListener(poly, 'click', (e: Kakao) => {
+                infoWindow.setPosition(e.latLng);
+                infoWindow.open(map);
+              });
+            } catch {
+              // GeoJSON 파싱 실패 시 무시
+            }
+          });
+        }).catch(() => {});
+
+        // 이미 등록된 낚시 포인트 — 참고용 핀 표시 (축소 시 클러스터 숫자로 표시)
+        searchFishingPoints().then(points => {
+          const pinUrl = makePinUrl('#0891B2', '#164E63');
+          const pinSize = new kakao.maps.Size(24, 32);
+          const clusterer = new kakao.maps.MarkerClusterer({
+            map,
+            averageCenter: true,
+            minLevel: 10,
+          });
+          const markers = points
+            .filter(p => !editTarget || p.id !== editTarget.id)
+            .map(p => {
+              const position = new kakao.maps.LatLng(p.latitude, p.longitude);
+              const marker = new kakao.maps.Marker({
+                position,
+                image: new kakao.maps.MarkerImage(pinUrl, pinSize),
+              });
+              const infoWindow = new kakao.maps.InfoWindow({
+                content: `<div style="padding:8px 12px;font-family:'Pretendard','Noto Sans KR',sans-serif;">
+                  <strong style="font-size:12px;color:#0891B2;">${escapeHtml(p.name)}</strong>
+                  <div style="font-size:11px;color:#94A3B8;margin-top:2px;">${escapeHtml(p.region)}</div>
+                </div>`,
+                removable: true,
+              });
+              kakao.maps.event.addListener(marker, 'click', () => infoWindow.open(map, marker));
+              return marker;
+            });
+          clusterer.addMarkers(markers);
+        }).catch(() => {});
+
+        // 기존 좌표가 있으면 마커 표시
+        if (hasCoord) {
+          markerRef.current = new kakao.maps.Marker({ position: center, map });
+        }
+
+        // 클릭 시 좌표 자동 입력
+        kakao.maps.event.addListener(map, 'click', (e: Kakao) => {
+          const clickLat = e.latLng.getLat();
+          const clickLng = e.latLng.getLng();
+
+          setForm(prev => ({
+            ...prev,
+            latitude: clickLat.toFixed(7),
+            longitude: clickLng.toFixed(7),
+          }));
+          setErrors(prev => ({ ...prev, latitude: undefined, longitude: undefined }));
+
+          // 마커 이동
+          const pos = new kakao.maps.LatLng(clickLat, clickLng);
+          if (markerRef.current) {
+            markerRef.current.setPosition(pos);
+          } else {
+            markerRef.current = new kakao.maps.Marker({ position: pos, map });
+          }
+        });
+      });
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMap]);
+
+  useEffect(() => {
+    if (showMap) {
+      // DOM이 그려진 후 초기화
+      const timer = setTimeout(initMap, 50);
+      return () => clearTimeout(timer);
+    } else {
+      kakaoMapRef.current = null;
+      markerRef.current = null;
+      setMapForControl(null);
+    }
+  }, [showMap, initMap]);
 
   if (!open) return null;
 
@@ -336,6 +516,24 @@ export default function FishingPointFormModal({ open, editTarget, onClose, onSav
                 {errors.longitude && <p className={styles.errorMsg}>{errors.longitude}</p>}
               </div>
             </div>
+            <button
+              type="button"
+              className={styles.mapToggleBtn}
+              onClick={() => setShowMap(v => !v)}
+            >
+              🗺️ {showMap ? '지도 닫기' : '지도에서 선택'}
+            </button>
+
+            {showMap && (
+              <div className={styles.mapArea}>
+                <div ref={mapContainerRef} className={styles.mapCanvas} />
+                <MapTypeControl map={mapForControl} />
+                <p className={styles.mapHint}>
+                  지도를 클릭하면 위도·경도가 자동으로 입력됩니다 · 🔴 낚시금지 · 🟠 낚시제한 · 🔵 등록된 낚시 포인트 (축소 시 숫자로 표시)
+                </p>
+              </div>
+            )}
+
             <div className={styles.field}>
               <label className={styles.label}>설명</label>
               <textarea
