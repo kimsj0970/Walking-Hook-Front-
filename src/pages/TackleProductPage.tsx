@@ -79,10 +79,6 @@ export default function TackleProductPage() {
               </section>
             )}
 
-            <p className={styles.disclosure}>
-              이 화면에는 쿠팡 파트너스 링크가 포함되어 있으며, 구매 시 일정액의 수수료를 받습니다.
-            </p>
-
             {product.linkUrl && (
               <a
                 className={styles.buy}
@@ -94,7 +90,9 @@ export default function TackleProductPage() {
               </a>
             )}
 
-            <p className={styles.note}>
+            {/* 대가성 고지 — 쿠팡 링크가 있는 화면이라 빼지 않고 버튼 아래 한 줄로만 둔다(10/24). */}
+            <p className={styles.note}>쿠팡 파트너스 활동으로 수수료를 받을 수 있어요.</p>
+            <p className={styles.noteSub}>
               가격·재고는 쿠팡에서 바뀔 수 있습니다{product.checkedAt ? ` · ${product.checkedAt} 확인` : ''}
             </p>
           </article>
