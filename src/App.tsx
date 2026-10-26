@@ -15,6 +15,7 @@ import NicknamePage from './pages/NicknamePage';
 import MyPage from './pages/MyPage';
 import MapPage from './pages/MapPage';
 import CctvMapPage from './pages/CctvMapPage';
+import RadarPage from './pages/RadarPage';
 import FishingZonesMapPage from './pages/FishingZonesMapPage';
 import AdminPage from './pages/admin/AdminPage';
 import InquiryPage from './pages/InquiryPage';
@@ -72,6 +73,8 @@ export default function App() {
                   CCTV 는 정부 공개 데이터라 API 가 공개이므로 감싸지 않는다. */}
               <Route path="/map" element={<PrivateRoute><MapPage /></PrivateRoute>} />
               <Route path="/map/cctv" element={<CctvMapPage />} />
+              {/* 비구름 — 기상청 레이더(관측)와 초단기예보(예측). 로그인 필수. */}
+              <Route path="/radar" element={<PrivateRoute><RadarPage /></PrivateRoute>} />
               <Route path="/map/fishing-zones" element={<PrivateRoute><FishingZonesMapPage /></PrivateRoute>} />
               <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
               <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
