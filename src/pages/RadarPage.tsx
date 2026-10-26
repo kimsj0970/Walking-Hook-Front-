@@ -10,7 +10,7 @@ import { usePageMeta } from '../lib/usePageMeta';
 import styles from './RadarPage.module.css';
 
 /**
- * 비구름 — 현재 레이더 / 미래 레이더 두 탭.
+ * 실시간 레이더 — 현재 레이더 / 미래 레이더 두 탭.
  *
  *   현재  레이더 합성영상 (관측, 500m, 5분)   · 정사각 600×600
  *   미래  초단기예보 분포도 (예측, 5km, 1시간) · 세로형 601×1034
@@ -134,7 +134,7 @@ async function fetchImage(url: string): Promise<Fetched | 'unavailable' | null> 
 
 export default function RadarPage() {
   usePageMeta(
-    '비구름',
+    '실시간 레이더',
     '기상청 레이더로 지금 내리는 비를, 초단기예보로 앞으로 6시간의 강수를 확인합니다.',
   );
 
@@ -334,7 +334,8 @@ export default function RadarPage() {
       <Header />
 
       <main className={styles.main}>
-        <h1 className={styles.title}>비구름</h1>
+        <h1 className={styles.title}>실시간 레이더</h1>
+        <p className={styles.sub}>초단기 강수(6시간)</p>
 
         <div className={styles.tabs}>
           <button
