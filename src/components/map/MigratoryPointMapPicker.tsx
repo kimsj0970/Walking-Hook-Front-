@@ -1,19 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import MapTypeControl from './MapTypeControl';
 import MyLocationControl from './MyLocationControl';
-import type { MigratoryFishPointMapMarker } from '../../api/migratoryFishPointApi';
 import styles from './MigratoryPointMapPicker.module.css';
 
 /**
- * 조황 포인트를 지도에서 하나 고르는 모달.
+ * 포인트를 지도에서 하나 고르는 모달.
  *
  * 원래 CatchPostPage 안의 지역 컴포넌트였고, 관리자 "지도로 보기"에서도 쓰려고 추출했다.
  * 기본 동작(핀 클릭 → "이 포인트 선택" → onSelect)은 그대로다. 호출하는 쪽마다 다른 것은
  * title/hint/selectLabel 과 onSelect 뿐이며, 이 컴포넌트는 무엇을 하는지 알지 못한다.
+ *
+ * ⚠️ 이름에 Migratory 가 남아 있지만 **조황(회유성) 포인트 전용이 아니다.**
+ * 지도에 찍는 데 쓰는 필드가 id·name·latitude·longitude 넷뿐이라
+ * MapPickerPoint 를 만족하면 어떤 포인트든 넘길 수 있다 (낚시 포인트 관리도 이걸 쓴다).
  */
-interface MapPickerProps {
-  points: MigratoryFishPointMapMarker[];
-  onSelect: (point: MigratoryFishPointMapMarker) => void;
+export interface MapPickerPoint {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface MapPickerProps<P extends MapPickerPoint> {
+  points: P[];
+  onSelect: (point: P) => void;
   onClose: () => void;
   emptyMessage?: string;
   /** 모달 제목 (기본: 지도에서 포인트 선택) */
@@ -42,7 +52,7 @@ function loadKakaoSDK(appKey: string): Promise<void> {
   });
 }
 
-export default function MigratoryPointMapPicker({
+export default function MigratoryPointMapPicker<P extends MapPickerPoint>({
   points,
   onSelect,
   onClose,
@@ -50,7 +60,7 @@ export default function MigratoryPointMapPicker({
   title = '지도에서 포인트 선택',
   hint = '마커를 탭하면 이름이 뜨고, "이 포인트 선택"을 누르면 선택됩니다',
   selectLabel = '이 포인트 선택',
-}: MapPickerProps) {
+}: MapPickerProps<P>) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
