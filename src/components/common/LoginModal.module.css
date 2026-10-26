@@ -180,6 +180,7 @@
 .agreeAllRow:hover { background: rgba(11, 61, 145, 0.08); }
 
 .agreeAllLabel {
+  min-width: 0;   /* flex 안에서 글자가 세로로 창히는 것을 막는다 */
   font-size: 15px;
   font-weight: 700;
   color: var(--color-text);
@@ -225,6 +226,7 @@
 .consentRow:hover { background: var(--color-bg); }
 
 .consentLabel {
+  min-width: 0;   /* flex 안에서 글자가 세로로 창히는 것을 막는다 */
   display: flex;
   align-items: center;
   gap: 8px;
