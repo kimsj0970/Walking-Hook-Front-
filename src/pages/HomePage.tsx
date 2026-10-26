@@ -693,6 +693,12 @@ export default function HomePage() {
                 <span className={styles.quickIcon}><BookIcon size={20} /></span>
                 <span className={styles.quickLabel}>낚시 가이드</span>
               </button>
+              {/* 실시간 레이더 — 4열 그리드의 마지막 빈 칸. */}
+              <button type="button" className={styles.quickItem}
+                onClick={() => navigate('/radar')}>
+                <span className={styles.quickIcon}><RainIcon size={20} /></span>
+                <span className={`${styles.quickLabel} ${styles.quickLabelWrap}`}>실시간<br />레이더</span>
+              </button>
             </div>
             </div>
 
