@@ -119,6 +119,7 @@
 }
 
 .name {
+  min-width: 0;   /* flex 안에서 글자가 세로로 창히는 것을 막는다 */
   flex: 1;
   font-size: 12.5px;
   font-weight: 600;
