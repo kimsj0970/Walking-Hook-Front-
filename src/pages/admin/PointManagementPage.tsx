@@ -13,6 +13,7 @@ import {
   TERRAIN_TYPE_LABELS,
 } from '../../api/fishingPointApi';
 import FishingPointFormModal from './FishingPointFormModal';
+import MigratoryPointMapPicker from '../../components/map/MigratoryPointMapPicker';
 import styles from './PointManagementPage.module.css';
 
 /** 기본 동작 시간대: 06시 ~ 24시 (새벽 시간대 제외) */
@@ -92,6 +93,10 @@ export default function PointManagementPage() {
   const [scheduleEndHour, setScheduleEndHour] = useState(DEFAULT_END_HOUR);
   const [scheduleIntervalHours, setScheduleIntervalHours] = useState(DEFAULT_INTERVAL_HOURS);
   const [schedulePointCount, setSchedulePointCount] = useState(0);
+
+  // 지도로 보기 — 검색 결과가 아니라 전체 포인트를 핀으로 띄운다.
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapPoints, setMapPoints] = useState<FishingPointSummary[]>([]);
 
   // 설정 다이얼로그 (스케줄러 켜기 / 설정 변경 클릭 시 오픈)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
@@ -198,6 +203,17 @@ export default function PointManagementPage() {
   const handleOpenCreate = () => {
     setEditTarget(null);
     setModalOpen(true);
+  };
+
+  /** 지도로 보기 — 열 때만 전체 포인트를 받아 핀으로 찍는다 (검색어 무시) */
+  const handleOpenMap = async () => {
+    setMapOpen(true);
+    if (mapPoints.length > 0) return;
+    try {
+      setMapPoints(await searchFishingPoints());
+    } catch {
+      showToast('지도용 포인트를 불러오지 못했습니다.');
+    }
   };
 
   const handleOpenEdit = async (id: string) => {
@@ -307,9 +323,14 @@ export default function PointManagementPage() {
               : ` 활성·공개 포인트 ${points.length}개`}
           </p>
         </div>
-        <button className={styles.addBtn} onClick={handleOpenCreate}>
-          + 새 포인트 추가
-        </button>
+        <div className={styles.headerActions}>
+          <button className={styles.mapBtn} onClick={handleOpenMap}>
+            지도로 보기
+          </button>
+          <button className={styles.addBtn} onClick={handleOpenCreate}>
+            + 새 포인트 추가
+          </button>
+        </div>
       </div>
 
       {/* 검색 */}
@@ -512,6 +533,23 @@ export default function PointManagementPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 지도로 보기 — 핀을 고르면 그 포인트의 수정 모달로 이어진다.
+          조황 포인트 관리와 같은 컴포넌트이고, 넘기는 콜백만 다르다. */}
+      {mapOpen && (
+        <MigratoryPointMapPicker
+          points={mapPoints}
+          onSelect={(point) => {
+            setMapOpen(false);
+            handleOpenEdit(point.id);
+          }}
+          onClose={() => setMapOpen(false)}
+          title="지도에서 포인트 선택 — 포인트 수정"
+          hint='마커를 탭한 뒤 "이 포인트 수정"을 누르면 수정 화면이 열립니다'
+          selectLabel="이 포인트 수정"
+          emptyMessage="등록된 낚시 포인트가 없습니다."
+        />
       )}
 
       {/* 생성/수정 모달 */}
