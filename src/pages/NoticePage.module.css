@@ -77,6 +77,14 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+  /* flex 아이템의 min-width 기본값은 min-content 다. 한글은 어디서든 줄바뀜이 되므로
+     min-content 가 "한 글자 폭"이다. 좌측 .listMeta 가 flex-shrink:0 이라 좁은 화면에서
+     제목이 한 글자 폭까지 눈려 **글자가 세로로 1열로 창혀** 보였다.
+     CommunityPage 의 .boardTitle 과 같은 처리로 맞춘다. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .listMeta {
@@ -421,3 +429,20 @@
 .commentSubmitBtn { align-self: flex-end; background: var(--color-primary); color: #fff; border: none; border-radius: var(--radius-full); padding: 9px 22px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
 .commentSubmitBtn:hover { background: var(--color-primary-hover, #1251a3); }
 .commentSubmitBtn:disabled { background: #CBD5E1; cursor: not-allowed; }
+
+/* ── 모바일 ──
+   제목과 메타를 한 줄에 두면 아이폰 폭(390px)에서 제목 자리가 거의 남지 않는다.
+   커뮤니티 목록(.boardItem)과 같은 모양으로 제목 한 줄 + 메타 한 줄로 쌓는다. */
+@media (max-width: 640px) {
+  .listItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .listMeta {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
