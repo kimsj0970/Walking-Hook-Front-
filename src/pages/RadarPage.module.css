@@ -9,11 +9,15 @@
 }
 
 /* 폰 기준으로 잡고 데스크톱은 같은 컬럼을 가운데 두고 여백만 넓힌다.
-   2단 배치는 쓰지 않는다 — 폰에서 못 쓰는 구조라 웹·앱이 따로 놀게 된다. */
+   2단 배치는 쓰지 않는다 — 폰에서 못 쓰는 구조라 웹·앱이 따로 놀게 된다.
+
+   ⚠️ 헤더가 position:fixed 라 위쪽 여백에 --header-height 를 반드시 더해야 한다.
+   이게 빠져 있어서 제목(실시간 레이더)이 헤더 뒤에 깔리고 부제가 반쯤 잘렸다.
+   다른 페이지 CSS 와 같은 규칙이다. */
 .main {
   max-width: 520px;
   margin: 0 auto;
-  padding: 20px 16px 48px;
+  padding: calc(var(--header-height) + 20px) 16px 48px;
 }
 
 .title {
@@ -172,16 +176,17 @@
 
 /* ── 하단 ── */
 .hint {
-  margin: 12px 0 0;
+  margin: 0 0 12px;
   font-size: 0.8rem;
   color: var(--color-text-muted);
 }
 
+/* 재생·슬라이더는 무대 **위**에 둔다 — 지도를 아래로 내려 화면 끝까지 쓰게 한다. */
 .controls {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 14px;
+  margin-bottom: 2px;
 }
 
 .playBtn {
@@ -211,7 +216,7 @@
 .ends {
   display: flex;
   justify-content: space-between;
-  margin: 2px 0 0 52px;
+  margin: 0 0 10px 52px;
   font-size: 0.74rem;
   color: var(--color-text-muted);
 }
@@ -224,6 +229,6 @@
 }
 
 @media (max-width: 400px) {
-  .main { padding: 16px 12px 40px; }
+  .main { padding: calc(var(--header-height) + 16px) 12px 40px; }
   .tab, .tabOn { font-size: 0.8rem; }
 }
