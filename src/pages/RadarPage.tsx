@@ -10,10 +10,10 @@ import { usePageMeta } from '../lib/usePageMeta';
 import styles from './RadarPage.module.css';
 
 /**
- * 실시간 레이더 — 현재 레이더 / 미래 레이더 두 탭.
+ * 실시간 레이더 — 현재 레이더 / 예보 레이더 두 탭.
  *
  *   현재  레이더 합성영상 (관측, 500m, 5분)   · 정사각 600×600
- *   미래  초단기예보 분포도 (예측, 5km, 1시간) · 세로형 601×1034
+ *   예보  초단기예보 분포도 (예측, 5km, 1시간) · 세로형 601×1034
  *
  * 탭으로 나눈 이유는 두 그림의 비율이 다르기 때문이다. 한 무대에 넣으면 어느 쪽이든
  * 작아지고, 시각을 옮길 때 크기가 튄다. 탭마다 무대 비율을 따로 주면 각자 꽉 찬다.
@@ -350,9 +350,55 @@ export default function RadarPage() {
             className={!isNow ? styles.tabOn : styles.tab}
             onClick={() => switchTab('future')}
           >
-            미래 레이더
+            예보 레이더
           </button>
         </div>
+
+
+        {isNow ? (
+          <p className={styles.hint}>5분마다 새로 들어옵니다</p>
+        ) : (
+          future.length > 0 && (
+            <>
+              <div className={styles.controls}>
+                <button
+                  type="button"
+                  className={styles.playBtn}
+                  onClick={() => {
+                    // 끝에 멈춰 있는데 다시 누르면 처음부터 돌린다.
+                    if (!playing && fIdx >= future.length - 1) setFIdx(0);
+                    setPlaying((p) => !p);
+                  }}
+                  disabled={future.length < 2}
+                  aria-label={playing ? '정지' : '재생'}
+                >
+                  {playing ? '❚❚' : '▶'}
+                </button>
+
+                {/* 드래그·터치로 시각을 옮긴다. 손을 대면 재생은 멈춘다. */}
+                <input
+                  type="range"
+                  className={styles.slider}
+                  min={0}
+                  max={Math.max(future.length - 1, 0)}
+                  step={1}
+                  value={fIdx}
+                  disabled={future.length < 2}
+                  onChange={(e) => {
+                    setPlaying(false);
+                    setFIdx(Number(e.target.value));
+                  }}
+                  aria-label="예보 시각 선택"
+                />
+              </div>
+
+              <div className={styles.ends}>
+                <span>1시간 후</span>
+                <span>{future.length}시간 후</span>
+              </div>
+            </>
+          )
+        )}
 
         <div
           className={`${styles.stage} ${isNow ? styles.square : styles.tall}`}
@@ -418,50 +464,6 @@ export default function RadarPage() {
           {empty && <div className={styles.state}>표시할 영상이 없습니다.</div>}
         </div>
 
-        {isNow ? (
-          <p className={styles.hint}>5분마다 새로 들어옵니다</p>
-        ) : (
-          future.length > 0 && (
-            <>
-              <div className={styles.controls}>
-                <button
-                  type="button"
-                  className={styles.playBtn}
-                  onClick={() => {
-                    // 끝에 멈춰 있는데 다시 누르면 처음부터 돌린다.
-                    if (!playing && fIdx >= future.length - 1) setFIdx(0);
-                    setPlaying((p) => !p);
-                  }}
-                  disabled={future.length < 2}
-                  aria-label={playing ? '정지' : '재생'}
-                >
-                  {playing ? '❚❚' : '▶'}
-                </button>
-
-                {/* 드래그·터치로 시각을 옮긴다. 손을 대면 재생은 멈춘다. */}
-                <input
-                  type="range"
-                  className={styles.slider}
-                  min={0}
-                  max={Math.max(future.length - 1, 0)}
-                  step={1}
-                  value={fIdx}
-                  disabled={future.length < 2}
-                  onChange={(e) => {
-                    setPlaying(false);
-                    setFIdx(Number(e.target.value));
-                  }}
-                  aria-label="예보 시각 선택"
-                />
-              </div>
-
-              <div className={styles.ends}>
-                <span>1시간 후</span>
-                <span>{future.length}시간 후</span>
-              </div>
-            </>
-          )
-        )}
 
         <p className={styles.source}>
           자료 출처: 기상청 레이더 합성영상 · 초단기예보 분포도 (공공누리 제1유형) ·
