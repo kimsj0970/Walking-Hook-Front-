@@ -50,7 +50,6 @@ function readSea(): SeaKey {
 }
 
 export default function TacklePage() {
-  useAdContent(true);
   usePageMeta('루어 채비', '방파제·갯바위 루어 채비 — 로드와 릴, 원줄과 쇼크리더, 매듭까지 해역별로 정리했습니다.');
 
   const [products, setProducts] = useState<TackleProduct[]>([]);
@@ -81,6 +80,17 @@ export default function TacklePage() {
     () => products.filter((p) => p.tier === tier && seaMatch(p, sea)),
     [products, sea, tier],
   );
+  // 광고는 **화면에 보이는 채비가 실제로 있을 때만** 켠다.
+  // 이 화면의 본문은 전부 API 응답(`GET /tackle-products`)이다. 응답 전·조회 실패·
+  // 고른 조건에 맞는 제품 0건이면 필터 UI 와 그림 한 장만 남는데, 그게 바로 AdSense 가
+  // `게시자 콘텐츠가 없는 화면에 Google 게재 광고` 로 보는 상태다(2026-11-02 반려 사유).
+  // 예전에는 `useAdContent(true)` 로 조건 없이 켜 둬서 이 화면만 AdContent 안전장치를
+  // 우회하고 있었다.
+  //
+  // `products` 가 아니라 `visible` 로 판단한다 — 제품이 등록돼 있어도 고른 해역·가격대에
+  // 맞는 게 없으면 화면에는 "아직 등록된 채비가 없어요" 한 줄만 뜬다.
+  useAdContent(visible.length > 0);
+
   const byKey = (key: SpecKey) => visible.filter((p) => p.specKey === key);
 
   const pickSea = (v: SeaKey) => {
