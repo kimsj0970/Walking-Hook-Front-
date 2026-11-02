@@ -220,6 +220,10 @@ export default function RadarPage() {
       return;
     }
 
+    // 한 장도 못 받았으면 빈 화면이 아니라 안내를 띄운다. 스케줄러가 멈추면
+    // 503 이 아니라 404 만 돌아오므로, 그 경우를 여기서 잡아야 한다.
+    if (!down && !nextObs && nextFuture.length === 0) down = true;
+
     urls.current.forEach(URL.revokeObjectURL);
     urls.current = fresh;
     setUnavailable(down);
