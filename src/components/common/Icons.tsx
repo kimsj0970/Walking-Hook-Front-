@@ -68,6 +68,17 @@ export function PinIcon(p: IconProps = {}) {
   );
 }
 
+/** 주변 편의시설 — 핀 안에 십자(약국·구급 기호). 세 종류를 하나로 묶는 기호다. */
+export function FacilitiesIcon(p: IconProps = {}) {
+  return base(
+    <>
+      <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" />
+      <path d="M12 7.2v5.6M9.2 10h5.6" />
+    </>,
+    p,
+  );
+}
+
 /** 물고기 */
 export function FishIcon(p: IconProps = {}) {
   return base(
