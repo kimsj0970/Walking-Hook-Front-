@@ -17,6 +17,7 @@ import MapPage from './pages/MapPage';
 import CctvMapPage from './pages/CctvMapPage';
 import RadarPage from './pages/RadarPage';
 import FishingZonesMapPage from './pages/FishingZonesMapPage';
+import NearbyFacilitiesPage from './pages/NearbyFacilitiesPage';
 import AdminPage from './pages/admin/AdminPage';
 import InquiryPage from './pages/InquiryPage';
 import CommunityPage from './pages/CommunityPage';
@@ -76,6 +77,9 @@ export default function App() {
               {/* 비구름 — 기상청 레이더(관측)와 초단기예보(예측). 로그인 필수. */}
               <Route path="/radar" element={<PrivateRoute><RadarPage /></PrivateRoute>} />
               <Route path="/map/fishing-zones" element={<PrivateRoute><FishingZonesMapPage /></PrivateRoute>} />
+              {/* 주변 편의시설 — 화장실·주차장·약국. 원본은 공공데이터지만 55,860건을
+                  좌표째로 긁어갈 창구를 열어 둘 이유가 없어 로그인 필수로 둔다. */}
+              <Route path="/map/facilities" element={<PrivateRoute><NearbyFacilitiesPage /></PrivateRoute>} />
               <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
               <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
               <Route path="/community" element={<CommunityPage />} />
