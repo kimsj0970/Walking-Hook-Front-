@@ -93,8 +93,10 @@ function detailChips(d: PoiDetail): string[] {
   } else {
     if (a.owner) out.push(String(a.owner));
     if (a.type) out.push(`${a.type}주차장`);
+    // 원본 필드는 주차구획수(= 주차장법의 "면")인데 일상어가 아니다.
+    // 묻는 건 몇 대 댈 수 있냐는 것이므로 "대"로 쓴다.
     const slots = Number(a.slots ?? 0);
-    if (slots > 0) out.push(`${slots}면`);
+    if (slots > 0) out.push(`${slots}대`);
     if (a.h24 === true) {
       out.push('24시간');
     } else {
