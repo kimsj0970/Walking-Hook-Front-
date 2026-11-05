@@ -29,9 +29,10 @@ import MapTypeControl from '../components/map/MapTypeControl';
 import MyLocationControl from '../components/map/MyLocationControl';
 import { HourlyForecastStrip, DailyForecastCard } from '../components/home/ForecastBlocks';
 import PointVideoListModal from '../components/map/PointVideoListModal';
+import DistanceMeasureControl, { type DistanceMeasureApi } from '../components/map/DistanceMeasureControl';
 import ChannelFilterPanel from '../components/map/ChannelFilterPanel';
 import {
-  HookIcon, PinIcon, FishIcon, CctvIcon, BanIcon, BookIcon, RulerIcon,
+  HookIcon, PinIcon, FishIcon, CctvIcon, BanIcon, BookIcon, RulerIcon, FacilitiesIcon,
   ThermoIcon, WaveIcon, WindIcon, TideCycleIcon, FlowIcon, SunIcon, SunCloudIcon,
   CloudIcon, RainIcon, SnowIcon, UmbrellaIcon, SunriseIcon, SunsetIcon,
   MoonPhaseIcon, TrophyIcon, BoltIcon, AlertIcon, CameraIcon, CommentIcon, LikeIcon,
@@ -698,6 +699,14 @@ export default function HomePage() {
                 onClick={() => navigate('/radar')}>
                 <span className={styles.quickIcon}><RainIcon size={20} /></span>
                 <span className={`${styles.quickLabel} ${styles.quickLabelWrap}`}>실시간<br />레이더</span>
+              </button>
+              {/* 주변 편의시설 — 9번째라 4열 그리드에서 셋째 줄에 혼자 남는다.
+                  quickItemSolo 로 한 줄을 다 차지하게 해 가운데로 모은다.
+                  10번째가 생기면 이 클래스를 떼야 한다. */}
+              <button type="button" className={`${styles.quickItem} ${styles.quickItemSolo}`}
+                onClick={() => requireLogin(() => window.open('/map/facilities', 'facilities', 'width=900,height=680,resizable=yes'))}>
+                <span className={styles.quickIcon}><FacilitiesIcon size={20} /></span>
+                <span className={styles.quickLabel}>주변 편의시설</span>
               </button>
             </div>
             </div>
@@ -1604,6 +1613,8 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
   const [markerCount, setMarkerCount] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
+  /* 거리 재기 — 측정 중에는 마커 클릭도 점 찍기로 넘긴다 */
+  const measureRef = useRef<DistanceMeasureApi | null>(null);
   const navigate = useNavigate();
 
   // iOS Safari 포함 배경 스크롤 완전 차단
@@ -1770,7 +1781,14 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
             pointPageState.set(m.migratoryPointId, {
               page: 0, totalPages, pointName: m.pointName, speciesBadges, iw,
             });
-            kakao.maps.event.addListener(marker, 'click', () => iw.open(map, marker));
+            kakao.maps.event.addListener(marker, 'click', () => {
+              // 측정 중이면 핀 클릭이 곧 점 찍기다 — 카카오는 마커를 누르면 지도 click 을 안 쏜다.
+              if (measureRef.current?.isMeasuring()) {
+                measureRef.current.addLatLng(pos);
+                return;
+              }
+              iw.open(map, marker);
+            });
             return marker;
           });
 
@@ -1873,6 +1891,7 @@ function MigratoryMapModal({ onClose }: { onClose: () => void }) {
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
           <MapTypeControl map={mapForControl} />
           <MyLocationControl map={mapForControl} />
+          <DistanceMeasureControl map={mapForControl} apiRef={measureRef} />
         </div>
 
         {/* 안내 문구 */}
@@ -1896,6 +1915,8 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
   const [pointCount, setPointCount] = useState(0);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
+  /* 거리 재기 — 측정 중에는 마커 클릭도 점 찍기로 넘긴다 */
+  const measureRef = useRef<DistanceMeasureApi | null>(null);
   /** 영상 목록을 열 포인트 — 마커 말풍선의 "영상 보기"로 지정된다 */
   const [videoPoint, setVideoPoint] =
     useState<{ id: string; name: string; otherChannelCount: number } | null>(null);
@@ -2137,6 +2158,12 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
               hoverInfoWindow.close();
             });
             kakao.maps.event.addListener(marker, 'click', () => {
+              // 측정 중이면 핀 클릭이 곧 점 찍기다 — 카카오는 마커를 누르면 지도 click 을 안 쏜다.
+              if (measureRef.current?.isMeasuring()) {
+                hoverInfoWindow.close();
+                measureRef.current.addLatLng(position);
+                return;
+              }
               hoverInfoWindow.close();
               const cached = descriptionCache.get(p.id);
               // 설명은 대부분 비어 있으므로 "불러오는 중"을 띄우지 않는다.
@@ -2402,6 +2429,7 @@ function AllMigratoryPointsMapModal({ onClose }: { onClose: () => void }) {
           <div ref={mapRef} style={{ width: '100%', height: '100%', touchAction: 'pan-x pan-y' }} />
           <MapTypeControl map={mapForControl} />
           <MyLocationControl map={mapForControl} />
+          <DistanceMeasureControl map={mapForControl} apiRef={measureRef} />
         </div>
 
         {/* 안내 문구 */}
