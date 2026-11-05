@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchCctvList, type CctvMarker } from '../api/cctvApi';
 import MapTypeControl from '../components/map/MapTypeControl';
 import MyLocationControl from '../components/map/MyLocationControl';
+import DistanceMeasureControl, { type DistanceMeasureApi } from '../components/map/DistanceMeasureControl';
 import ImageLightbox from '../components/common/ImageLightbox';
 import styles from './MapPage.module.css';
 
@@ -58,6 +59,8 @@ export default function CctvMapPage() {
   const [errorMsg, setErrorMsg] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
+  /* 거리 재기 — 측정 중에는 마커 클릭도 점 찍기로 넘긴다 */
+  const measureRef = useRef<DistanceMeasureApi | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // InfoWindow 이미지(<img onclick>)에서 호출하는 전역 핸들러 — 클릭 시 라이트박스로 확대.
@@ -119,6 +122,11 @@ export default function CctvMapPage() {
               removable: true,
             });
             kakao.maps.event.addListener(marker, 'click', () => {
+              // 측정 중이면 핀 클릭이 곧 점 찍기다 — 카카오는 마커를 누르면 지도 click 을 안 쏜다.
+              if (measureRef.current?.isMeasuring()) {
+                measureRef.current.addLatLng(position);
+                return;
+              }
               infoWindow.open(map, marker);
             });
           });
@@ -184,6 +192,7 @@ export default function CctvMapPage() {
         <div ref={mapRef} className={styles.map} />
         <MapTypeControl map={mapForControl} />
         <MyLocationControl map={mapForControl} />
+        <DistanceMeasureControl map={mapForControl} apiRef={measureRef} />
       </div>
 
       {lightboxUrl && (
