@@ -451,6 +451,14 @@
   justify-items: center;
 }
 
+/* 4열 그리드에서 혼자 남는 항목. 한 줄을 다 차지시키고 justify-items: center 로
+   가운데에 모은다 — 왼쪽에 붙어 빈 칸 셋을 남기면 화면이 미완성으로 보인다. */
+.quickItemSolo {
+  grid-column: 1 / -1;
+  width: auto;
+  min-width: 25%;
+}
+
 .quickItem {
   width: 100%;
   display: flex;
