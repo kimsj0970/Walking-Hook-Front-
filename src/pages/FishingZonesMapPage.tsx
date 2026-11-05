@@ -9,6 +9,7 @@ import {
 } from '../api/fishingZoneApi';
 import MapTypeControl from '../components/map/MapTypeControl';
 import MyLocationControl from '../components/map/MyLocationControl';
+import DistanceMeasureControl, { type DistanceMeasureApi } from '../components/map/DistanceMeasureControl';
 import styles from './MapPage.module.css';
 
 /**
@@ -196,6 +197,8 @@ export default function FishingZonesMapPage() {
   const [zoomedOut, setZoomedOut] = useState(true);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapForControl, setMapForControl] = useState<any>(null);
+  /* 거리 재기 — 측정 중에는 마커 클릭도 점 찍기로 넘긴다 */
+  const measureRef = useRef<DistanceMeasureApi | null>(null);
 
   const overlaysRef = useRef<Map<string, ZonePolygon>>(new Map());
   const reqSeqRef = useRef(0);
@@ -239,6 +242,11 @@ export default function FishingZonesMapPage() {
 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const openInfo = (zone: FishingZone, latLng: any) => {
+            // 구역이 화면을 덮고 있으면 지도 click 이 오지 않는다. 측정 중에는 구역 클릭을 점으로 넘긴다.
+            if (measureRef.current?.isMeasuring()) {
+              measureRef.current.addLatLng(latLng);
+              return;
+            }
             infoWindow.setContent(buildInfoContent(zone));
             infoWindow.setPosition(latLng);
             infoWindow.open(map);
@@ -386,6 +394,7 @@ export default function FishingZonesMapPage() {
         <div ref={mapRef} className={styles.map} />
         <MapTypeControl map={mapForControl} />
         <MyLocationControl map={mapForControl} />
+        <DistanceMeasureControl map={mapForControl} apiRef={measureRef} />
         {status === 'ready' && fetching && (
           <div
             style={{
