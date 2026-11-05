@@ -1,0 +1,167 @@
+/*
+  버튼은 현위치 버튼(bottom 32px) 바로 위에 쌓는다.
+  44px + 8px 간격 = 84px. 카카오 저작권 표기를 가리지 않는다.
+*/
+.btn {
+  position: absolute;
+  right: 12px;
+  bottom: 84px;
+  z-index: 5;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.96);
+  color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.btn:hover {
+  background: #fff;
+}
+
+.btnActive {
+  background: #db2777;
+  color: #fff;
+}
+
+.btnActive:hover {
+  background: #be185d;
+}
+
+/* 측정 패널 — 오른쪽 버튼 두 개(44px + 여백)를 피해서 눕는다. */
+.panel {
+  position: absolute;
+  left: 12px;
+  right: 68px;
+  bottom: 32px;
+  z-index: 7;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #F9A8D4;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.total {
+  font-size: 16px;
+  font-weight: 800;
+  color: #BE185D;
+  letter-spacing: -0.2px;
+}
+
+.count {
+  font-size: 11.5px;
+  color: #94A3B8;
+}
+
+.guide {
+  font-size: 12.5px;
+  color: #475569;
+  word-break: keep-all;
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.action {
+  border: 1px solid #E2E8F0;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.action:hover:not(:disabled) {
+  background: #F8FAFC;
+}
+
+.action:disabled {
+  color: #CBD5E1;
+  cursor: default;
+}
+
+.done {
+  border-color: #DB2777;
+  background: #DB2777;
+  color: #fff;
+}
+
+.done:hover:not(:disabled) {
+  background: #BE185D;
+}
+
+/* 지도 위 꼭짓점 — 시작점과 (끊은 뒤의) 끝점은 채워서 구분한다 */
+.dot,
+.dotStart {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #db2777;
+  box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dotStart {
+  width: 14px;
+  height: 14px;
+  background: #db2777;
+  border-color: #fff;
+}
+
+/* 꼭짓점 옆 누적 거리 */
+.label {
+  margin-left: 9px;
+  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #F9A8D4;
+  border-radius: 6px;
+  color: #9D174D;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+
+.labelPreview {
+  background: rgba(219, 39, 119, 0.92);
+  border-color: transparent;
+  color: #fff;
+}
+
+/* 끊은 선의 마지막 라벨 = 총거리 */
+.labelTotal {
+  background: #DB2777;
+  border-color: #DB2777;
+  color: #fff;
+  font-size: 12.5px;
+  padding: 3px 9px;
+}
