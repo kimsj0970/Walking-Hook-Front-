@@ -1,0 +1,92 @@
+/* 종류 토글 — 지도 위 왼쪽. 오른쪽은 지도 종류·현위치 컨트롤 자리로 비운다. */
+.kindBar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 140px);
+}
+
+.kindChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.kindChip:hover {
+  border-color: #bfd3ec;
+}
+
+.kindChipOn {
+  color: #fff;
+  border-color: transparent;
+}
+
+.kindDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 9px;
+}
+
+/* 안내 — 숫자 뱃지가 무엇인지, 핀이 잘렸는지 알려 준다.
+   설명 없이 "34" 만 떠 있으면 거리나 평점으로 읽힌다. */
+.hintBanner {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.86);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+
+@media (min-width: 720px) {
+  .hintBanner {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    max-width: 560px;
+  }
+}
+
+/* 격자 칸 뱃지. 지도 위에 올라가는 CustomOverlay 의 내용이다. */
+.cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.28);
+  transform: translate(-50%, -50%);
+}
