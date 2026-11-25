@@ -31,16 +31,34 @@ const INTERVAL_HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 /**
  * 호출 1건당 대략적인 원화 비용.
  *
- * 2026-08 실측(539건 / $1.64)에서 나온 값이라 프롬프트 길이가 바뀌면 같이 바뀐다.
- * 정확한 청구액이 아니라 "설정을 바꾸면 얼마나 달라지는가"를 가늠하는 용도다.
+ * 프롬프트 길이와 **모델**이 바뀌면 같이 바뀐다. 정확한 청구액이 아니라
+ * "설정을 바꾸면 얼마나 달라지는가"를 가늠하는 용도다.
+ *
+ * - 4.2원 : gpt-4o-mini, 2026-08 실측(539건 / $1.64)
+ * - 1.6원 : gpt-5-nano  (2026-11-10 전환) — 입력 16,800토큰 x $0.05/1M
+ *                        + 출력 870토큰 x $0.40/1M, 위 실측과 같은 환율로 환산
+ *
+ * ⚠️ 이 값은 **계산값이지 실측이 아니다.** 전환 후 며칠 지나면 OpenAI 대시보드의
+ *    실제 지출/호출 수로 다시 맞출 것. gpt-5 계열은 내부 추론 토큰이 출력으로
+ *    과금되므로 출력 쪽이 계산보다 클 수 있다.
+ * ⚠️ backend 의 analysis.model 을 바꾸면 이 상수도 같이 고쳐야 한다.
+ *    안 고치면 화면이 "비용이 안 줄었다"고 거짓말한다.
  */
-const WON_PER_CALL = 4.2;
+const WON_PER_CALL = 1.6;
 
 /**
  * 서버가 캐시 수명에 더하는 여유분(분). 백엔드 AiCacheWindow.INTERVAL_BUFFER 와 같은 값.
  * 갱신이 완료 시점 기준으로 재예약되므로 캐시는 갱신 간격보다 조금 길어야 한다.
  */
-const CACHE_BUFFER_MINUTES = 30;
+const CACHE_BUFFER_MINUTES = 60;
+
+/** 갱신 간격(시간)에 여유분을 더한 캐시 수명을 "5시간" / "4시간 30분" 꼴로 만든다. */
+const formatCacheLifetime = (intervalHours: number) => {
+  const total = intervalHours * 60 + CACHE_BUFFER_MINUTES;
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  return minutes === 0 ? `${hours}시간` : `${hours}시간 ${minutes}분`;
+};
 
 const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}시`;
 
@@ -490,7 +508,7 @@ export default function PointManagementPage() {
                 ? '시작 시각과 종료 시각이 같을 수 없습니다.'
                 : `${formatWindow(draftStartHour, draftEndHour)} 동안 ` +
                   `${draftIntervalHours}시간마다 동작합니다. ` +
-                  `분석 결과는 ${draftIntervalHours}시간 ${CACHE_BUFFER_MINUTES}분 동안 재사용됩니다.`}
+                  `분석 결과는 ${formatCacheLifetime(draftIntervalHours)} 동안 재사용됩니다.`}
             </p>
             {draftStartHour !== draftEndHour && schedulePointCount > 0 && (
               <p className={styles.hourHint}>
