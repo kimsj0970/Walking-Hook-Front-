@@ -18,6 +18,7 @@ import CctvMapPage from './pages/CctvMapPage';
 import RadarPage from './pages/RadarPage';
 import FishingZonesMapPage from './pages/FishingZonesMapPage';
 import NearbyFacilitiesPage from './pages/NearbyFacilitiesPage';
+import MarineMapPage from './pages/MarineMapPage';
 import AdminPage from './pages/admin/AdminPage';
 import InquiryPage from './pages/InquiryPage';
 import CommunityPage from './pages/CommunityPage';
@@ -80,6 +81,9 @@ export default function App() {
               {/* 주변 편의시설 — 화장실·주차장·약국. 원본은 공공데이터지만 55,860건을
                   좌표째로 긁어갈 창구를 열어 둘 이유가 없어 로그인 필수로 둔다. */}
               <Route path="/map/facilities" element={<PrivateRoute><NearbyFacilitiesPage /></PrivateRoute>} />
+              {/* 해양 정보 — 수온·적조·해파리. 편의시설과 같은 이유로 PrivateRoute 다:
+                  /marine/temp 가 로그인 필수 API 라 비로그인 진입 시 빈 지도가 된다. */}
+              <Route path="/map/marine" element={<PrivateRoute><MarineMapPage /></PrivateRoute>} />
               <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
               <Route path="/inquiry" element={<PrivateRoute><InquiryPage /></PrivateRoute>} />
               <Route path="/community" element={<CommunityPage />} />
