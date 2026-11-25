@@ -33,6 +33,7 @@ import DistanceMeasureControl, { type DistanceMeasureApi } from '../components/m
 import ChannelFilterPanel from '../components/map/ChannelFilterPanel';
 import {
   HookIcon, PinIcon, FishIcon, CctvIcon, BanIcon, BookIcon, RulerIcon, FacilitiesIcon,
+  MarineIcon,
   ThermoIcon, WaveIcon, WindIcon, TideCycleIcon, FlowIcon, SunIcon, SunCloudIcon,
   CloudIcon, RainIcon, SnowIcon, UmbrellaIcon, SunriseIcon, SunsetIcon,
   MoonPhaseIcon, TrophyIcon, BoltIcon, AlertIcon, CameraIcon, CommentIcon, LikeIcon,
@@ -700,13 +701,18 @@ export default function HomePage() {
                 <span className={styles.quickIcon}><RainIcon size={20} /></span>
                 <span className={`${styles.quickLabel} ${styles.quickLabelWrap}`}>실시간<br />레이더</span>
               </button>
-              {/* 주변 편의시설 — 9번째라 4열 그리드에서 셋째 줄에 혼자 남는다.
-                  quickItemSolo 로 한 줄을 다 차지하게 해 가운데로 모은다.
-                  10번째가 생기면 이 클래스를 떼야 한다. */}
-              <button type="button" className={`${styles.quickItem} ${styles.quickItemSolo}`}
+              <button type="button" className={styles.quickItem}
                 onClick={() => requireLogin(() => window.open('/map/facilities', 'facilities', 'width=900,height=680,resizable=yes'))}>
                 <span className={styles.quickIcon}><FacilitiesIcon size={20} /></span>
                 <span className={styles.quickLabel}>주변 편의시설</span>
+              </button>
+              {/* 해양 정보 — 10번째. 이걸로 4열 그리드가 딱 맞아떨어져서
+                  편의시설에 붙어 있던 quickItemSolo(혼자 남는 칸을 가운데로
+                  모으던 예외)를 뗐다. 11번째가 생기면 다시 필요해진다. */}
+              <button type="button" className={styles.quickItem}
+                onClick={() => requireLogin(() => window.open('/map/marine', 'marine', 'width=980,height=720,resizable=yes'))}>
+                <span className={styles.quickIcon}><MarineIcon size={20} /></span>
+                <span className={`${styles.quickLabel} ${styles.quickLabelWrap}`}>해양 정보<br />수온 · 적조</span>
               </button>
             </div>
             </div>
