@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  EMPTY_POI_MAP,
   POI_KINDS,
   fetchPoiDetail,
   fetchPoiMap,
@@ -175,7 +174,6 @@ export default function NearbyFacilitiesPage() {
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [mapForControl, setMapForControl] = useState<any>(null);
-  const [data, setData] = useState<PoiMapData>(EMPTY_POI_MAP);
   // 한 번에 한 종류만 본다. 겹치면 뱃지 색이 섞여 숫자의 의미가 사라진다.
   const [kind, setKind] = useState<number>(0);
 
@@ -340,7 +338,6 @@ export default function NearbyFacilitiesPage() {
               .then(next => {
                 if (cancelled || seq !== seqRef.current) return;
                 draw(next);
-                setData(next);
                 setStatus('ready');
               })
               .catch(() => {
@@ -386,17 +383,6 @@ export default function NearbyFacilitiesPage() {
     reloadRef.current?.();
   }, [kind]);
 
-  const label = poiKind(kind).label;
-  const hint = (() => {
-    if (status !== 'ready') return null;
-    if (data.isCluster) {
-      if (data.clusters.length === 0) return `이 범위에는 등록된 ${label}이 없습니다.`;
-      return `숫자는 그 지역의 ${label} 개수입니다. 확대하면 하나씩 표시됩니다.`;
-    }
-    if (data.pins.length === 0) return `이 범위에는 등록된 ${label}이 없습니다.`;
-    return null;
-  })();
-
   const handleClose = () => {
     if (window.opener && !window.opener.closed) {
       window.close();
@@ -416,7 +402,7 @@ export default function NearbyFacilitiesPage() {
       </header>
 
       <p className={styles.hint}>
-        종류를 하나 골라 봅니다. 핀을 클릭하면 개방시간·면수 같은 상세가 열립니다
+        종류를 하나 골라 봅니다. 핀을 클릭하면 개방시간·주차 대수 같은 상세가 열립니다
       </p>
 
       {status !== 'ready' && (
@@ -458,8 +444,6 @@ export default function NearbyFacilitiesPage() {
             );
           })}
         </div>
-
-        {hint && <div className={local.hintBanner}>{hint}</div>}
 
         <MapTypeControl map={mapForControl} />
         <MyLocationControl map={mapForControl} />
