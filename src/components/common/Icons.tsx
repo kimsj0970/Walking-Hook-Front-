@@ -374,3 +374,15 @@ export function FlowIcon(p: IconProps = {}) {
 export function ChevronRightIcon(p: IconProps = {}) {
   return base(<path d="M9 5l7 7-7 7" />, { strokeWidth: 2, ...p });
 }
+
+/** 물결 세 줄 — 해양 정보(수온·적조·해파리) */
+export function MarineIcon(p: IconProps = {}) {
+  return base(
+    <>
+      <path d="M2.5 7c2.2-1.9 4-1.9 6.2 0s4 1.9 6.2 0 4-1.9 6.1 0" />
+      <path d="M2.5 12.5c2.2-1.9 4-1.9 6.2 0s4 1.9 6.2 0 4-1.9 6.1 0" />
+      <path d="M2.5 18c2.2-1.9 4-1.9 6.2 0s4 1.9 6.2 0 4-1.9 6.1 0" />
+    </>,
+    p,
+  );
+}
