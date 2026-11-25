@@ -205,10 +205,13 @@ export function DailyForecastCard({ items }: { items: DailyForecast[] | null }) 
             ))}
           </div>
 
-          <div className={styles.dayFooter}>
-            {tides.length > 0 && <span className={styles.dayFooterTide}>만조 {tides.join(' · ')}</span>}
-            <span className={styles.dayFooterNote}>수온은 예보 없음</span>
-          </div>
+          {/* 수온 안내는 뺐다(2026-11-06) — 없는 값을 매번 알릴 이유가 없다.
+              만조까지 비면 빈 회색 상자만 남으므로 줄 자체를 그리지 않는다. */}
+          {tides.length > 0 && (
+            <div className={styles.dayFooter}>
+              <span className={styles.dayFooterTide}>만조 {tides.join(' · ')}</span>
+            </div>
+          )}
         </>
       )}
     </div>
