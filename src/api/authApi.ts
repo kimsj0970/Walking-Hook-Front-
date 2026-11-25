@@ -53,6 +53,14 @@ interface ReissueData {
 let reissuePromise: Promise<ReissueData> | null = null;
 
 function callReissue(): Promise<ReissueData> {
+  // CSRF 토큰이 없으면 서버가 반드시 거절한다(UserController.csrfTokenCheck).
+  // 웹은 CSRF 를 sessionStorage 에 두므로 탭을 닫으면 사라지는데, refreshToken 쿠키는
+  // 남아 있어 앱이 "로그인 상태였다" 고 판단해 재발급을 시도한다 — 성공할 수 없는 요청이다.
+  // 미리 끊어서 왕복 2 회와 서버 에러 로그를 없앤다. 아래 catch 들이 그대로 받으므로
+  // 동작은 같다(silentRefresh → null, 401 인터셉터 → auth-expired).
+  if (!inMemoryCsrfToken) {
+    return Promise.reject(new Error('CSRF 토큰 없음 — 재로그인 필요'));
+  }
   if (!reissuePromise) {
     reissuePromise = axios
       .post(
