@@ -324,13 +324,6 @@
   color: var(--color-primary);
 }
 
-/* 만조가 비면 이 문구만 남아 왼쪽으로 붙는다 — 오른쪽 정렬을 강제하지 않는다. */
-.dayFooterNote {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--color-text-light);
-  white-space: nowrap;
-}
 
 /* 좁은 화면에서는 여섯 칸이 44px 안팎까지 줄어든다. 글자를 한 단계 낮춰 잘림을 막는다. */
 @media (max-width: 460px) {
